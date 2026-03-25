@@ -1,10 +1,12 @@
 import Foundation
 import CoreGraphics
+import CoreMedia
 import CoreVideo
 import VirtualDisplayBridge
 
 // Remote Extended Screen — Mac Host
 // Phase 1: Virtual Display + Decoupled Capture Pipeline
+// Phase 2: H.264 Encoding + Local Validation
 
 print("[RESC] Remote Extended Screen Host starting...")
 print("[RESC] macOS build: \(CGVirtualDisplayBridge.osBuildVersion())")
@@ -14,8 +16,18 @@ let args = CommandLine.arguments
 let width = Int(args.dropFirst().first ?? "1920") ?? 1920
 let height = Int(args.dropFirst(2).first ?? "1080") ?? 1080
 let refreshRate = Int(args.dropFirst(3).first ?? "60") ?? 60
+// --dump-h264 <path>: write raw H.264 stream to file for validation
+let dumpH264Path: String? = {
+    if let idx = args.firstIndex(of: "--dump-h264"), idx + 1 < args.count {
+        return args[idx + 1]
+    }
+    return nil
+}()
 
 print("[RESC] Requested mode: \(width)x\(height)@\(refreshRate)Hz")
+if let path = dumpH264Path {
+    print("[RESC] H.264 dump: \(path)")
+}
 
 // Check OS version
 let osGate = VirtualDisplayManager.checkOSVersion()
@@ -55,30 +67,65 @@ let capturer = DisplayCapturer(
     frameSlot: frameSlot
 )
 
-// Encoder thread (Phase 1: just logs frame stats; Phase 2 adds actual encoding)
+// Set up H.264 encoder
+let h264FileHandle: FileHandle? = {
+    guard let path = dumpH264Path else { return nil }
+    FileManager.default.createFile(atPath: path, contents: nil)
+    return FileHandle(forWritingAtPath: path)
+}()
+
+var encoderConfig = VideoEncoder.Config(
+    width: Int32(width),
+    height: Int32(height),
+    fps: Double(refreshRate)
+)
+encoderConfig.bitrateBps = VideoEncoder.Config.defaultBitrate(width: Int32(width), height: Int32(height))
+
+let encoder = VideoEncoder(config: encoderConfig) { annexBData, isKeyframe, pts, encodeDurationMs in
+    // Write to .h264 file if dumping
+    h264FileHandle?.write(annexBData)
+
+    // Log first frame and keyframes
+    if isKeyframe {
+        let kbSize = annexBData.count / 1024
+        // Only log occasionally to avoid spam
+        let stats = encoder.stats
+        if stats.keyframes <= 3 || stats.keyframes % 10 == 0 {
+            print("[RESC] Keyframe #\(stats.keyframes): \(kbSize)KB, encode \(String(format: "%.1f", encodeDurationMs))ms")
+        }
+    }
+}
+
+// Encoder thread: reads from LatestFrameSlot → encodes with VideoToolbox
+var presentationTimeBase: CMTime?
 let encoderThread = Thread {
-    print("[RESC] Encoder thread started (Phase 1: frame stats only)")
+    print("[RESC] Encoder thread started")
     var frameCount: UInt64 = 0
-    let startTime = CFAbsoluteTimeGetCurrent()
+
+    do {
+        try encoder.start()
+    } catch {
+        print("[RESC] ERROR: Encoder start failed: \(error)")
+        return
+    }
 
     while !Thread.current.isCancelled {
         guard let pixelBuffer = frameSlot.waitAndTake() else { continue }
         frameCount += 1
 
-        // Phase 1: just track that we're getting frames
         if frameCount == 1 {
             let w = CVPixelBufferGetWidth(pixelBuffer)
             let h = CVPixelBufferGetHeight(pixelBuffer)
-            let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
-            print("[RESC] Encoder received first frame: \(w)x\(h), format=\(String(format: "0x%08X", format))")
+            let fmt = CVPixelBufferGetPixelFormatType(pixelBuffer)
+            print("[RESC] Encoder first frame: \(w)x\(h), format=\(String(format: "0x%08X", fmt))")
         }
 
-        if frameCount % 300 == 0 {
-            let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-            let fps = Double(frameCount) / elapsed
-            print("[RESC] Encoder stats: \(frameCount) frames, \(String(format: "%.1f", fps)) fps avg, \(frameSlot.dropCount) dropped")
-        }
+        // Generate presentation timestamp (monotonic, based on frame count)
+        let pts = CMTime(value: CMTimeValue(frameCount), timescale: Int32(refreshRate))
+        encoder.encode(pixelBuffer: pixelBuffer, presentationTime: pts)
     }
+
+    encoder.stop()
 }
 encoderThread.name = "com.resc.encoder"
 encoderThread.qualityOfService = QualityOfService.userInteractive
@@ -98,9 +145,7 @@ Task {
             print("[RESC] Then restart this program.")
             print("[RESC]")
             print("[RESC] Virtual display is alive (displayID=\(displayHandle.lastKnownDisplayID)).")
-            print("[RESC] Check System Settings > Displays to verify it appears.")
             print("[RESC] Waiting for Ctrl+C...")
-            // Keep running so user can check display appeared
         } else {
             print("[RESC] ERROR: Failed to start capture: \(error)")
             displayManager.destroy()
@@ -113,8 +158,18 @@ Task {
 signal(SIGINT) { _ in
     print("\n[RESC] Shutting down...")
     Task {
+        encoder.stop()
+        h264FileHandle?.closeFile()
         await capturer.stop()
         displayManager.destroy()
+
+        let stats = encoder.stats
+        print("[RESC] Final: \(stats.frames) frames encoded, \(stats.keyframes) keyframes, avg encode \(String(format: "%.1f", stats.avgEncodeMs))ms")
+        if let path = dumpH264Path {
+            let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? UInt64) ?? 0
+            print("[RESC] H.264 dump: \(path) (\(size / 1024)KB)")
+            print("[RESC] Verify with: ffplay \(path)")
+        }
         print("[RESC] Cleanup complete. Exiting.")
         exit(0)
     }
