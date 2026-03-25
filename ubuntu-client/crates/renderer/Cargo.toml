@@ -1,0 +1,8 @@
+[package]
+name = "renderer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+log = "0.4"
+# sdl2 = "0.37"  # enabled in Phase 4

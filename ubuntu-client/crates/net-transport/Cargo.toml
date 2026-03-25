@@ -1,0 +1,13 @@
+[package]
+name = "net-transport"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+protocol = { path = "../protocol" }
+jitter-buffer = { path = "../jitter-buffer" }
+prost = "0.13"
+tokio = { version = "1", features = ["net", "io-util", "sync", "time", "macros"] }
+mdns-sd = "0.11"
+log = "0.4"
+anyhow = "1"

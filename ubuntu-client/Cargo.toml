@@ -1,0 +1,26 @@
+[workspace]
+members = [
+    ".",
+    "crates/protocol",
+    "crates/net-transport",
+    "crates/jitter-buffer",
+    "crates/video-decode",
+    "crates/renderer",
+    "crates/input-capture",
+]
+resolver = "2"
+
+[package]
+name = "remote-display-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+protocol = { path = "crates/protocol" }
+net-transport = { path = "crates/net-transport" }
+jitter-buffer = { path = "crates/jitter-buffer" }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+log = "0.4"
+env_logger = "0.11"
+clap = { version = "4", features = ["derive"] }
