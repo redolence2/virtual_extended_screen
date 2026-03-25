@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package resc.cursor;
+
+// Cursor shape identifiers shared between host (CursorTracker) and client (cursor_renderer).
+// The actual CursorUpdate message is sent as a binary UDP packet (NOT protobuf),
+// but both sides need to agree on shape IDs.
+
+enum CursorShape {
+  CURSOR_ARROW = 0;
+  CURSOR_IBEAM = 1;
+  CURSOR_CROSSHAIR = 2;
+  CURSOR_OPEN_HAND = 3;
+  CURSOR_CLOSED_HAND = 4;
+  CURSOR_POINTING_HAND = 5;
+  CURSOR_RESIZE_N = 6;
+  CURSOR_RESIZE_S = 7;
+  CURSOR_RESIZE_E = 8;
+  CURSOR_RESIZE_W = 9;
+  CURSOR_RESIZE_NS = 10;
+  CURSOR_RESIZE_EW = 11;
+  CURSOR_RESIZE_NESW = 12;
+  CURSOR_RESIZE_NWSE = 13;
+  CURSOR_NOT_ALLOWED = 14;
+  CURSOR_WAIT = 15;
+}

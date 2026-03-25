@@ -1,0 +1,227 @@
+syntax = "proto3";
+
+package resc.control;
+
+// Remote Extended Screen (RESC) control-plane protocol.
+// Transport: TCP+TLS, framed as u32_le length + protobuf Envelope bytes.
+//
+// Directionality (MVP):
+//   Client → Host: PairRequest, ModeRequest, StreamingReady, Stats, RequestIDR, KeyEvent
+//   Host   → Client: PairResponse, ModeConfirm, ModeReject, StartStreaming, StopStreaming
+//
+// Session ID:
+//   - Client sends session_id=0 until it receives ModeConfirm.
+//   - Host generates a random session_id (u64) and includes it in ModeConfirm.
+//   - session_id persists across reconnects within the same grace period for log correlation.
+//
+// Versioning:
+//   - protocol_version must equal PROTOCOL_VERSION (1 in MVP). Mismatch → ModeReject + close.
+
+message Envelope {
+  uint64 session_id = 1;        // 0 until assigned by host in ModeConfirm
+  uint32 protocol_version = 2;  // must equal PROTOCOL_VERSION (=1)
+
+  oneof payload {
+    // Pairing (10–19)
+    PairRequest pair_request = 10;
+    PairResponse pair_response = 11;
+
+    // Mode negotiation (20–29)
+    ModeRequest mode_request = 20;
+    ModeConfirm mode_confirm = 21;
+    ModeReject mode_reject = 22;
+    StartStreaming start_streaming = 23;
+    StreamingReady streaming_ready = 24;
+
+    // Runtime (30–39)
+    Stats stats = 30;
+    RequestIDR request_idr = 31;
+
+    // Input (40–49)
+    KeyEvent key_event = 40;
+
+    // Lifecycle (50–59)
+    StopStreaming stop_streaming = 50;
+  }
+}
+
+// ----------------------
+// Pairing (10–19)
+// ----------------------
+
+message PairRequest {
+  string pin = 1;                // 6-digit PIN displayed by host UI
+  string client_device_id = 2;  // stable client ID stored on disk (UUID)
+  bytes nonce = 3;               // 16 random bytes for replay protection
+  uint64 timestamp_unix_ms = 4;  // reject if >60s skew
+}
+
+message PairResponse {
+  bytes host_cert_fingerprint = 1; // SHA-256, 32 bytes
+  string host_device_id = 2;      // stable host ID stored on disk (UUID)
+}
+
+// ----------------------
+// Mode negotiation (20–29)
+// ----------------------
+
+message ModeRequest {
+  uint32 protocol_version = 1;         // must equal PROTOCOL_VERSION; mismatch → ModeReject
+  repeated DisplayMode preferred_modes = 2; // ordered by preference
+  Rotation rotation = 3;
+  repeated Codec supported_codecs = 4;  // present from day one; ignored in phases 1–7
+}
+
+message DisplayMode {
+  uint32 width = 1;
+  uint32 height = 2;
+  uint32 refresh_rate_millihz = 3;  // e.g. 60000 for 60 Hz
+}
+
+enum Rotation {
+  ROTATION_0 = 0;
+  ROTATION_90 = 1;
+  ROTATION_180 = 2;
+  ROTATION_270 = 3;
+}
+
+message ModeConfirm {
+  uint64 session_id = 1;  // host-assigned; also set in Envelope.session_id
+
+  // IDs for filtering UDP packets.
+  uint32 stream_id = 2;
+  uint32 config_id = 3;
+
+  // Actual mode applied by host.
+  uint32 actual_width = 4;
+  uint32 actual_height = 5;
+  uint32 actual_refresh_rate_millihz = 6;
+  Rotation actual_rotation = 7;
+
+  // StreamSpace dimensions (= virtual display pixel resolution).
+  uint32 stream_width = 8;
+  uint32 stream_height = 9;
+
+  // Codec info.
+  Codec codec = 10;                 // H264 in phases 1–7
+  CodecProfile codec_profile = 11;  // H264_HIGH in MVP
+  uint32 codec_level_idc = 12;      // 41 or 51 (H.264 level_idc convention)
+
+  // Initial encoder bitrate (host-selected).
+  uint32 bitrate_bps = 13;
+
+  // Transport sizing / receiver preallocation.
+  uint32 max_datagram_bytes = 14;          // 1400
+  uint32 max_video_payload_bytes = 15;     // 1362
+  uint32 max_total_chunks_per_frame = 16;  // e.g. 256
+  uint32 max_frame_bytes = 17;             // MUST be non-zero for 4K60
+
+  // Ports for UDP side channels.
+  uint32 video_port = 20;
+  uint32 input_udp_port = 21;
+  uint32 cursor_udp_port = 22;
+}
+
+message ModeReject {
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    INCOMPATIBLE_PROTOCOL_VERSION = 1;
+    NOT_PAIRED = 2;
+    UNSUPPORTED_MODE = 3;
+    INTERNAL_ERROR = 4;
+  }
+
+  Reason reason = 1;
+  string message = 2;  // human-readable debug string
+}
+
+message StartStreaming {
+  uint32 stream_id = 1;
+  uint32 config_id = 2;
+}
+
+message StreamingReady {
+  uint32 stream_id = 1;
+  uint32 config_id = 2;
+}
+
+// ----------------------
+// Runtime (30–39)
+// ----------------------
+
+message Stats {
+  float packet_loss_rate = 1;   // 0.0–1.0
+  float frame_drop_rate = 2;    // 0.0–1.0
+  uint32 decode_ms_p95 = 3;     // 95th percentile decode time
+
+  // Debug counters.
+  uint32 misrouted_packets = 10;
+  uint32 unsupported_version_packets = 11;
+}
+
+message RequestIDR {
+  uint32 stream_id = 1;
+  uint32 config_id = 2;
+
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    FRAME_LOSS = 1;
+    DECODE_ERROR = 2;
+    PARAMETER_SET_LOSS = 3;
+  }
+
+  Reason reason = 3;
+}
+
+// ----------------------
+// Input (40–49)
+// ----------------------
+
+message KeyEvent {
+  uint32 seq = 1;
+  bool is_down = 2;  // protobuf bool is well-defined; UDP structs use u8
+
+  // Client sends both fields:
+  uint32 hid_usage = 3;       // USB HID usage code (layout-independent)
+  uint32 logical_keysym = 4;  // SDL keysym / Unicode codepoint (layout-dependent)
+
+  uint32 modifiers = 10;  // modifiers snapshot for debug/telemetry
+}
+
+// ----------------------
+// Lifecycle (50–59)
+// ----------------------
+
+message StopStreaming {
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    USER_REQUEST = 1;
+    GRACE_PERIOD_EXPIRED = 2;
+    INTERNAL_ERROR = 3;
+  }
+
+  Reason reason = 1;
+  string message = 2;
+}
+
+// ----------------------
+// Codec enums
+// ----------------------
+
+enum Codec {
+  CODEC_H264 = 0;
+  CODEC_HEVC = 1;
+}
+
+enum CodecProfile {
+  PROFILE_UNSPECIFIED = 0;
+
+  // H.264 profiles
+  H264_BASELINE = 1;
+  H264_MAIN = 2;
+  H264_HIGH = 3;
+
+  // HEVC profiles (Phase 8+)
+  HEVC_MAIN = 10;
+  HEVC_MAIN10 = 11;
+}

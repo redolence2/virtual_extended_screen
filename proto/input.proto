@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package resc.input;
+
+// Input event types for the UDP input channel.
+// Mouse/scroll events are sent as binary UDP packets (NOT protobuf).
+// Keyboard events are sent as protobuf KeyEvent over TCP (see control.proto).
+// This file defines shared enums used by both sides.
+
+enum MouseButton {
+  MOUSE_BUTTON_LEFT = 0;
+  MOUSE_BUTTON_RIGHT = 1;
+  MOUSE_BUTTON_MIDDLE = 2;
+  MOUSE_BUTTON_BACK = 3;    // X1 / back button
+  MOUSE_BUTTON_FORWARD = 4; // X2 / forward button
+}
+
+enum InputEventType {
+  INPUT_MOUSE_MOVE = 0;
+  INPUT_MOUSE_DOWN = 1;
+  INPUT_MOUSE_UP = 2;
+  INPUT_SCROLL = 3;
+}
+
+// Binary layout for UDP input packets (for reference — implemented as code constants):
+//
+// InputEvent (after PacketPrefix):
+//   seq:         u32    // monotonic, latest-seq-wins for mouse moves
+//   event_type:  u8     // InputEventType
+//   x_px:        i32    // StreamSpace pixels (mouse position)
+//   y_px:        i32    // StreamSpace pixels
+//   button:      u8     // MouseButton (for down/up events)
+//   scroll_dx:   i16    // horizontal scroll delta (for scroll events)
+//   scroll_dy:   i16    // vertical scroll delta (for scroll events)
+//   modifiers:   u32    // modifier key state bitmask
+//
+// Total: 4 + 1 + 4 + 4 + 1 + 2 + 2 + 4 = 22 bytes
+// INPUT_EVENT_BYTES = 22
+// INPUT_TOTAL_PACKET_BYTES = PACKET_PREFIX_BYTES + INPUT_EVENT_BYTES = 28

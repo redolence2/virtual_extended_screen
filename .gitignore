@@ -1,0 +1,44 @@
+# === Build artifacts (kept inside project) ===
+.build/
+mac-host/.build/
+ubuntu-client/target/
+
+# === Local tools (downloaded, not committed) ===
+tools/bin/
+tools/include/
+tools/lib/
+
+# === OS / Editor ===
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# === Swift ===
+Package.resolved
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+
+# === Rust ===
+Cargo.lock
+# Keep Cargo.lock for the top-level workspace if desired, but ignore in subcrates
+
+# === Generated protobuf code (committed separately) ===
+# We commit generated code, so don't ignore it
+
+# === Secrets / local config ===
+*.pem
+*.key
+.env
+.env.local
+config.local.json
+
+# === Debug output ===
+*.h264
+*.hevc
+*.png
+*.raw
