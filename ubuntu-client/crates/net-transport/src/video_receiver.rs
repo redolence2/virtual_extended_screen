@@ -27,7 +27,24 @@ impl VideoReceiver {
         max_chunks_per_frame: u16,
         max_frame_bytes: u32,
     ) -> Result<Self> {
-        let socket = UdpSocket::bind(format!("0.0.0.0:{}", port))?;
+        // Create socket with SO_REUSEADDR before bind (avoids "Address already in use")
+        let raw_socket = unsafe {
+            let fd = libc::socket(libc::AF_INET, libc::SOCK_DGRAM, 0);
+            if fd < 0 { anyhow::bail!("socket() failed"); }
+            let one: i32 = 1;
+            libc::setsockopt(fd, libc::SOL_SOCKET, libc::SO_REUSEADDR,
+                &one as *const i32 as *const libc::c_void,
+                std::mem::size_of::<i32>() as libc::socklen_t);
+            let mut addr: libc::sockaddr_in = std::mem::zeroed();
+            addr.sin_family = libc::AF_INET as u16;
+            addr.sin_port = port.to_be();
+            addr.sin_addr.s_addr = 0; // INADDR_ANY
+            let ret = libc::bind(fd, &addr as *const libc::sockaddr_in as *const libc::sockaddr,
+                std::mem::size_of::<libc::sockaddr_in>() as libc::socklen_t);
+            if ret < 0 { libc::close(fd); anyhow::bail!("bind() failed on port {}: {}", port, std::io::Error::last_os_error()); }
+            fd
+        };
+        let socket: UdpSocket = unsafe { std::os::unix::io::FromRawFd::from_raw_fd(raw_socket) };
         socket.set_nonblocking(false)?;
         socket.set_read_timeout(Some(Duration::from_millis(100)))?;
 
