@@ -153,12 +153,14 @@ async fn main() -> Result<()> {
             }
         })?;
 
-    // 7. Decode + render thread
+    // 7. Decode + render + input thread (SDL2 must be on one thread)
     let dump_path = args.dump_h264.clone();
     let headless = args.headless;
     let display_idx = args.display;
     let no_flash = args.no_flash;
     let cursor_state_reader = cursor_state.clone();
+    let host_addr_for_input = host_addr.clone();
+    let input_udp_port = mode_confirm.input_udp_port as u16;
 
     let _decode_render_handle = std::thread::Builder::new()
         .name("decode-render".into())
@@ -167,6 +169,11 @@ async fn main() -> Result<()> {
                 Ok(d) => d,
                 Err(e) => { log::error!("Decoder init failed: {}", e); return; }
             };
+
+            // Init SDL2 (needed for both renderer and input)
+            let sdl = sdl2::init().expect("SDL init");
+            let video = sdl.video().expect("SDL video");
+            let mut event_pump = sdl.event_pump().expect("SDL event pump");
 
             let mut renderer_opt = if !headless {
                 match renderer::Renderer::new(display_idx, stream_width, stream_height, !no_flash) {
@@ -178,6 +185,11 @@ async fn main() -> Result<()> {
             };
 
             let mut cursor_renderer = renderer::CursorRenderer::new();
+
+            // Input capture (Phase 6)
+            let mut input = input_capture::InputCapture::new(
+                &host_addr_for_input, input_udp_port, stream_width, stream_height
+            );
 
             let mut dump_file = dump_path.as_ref().map(|p| {
                 std::fs::File::create(p).expect("Failed to create dump file")
@@ -241,16 +253,85 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                // Always composite video + cursor at ~120Hz
+                // Process SDL2 events (input capture)
+                for event in event_pump.poll_iter() {
+                    use sdl2::event::Event;
+                    use sdl2::keyboard::Mod;
+                    match event {
+                        Event::Quit { .. } => { return; }
+                        Event::KeyDown { scancode: Some(sc), keycode, keymod, .. } => {
+                            if let Some(_key_out) = input.process_key(
+                                sc as u32, keycode.map(|k| k as u32).unwrap_or(0),
+                                true, keymod.bits()
+                            ) {
+                                // TODO: send KeyEvent over TCP control channel
+                            }
+                        }
+                        Event::KeyUp { scancode: Some(sc), keycode, keymod, .. } => {
+                            if let Some(_key_out) = input.process_key(
+                                sc as u32, keycode.map(|k| k as u32).unwrap_or(0),
+                                false, keymod.bits()
+                            ) {
+                                // TODO: send KeyEvent over TCP control channel
+                            }
+                        }
+                        Event::MouseMotion { x, y, .. } => {
+                            input.send_mouse_move(x, y);
+                        }
+                        Event::MouseButtonDown { x, y, mouse_btn, .. } => {
+                            let btn = match mouse_btn {
+                                sdl2::mouse::MouseButton::Left => 0,
+                                sdl2::mouse::MouseButton::Right => 1,
+                                sdl2::mouse::MouseButton::Middle => 2,
+                                _ => 0,
+                            };
+                            input.send_mouse_down(x, y, btn);
+                        }
+                        Event::MouseButtonUp { x, y, mouse_btn, .. } => {
+                            let btn = match mouse_btn {
+                                sdl2::mouse::MouseButton::Left => 0,
+                                sdl2::mouse::MouseButton::Right => 1,
+                                sdl2::mouse::MouseButton::Middle => 2,
+                                _ => 0,
+                            };
+                            input.send_mouse_up(x, y, btn);
+                        }
+                        Event::MouseWheel { x, y, .. } => {
+                            input.send_scroll(x as i16, y as i16);
+                        }
+                        _ => {}
+                    }
+                }
+
+                // Handle grab/release hotkeys
+                if input.grab_pending {
+                    input.grab_pending = false;
+                    input.grab();
+                    sdl.mouse().set_relative_mouse_mode(true); // grab mouse
+                }
+                if input.release_pending {
+                    input.release_pending = false;
+                    input.release();
+                    sdl.mouse().set_relative_mouse_mode(false); // release mouse
+                }
+
+                // Composite video + cursor at ~120Hz
                 if has_frame {
                     if let Some(ref mut r) = renderer_opt {
-                        let cx = cursor_state_reader.x.load(Ordering::Relaxed);
-                        let cy = cursor_state_reader.y.load(Ordering::Relaxed);
-                        let cs = cursor_state_reader.shape.load(Ordering::Relaxed) as u8;
-                        if cx >= 0 && cy >= 0 {
-                            cursor_renderer.update(cx, cy, cs);
+                        // In RemoteControlGrabbed: use local mouse position (client-authoritative)
+                        if input.ownership == input_capture::InputOwnership::RemoteControlGrabbed {
+                            let mouse = event_pump.mouse_state();
+                            cursor_renderer.update(mouse.x(), mouse.y(), 0);
                         } else {
-                            cursor_renderer.visible = false; // cursor left virtual display
+                            // Host-driven cursor
+                            let cx = cursor_state_reader.x.load(Ordering::Relaxed);
+                            let cy = cursor_state_reader.y.load(Ordering::Relaxed);
+                            let cs = cursor_state_reader.shape.load(Ordering::Relaxed) as u8;
+                            if cx >= 0 && cy >= 0 {
+                                cursor_renderer.update(cx, cy, cs);
+                            } else {
+                                cursor_renderer.visible = false;
+                            }
                         }
                         r.present_with_cursor(&cursor_renderer);
                     }

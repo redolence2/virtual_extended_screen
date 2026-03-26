@@ -133,16 +133,21 @@ let sessionConfig = HostSession.Config(
     bitrateBps: encoderConfig.bitrateBps
 )
 let hostSession = HostSession(config: sessionConfig)
-// Cursor tracker (Phase 5)
+// Cursor tracker (Phase 5) + Input receiver (Phase 6)
 var cursorTracker: CursorTracker?
+var inputReceiver: InputReceiver?
+
+// Check Accessibility permission for input injection
+let _ = EventInjector.checkAccessibility()
 
 hostSession.onStreamingStart = { sender in
     if let client = clientHost {
         let videoPort = controlPort + 1
-        let cursorPort = controlPort + 3 // video+1, input+2, cursor+3
+        let inputPort = controlPort + 2
+        let cursorPort = controlPort + 3
         sender.connect(host: client, port: videoPort)
         activeVideoSender = sender
-        print("[RESC] Video sender connected to \(client):\(videoPort)")
+        print("[RESC] Video sender → \(client):\(videoPort)")
 
         // Start cursor tracker
         let tracker = CursorTracker(
@@ -151,8 +156,18 @@ hostSession.onStreamingStart = { sender in
         )
         tracker.start(host: client, port: cursorPort)
         cursorTracker = tracker
+
+        // Start input receiver (Phase 6)
+        let mapper = CoordinateMapper(
+            displayID: displayHandle.lastKnownDisplayID,
+            streamWidth: width, streamHeight: height
+        )
+        let injector = EventInjector(coordinateMapper: mapper)
+        let receiver = InputReceiver(port: inputPort, injector: injector)
+        receiver.start()
+        inputReceiver = receiver
     } else {
-        print("[RESC] WARNING: No --client specified, video not sent over network")
+        print("[RESC] WARNING: No --client specified")
     }
 }
 hostSession.onForceKeyframe = {
@@ -190,6 +205,7 @@ signal(SIGINT) { _ in
         encoder.stop()
         h264FileHandle?.closeFile()
         cursorTracker?.stop()
+        inputReceiver?.stop()
         activeVideoSender?.disconnect()
         hostSession.stop()
         await capturer.stop()

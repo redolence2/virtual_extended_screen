@@ -21,6 +21,8 @@ net-transport = { path = "crates/net-transport" }
 jitter-buffer = { path = "crates/jitter-buffer" }
 video-decode = { path = "crates/video-decode" }
 renderer = { path = "crates/renderer" }
+input-capture = { path = "crates/input-capture" }
+sdl2 = "0.37"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 log = "0.4"
