@@ -3,20 +3,27 @@ pub mod cursor_renderer;
 use anyhow::{Context, Result};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
-use sdl2::render::{Canvas, Texture, TextureCreator};
+use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use video_decode::DecodedFrame;
 pub use cursor_renderer::CursorRenderer;
 
-/// SDL2 fullscreen renderer for displaying decoded video frames + cursor.
+/// SDL2 fullscreen renderer for decoded video + cursor overlay.
 pub struct Renderer {
     canvas: Canvas<Window>,
     texture_creator: TextureCreator<WindowContext>,
-    /// Persistent video texture (updated when new frame arrives)
-    video_texture: Option<Texture>,
     width: u32,
     height: u32,
     frame_count: u64,
+    /// Cached last frame for cursor-only re-renders
+    last_frame: Option<CachedFrame>,
+}
+
+struct CachedFrame {
+    width: u32,
+    height: u32,
+    yuv_data: Vec<u8>,   // packed Y+U+V for IYUV texture
+    pitch: usize,
 }
 
 impl Renderer {
@@ -69,97 +76,92 @@ impl Renderer {
         canvas.present();
 
         let texture_creator = canvas.texture_creator();
-
         log::info!("Renderer ready on display {} ({}x{})", display_index, width, height);
 
         Ok(Self {
             canvas,
             texture_creator,
-            video_texture: None,
             width,
             height,
             frame_count: 0,
+            last_frame: None,
         })
     }
 
-    /// Update the video texture with a new decoded YUV420P frame.
+    /// Update with a new decoded YUV420P frame. Caches for cursor re-renders.
     pub fn update_frame(&mut self, frame: &DecodedFrame) -> Result<()> {
-        // Create or recreate texture if dimensions changed
-        let need_new = match &self.video_texture {
-            None => true,
-            Some(_) => false, // reuse existing
-        };
+        let w = frame.width as usize;
+        let h = frame.height as usize;
+        let pitch = w; // IYUV: Y pitch = width, U/V pitch = width/2
 
-        if need_new {
-            let tex = self.texture_creator
-                .create_texture_streaming(PixelFormatEnum::IYUV, frame.width, frame.height)
-                .context("Failed to create YUV texture")?;
-            self.video_texture = Some(tex);
+        // Pack Y+U+V into single buffer for IYUV format
+        let y_size = pitch * h;
+        let uv_pitch = w / 2;
+        let uv_size = uv_pitch * (h / 2);
+        let total = y_size + uv_size * 2;
+        let mut yuv_data = vec![0u8; total];
+
+        // Y
+        for row in 0..h {
+            let src = row * frame.strides[0];
+            let dst = row * pitch;
+            yuv_data[dst..dst + w].copy_from_slice(&frame.planes[0][src..src + w]);
+        }
+        // U
+        for row in 0..h / 2 {
+            let src = row * frame.strides[1];
+            let dst = y_size + row * uv_pitch;
+            yuv_data[dst..dst + w / 2].copy_from_slice(&frame.planes[1][src..src + w / 2]);
+        }
+        // V
+        for row in 0..h / 2 {
+            let src = row * frame.strides[2];
+            let dst = y_size + uv_size + row * uv_pitch;
+            yuv_data[dst..dst + w / 2].copy_from_slice(&frame.planes[2][src..src + w / 2]);
         }
 
-        let texture = self.video_texture.as_mut().unwrap();
-
-        texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-            let h = frame.height as usize;
-            let half_h = h / 2;
-
-            for row in 0..h {
-                let src_start = row * frame.strides[0];
-                let src_end = src_start + frame.width as usize;
-                let dst_start = row * pitch;
-                buffer[dst_start..dst_start + frame.width as usize]
-                    .copy_from_slice(&frame.planes[0][src_start..src_end]);
-            }
-
-            let u_offset = pitch * h;
-            let u_pitch = pitch / 2;
-            for row in 0..half_h {
-                let src_start = row * frame.strides[1];
-                let src_end = src_start + (frame.width as usize / 2);
-                let dst_start = u_offset + row * u_pitch;
-                buffer[dst_start..dst_start + (frame.width as usize / 2)]
-                    .copy_from_slice(&frame.planes[1][src_start..src_end]);
-            }
-
-            let v_offset = u_offset + u_pitch * half_h;
-            for row in 0..half_h {
-                let src_start = row * frame.strides[2];
-                let src_end = src_start + (frame.width as usize / 2);
-                let dst_start = v_offset + row * u_pitch;
-                buffer[dst_start..dst_start + (frame.width as usize / 2)]
-                    .copy_from_slice(&frame.planes[2][src_start..src_end]);
-            }
-        }).map_err(|e| anyhow::anyhow!("texture lock: {}", e))?;
-
+        self.last_frame = Some(CachedFrame {
+            width: frame.width,
+            height: frame.height,
+            yuv_data,
+            pitch,
+        });
         self.frame_count += 1;
         Ok(())
     }
 
-    /// Render the current video texture + cursor overlay, then present.
-    /// Can be called at high frequency (120Hz) — just re-composites existing texture + cursor.
+    /// Render cached video frame + cursor, then present.
+    /// Can be called at high frequency for smooth cursor movement.
     pub fn present_with_cursor(&mut self, cursor: &CursorRenderer) {
-        // Draw video texture
-        if let Some(ref texture) = self.video_texture {
-            let dst = Rect::new(0, 0, self.width, self.height);
-            let _ = self.canvas.copy(texture, None, Some(dst));
+        if let Some(ref cached) = self.last_frame {
+            // Create texture from cached data (cheap — GPU upload only)
+            if let Ok(mut tex) = self.texture_creator.create_texture_streaming(
+                PixelFormatEnum::IYUV, cached.width, cached.height
+            ) {
+                let _ = tex.update_yuv(
+                    None,
+                    &cached.yuv_data[..cached.pitch * cached.height as usize],
+                    cached.pitch,
+                    &cached.yuv_data[cached.pitch * cached.height as usize..
+                                     cached.pitch * cached.height as usize + cached.pitch / 2 * cached.height as usize / 2],
+                    cached.pitch / 2,
+                    &cached.yuv_data[cached.pitch * cached.height as usize + cached.pitch / 2 * cached.height as usize / 2..],
+                    cached.pitch / 2,
+                );
+                let dst = Rect::new(0, 0, self.width, self.height);
+                let _ = self.canvas.copy(&tex, None, Some(dst));
+            }
         }
 
-        // Draw cursor on top
         cursor.draw(&mut self.canvas);
-
         self.canvas.present();
     }
 
-    /// Render video texture without cursor.
     pub fn present(&mut self) {
-        if let Some(ref texture) = self.video_texture {
-            let dst = Rect::new(0, 0, self.width, self.height);
-            let _ = self.canvas.copy(texture, None, Some(dst));
-        }
         self.canvas.present();
     }
 
-    // Legacy method kept for compatibility
+    // Legacy compatibility
     pub fn render_frame(&mut self, frame: &DecodedFrame) -> Result<()> {
         self.update_frame(frame)
     }
