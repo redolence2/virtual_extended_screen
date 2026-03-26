@@ -224,11 +224,14 @@ async fn main() -> Result<()> {
             let start = std::time::Instant::now();
             let mut frame_count = 0u64;
             let mut decode_total_us = 0u64;
-            let mut has_frame = false; // true once we've rendered at least one video frame
+            let mut has_frame = false;
+            let mut new_video_frame; // set per loop iteration
 
             loop {
+                new_video_frame = false;
+
                 // Try to get a new video frame (non-blocking with short timeout)
-                match frame_rx.recv_timeout(Duration::from_millis(8)) {
+                match frame_rx.recv_timeout(Duration::from_millis(16)) { // ~60Hz poll
                     Ok(assembled) => {
                         if let Some(ref mut f) = dump_file {
                             use std::io::Write;
@@ -247,6 +250,7 @@ async fn main() -> Result<()> {
 
                                     frame_count += 1;
                                     has_frame = true;
+                                    new_video_frame = true;
 
                                     if let Some(ref mut r) = renderer_opt {
                                         if let Err(e) = r.update_frame(decoded) {
@@ -344,25 +348,30 @@ async fn main() -> Result<()> {
                     sdl.mouse().set_relative_mouse_mode(false); // release mouse
                 }
 
-                // Composite video + cursor at ~120Hz
+                // Only re-render when something changed (not every 8ms)
                 if has_frame {
-                    if let Some(ref mut r) = renderer_opt {
-                        // In RemoteControlGrabbed: use local mouse position (client-authoritative)
-                        if input.ownership == input_capture::InputOwnership::RemoteControlGrabbed {
-                            let mouse = event_pump.mouse_state();
-                            cursor_renderer.update(mouse.x(), mouse.y(), 0);
-                        } else {
-                            // Host-driven cursor
-                            let cx = cursor_state_reader.x.load(Ordering::Relaxed);
-                            let cy = cursor_state_reader.y.load(Ordering::Relaxed);
-                            let cs = cursor_state_reader.shape.load(Ordering::Relaxed) as u8;
-                            if cx >= 0 && cy >= 0 {
-                                cursor_renderer.update(cx, cy, cs);
+                    // Check if cursor moved
+                    let cx = cursor_state_reader.x.load(Ordering::Relaxed);
+                    let cy = cursor_state_reader.y.load(Ordering::Relaxed);
+                    let cs = cursor_state_reader.shape.load(Ordering::Relaxed) as u8;
+
+                    let cursor_moved = cx != cursor_renderer.x || cy != cursor_renderer.y;
+                    let need_render = new_video_frame || cursor_moved;
+
+                    if need_render {
+                        if let Some(ref mut r) = renderer_opt {
+                            if input.ownership == input_capture::InputOwnership::RemoteControlGrabbed {
+                                let mouse = event_pump.mouse_state();
+                                cursor_renderer.update(mouse.x(), mouse.y(), 0);
                             } else {
-                                cursor_renderer.visible = false;
+                                if cx >= 0 && cy >= 0 {
+                                    cursor_renderer.update(cx, cy, cs);
+                                } else {
+                                    cursor_renderer.visible = false;
+                                }
                             }
+                            r.present_with_cursor(&cursor_renderer);
                         }
-                        r.present_with_cursor(&cursor_renderer);
                     }
                 }
             }
