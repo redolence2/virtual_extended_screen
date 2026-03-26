@@ -39,7 +39,7 @@ impl VideoDecoder {
             ..Default::default()
         });
 
-        let decoder = context.decoder().video()
+        let mut decoder = context.decoder().video()
             .context(format!("Failed to open {} decoder", name))?;
 
         // Disable error concealment — don't output gray frames on decode errors.
