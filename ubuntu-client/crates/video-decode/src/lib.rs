@@ -88,12 +88,35 @@ impl VideoDecoder {
             let w = decoded.width();
             let h = decoded.height();
 
-            // Skip frames with decode errors (corrupt flag)
+            // Skip frames with decode errors
             let is_corrupt = unsafe { (*decoded.as_ptr()).decode_error_flags != 0 };
             if is_corrupt {
                 self.has_reference = false;
-                log::debug!("Skipping corrupt frame");
                 continue;
+            }
+
+            // Skip gray concealment frames: sample Y plane, if too uniform → likely error concealment
+            let y_data = decoded.data(0);
+            let y_stride = decoded.stride(0);
+            if w > 0 && h > 0 && !y_data.is_empty() {
+                // Sample 16 pixels spread across the frame
+                let mut sum: u64 = 0;
+                let mut sum_sq: u64 = 0;
+                let samples = 16usize;
+                for i in 0..samples {
+                    let row = (i * h as usize / samples).min(h as usize - 1);
+                    let col = (i * w as usize / samples).min(w as usize - 1);
+                    let val = y_data[row * y_stride + col] as u64;
+                    sum += val;
+                    sum_sq += val * val;
+                }
+                let mean = sum / samples as u64;
+                let variance = sum_sq / samples as u64 - mean * mean;
+                // Gray concealment: mean ~128, variance ~0
+                if variance < 4 && mean > 100 && mean < 160 {
+                    self.has_reference = false;
+                    continue; // skip gray frame
+                }
             }
 
             self.frame_count += 1;
