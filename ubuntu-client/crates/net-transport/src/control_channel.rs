@@ -74,7 +74,7 @@ impl ControlChannel {
                 refresh_rate_millihz: preferred_refresh_millihz,
             }],
             rotation: 0,
-            supported_codecs: vec![resc_control::Codec::CodecH264 as i32],
+            supported_codecs: vec![resc_control::Codec::H264 as i32],
         };
 
         let envelope = resc_control::Envelope {
