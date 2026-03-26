@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 anyhow = "1"
-# ffmpeg-next = "7"  # enabled in Phase 4
+ffmpeg-next = "7"

@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+video-decode = { path = "../video-decode" }
 log = "0.4"
-# sdl2 = "0.37"  # enabled in Phase 4
+anyhow = "1"
+sdl2 = "0.37"

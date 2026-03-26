@@ -23,9 +23,21 @@ struct Args {
     #[arg(long, default_value_t = 1080)]
     height: u32,
 
-    /// Dump received frames to a .h264 file for validation
+    /// SDL2 display index for rendering
+    #[arg(long, default_value_t = 0)]
+    display: i32,
+
+    /// Skip SDL2 flash test
+    #[arg(long)]
+    no_flash: bool,
+
+    /// Dump received H.264 to file (before decode)
     #[arg(long)]
     dump_h264: Option<String>,
+
+    /// Headless mode (no SDL2 rendering, just receive + decode)
+    #[arg(long)]
+    headless: bool,
 }
 
 #[tokio::main]
@@ -56,6 +68,8 @@ async fn main() -> Result<()> {
 
     // 3. Mode negotiation
     let mode_confirm = control.negotiate_mode(args.width, args.height, 60000).await?;
+    let stream_width = mode_confirm.stream_width;
+    let stream_height = mode_confirm.stream_height;
 
     // 4. Wait for StartStreaming, reply StreamingReady
     control.wait_for_start_streaming(mode_confirm.stream_id, mode_confirm.config_id).await?;
@@ -67,6 +81,7 @@ async fn main() -> Result<()> {
     let stream_id = mode_confirm.stream_id;
     let config_id = mode_confirm.config_id;
 
+    // Frame channel: receiver → decode/render (cap=2, latest wins)
     let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(2);
 
     let _recv_handle = std::thread::Builder::new()
@@ -78,46 +93,95 @@ async fn main() -> Result<()> {
             receiver.run(frame_tx);
         })?;
 
-    // 6. Frame consumer (Phase 3: log stats; Phase 4: decode+render)
+    // 6. Decode + render thread (must run on main thread for SDL2 on some platforms)
     let dump_path = args.dump_h264.clone();
-    let _consumer_handle = std::thread::Builder::new()
-        .name("frame-consumer".into())
+    let headless = args.headless;
+    let display_idx = args.display;
+    let no_flash = args.no_flash;
+
+    // SDL2 must be on the main thread on Linux/Xorg, so we spawn tokio work elsewhere
+    // and keep decode+render on the current thread after tokio yields.
+    let decode_render_handle = std::thread::Builder::new()
+        .name("decode-render".into())
         .spawn(move || {
-            let mut file = dump_path.as_ref().map(|p| {
+            // Init decoder
+            let mut decoder = match video_decode::H264Decoder::new() {
+                Ok(d) => d,
+                Err(e) => { log::error!("Decoder init failed: {}", e); return; }
+            };
+
+            // Init renderer (unless headless)
+            let mut renderer = if !headless {
+                match renderer::Renderer::new(display_idx, stream_width, stream_height, !no_flash) {
+                    Ok(r) => Some(r),
+                    Err(e) => {
+                        log::warn!("Renderer init failed: {} (continuing headless)", e);
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+
+            // H.264 dump file
+            let mut dump_file = dump_path.as_ref().map(|p| {
                 std::fs::File::create(p).expect("Failed to create dump file")
             });
-            let mut count = 0u64;
-            let mut bytes = 0u64;
+
             let start = std::time::Instant::now();
+            let mut frame_count = 0u64;
+            let mut decode_total_us = 0u64;
 
-            while let Ok(frame) = frame_rx.recv() {
-                count += 1;
-                bytes += frame.data.len() as u64;
-
-                if let Some(ref mut f) = file {
+            while let Ok(assembled) = frame_rx.recv() {
+                // Dump raw H.264 if requested
+                if let Some(ref mut f) = dump_file {
                     use std::io::Write;
-                    f.write_all(&frame.data).ok();
+                    f.write_all(&assembled.data).ok();
                 }
 
-                if count == 1 {
-                    log::info!(
-                        "First frame: {}x{}, {}B, keyframe={}, ts={}us",
-                        frame.width, frame.height, frame.data.len(),
-                        frame.is_keyframe, frame.timestamp_us
-                    );
+                // Decode
+                let decode_start = std::time::Instant::now();
+                match decoder.decode(&assembled.data, assembled.timestamp_us) {
+                    Ok(decoded_frames) => {
+                        let decode_us = decode_start.elapsed().as_micros() as u64;
+                        decode_total_us += decode_us;
+
+                        for decoded in &decoded_frames {
+                            frame_count += 1;
+
+                            // Render
+                            if let Some(ref mut r) = renderer {
+                                if let Err(e) = r.render_frame(decoded) {
+                                    log::warn!("Render error: {}", e);
+                                }
+                            }
+
+                            if frame_count == 1 {
+                                log::info!(
+                                    "First decoded frame: {}x{}, decode {:.1}ms",
+                                    decoded.width, decoded.height,
+                                    decode_us as f64 / 1000.0
+                                );
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        log::warn!("Decode error: {}", e);
+                    }
                 }
 
-                if count % 60 == 0 {
+                if frame_count > 0 && frame_count % 60 == 0 {
                     let elapsed = start.elapsed().as_secs_f64();
-                    let fps = count as f64 / elapsed;
+                    let fps = frame_count as f64 / elapsed;
+                    let avg_decode_ms = (decode_total_us as f64 / frame_count as f64) / 1000.0;
                     log::info!(
-                        "Frames: {}, {:.1} fps, {:.1} MB received",
-                        count, fps, bytes as f64 / 1_048_576.0
+                        "Decoded: {} frames, {:.1} fps, avg decode {:.1}ms",
+                        frame_count, fps, avg_decode_ms
                     );
                 }
             }
 
-            log::info!("Frame consumer: {} frames, {} bytes total", count, bytes);
+            log::info!("Decode/render stopped: {} frames total", frame_count);
         })?;
 
     log::info!("Streaming active. Press Ctrl+C to stop.");
@@ -125,7 +189,7 @@ async fn main() -> Result<()> {
     // Wait for Ctrl+C
     tokio::signal::ctrl_c().await?;
     log::info!("Shutting down...");
+    drop(decode_render_handle);
 
-    // Cleanup happens when threads are dropped
     Ok(())
 }
