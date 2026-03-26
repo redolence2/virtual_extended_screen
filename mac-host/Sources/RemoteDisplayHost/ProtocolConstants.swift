@@ -39,9 +39,10 @@ enum ProtocolConstants {
         return 41 // Level 4.1 for 1080p
     }
 
-    // Max frame bytes (10x average frame size — keyframes on idle displays can be very large)
+    // Max frame bytes — generous to avoid dropping keyframes.
+    // During rapid content changes (drag, video), frames spike well above average.
     static func maxFrameBytes(bitrateBps: UInt32, fps: Double) -> UInt32 {
         let avgFrameBytes = Double(bitrateBps) / 8.0 / fps
-        return UInt32(min(avgFrameBytes * 10.0, Double(UInt32.max)))
+        return UInt32(min(avgFrameBytes * 20.0, 2_000_000)) // 20x avg, cap 2MB
     }
 }

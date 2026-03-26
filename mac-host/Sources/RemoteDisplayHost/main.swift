@@ -85,6 +85,7 @@ var hasSentKeyframe = false
 let useHEVC = CommandLine.arguments.contains("--hevc")
 var encoderConfig = VideoEncoder.Config(
     width: Int32(width), height: Int32(height), fps: Double(refreshRate),
+    keyframeIntervalSeconds: 0.5,  // faster recovery from corruption during drag/movement
     codec: useHEVC ? .hevc : .h264
 )
 encoderConfig.bitrateBps = VideoEncoder.Config.defaultBitrate(
@@ -145,7 +146,7 @@ var inputReceiver: InputReceiver?
 // Check Accessibility permission for input injection
 let _ = EventInjector.checkAccessibility()
 
-hostSession.onStreamingStart = { sender in
+hostSession.onStreamingStart = { (sender: VideoSender) in
     if let client = clientHost {
         let videoPort = controlPort + 1
         let inputPort = controlPort + 2

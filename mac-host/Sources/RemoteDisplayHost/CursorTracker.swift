@@ -68,6 +68,7 @@ final class CursorTracker {
     // MARK: - Poll
 
     private var wasInBounds = false
+    private var lastSendTime: CFAbsoluteTime = 0
 
     private func poll() {
         guard active else { return }
@@ -83,12 +84,17 @@ final class CursorTracker {
             let y = max(0, min(Int32(streamHeight - 1), localY))
 
             let posChanged = x != lastX || y != lastY
-            guard posChanged else { return }
-            lastX = x
-            lastY = y
-            sendUpdate(x: x, y: y, shape: CursorShape.arrow.rawValue)
+            let now = CFAbsoluteTimeGetCurrent()
+            // Send if position changed OR every 50ms as heartbeat (keeps cursor visible)
+            let heartbeat = now - lastSendTime > 0.05
+
+            if posChanged || heartbeat {
+                lastX = x
+                lastY = y
+                lastSendTime = now
+                sendUpdate(x: x, y: y, shape: CursorShape.arrow.rawValue)
+            }
         } else if wasInBounds {
-            // Cursor left virtual display — send hide signal (x=-1, y=-1)
             wasInBounds = false
             lastX = -1
             lastY = -1
