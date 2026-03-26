@@ -153,6 +153,20 @@ async fn main() -> Result<()> {
             }
         })?;
 
+    // 6b. Stats reporter (sends Stats to host every 1 second)
+    // TODO: collect real packet_loss_rate and frame_drop_rate from receiver
+    // For now, send zeros (stable connection)
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            // Stats are placeholder — real implementation reads from receiver atomics
+            if let Err(_) = control.send_stats(0.0, 0.0, 0).await {
+                log::warn!("Failed to send stats (control channel may be closed)");
+                break;
+            }
+        }
+    });
+
     // 7. Decode + render + input thread (SDL2 must be on one thread)
     let dump_path = args.dump_h264.clone();
     let headless = args.headless;
