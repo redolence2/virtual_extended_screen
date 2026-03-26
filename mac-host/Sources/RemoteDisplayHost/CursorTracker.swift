@@ -67,35 +67,33 @@ final class CursorTracker {
 
     // MARK: - Poll
 
+    private var wasInBounds = false
+
     private func poll() {
         guard active else { return }
 
-        // Get global cursor position
         let mousePos = CGEvent(source: nil)?.location ?? .zero
         let bounds = CGDisplayBounds(displayID)
 
-        // Check if cursor is within virtual display bounds
-        guard bounds.contains(mousePos) else { return }
+        if bounds.contains(mousePos) {
+            wasInBounds = true
+            let localX = Int32((mousePos.x - bounds.origin.x) / bounds.width * Double(streamWidth))
+            let localY = Int32((mousePos.y - bounds.origin.y) / bounds.height * Double(streamHeight))
+            let x = max(0, min(Int32(streamWidth - 1), localX))
+            let y = max(0, min(Int32(streamHeight - 1), localY))
 
-        // Convert global → StreamSpace
-        let localX = Int32((mousePos.x - bounds.origin.x) / bounds.width * Double(streamWidth))
-        let localY = Int32((mousePos.y - bounds.origin.y) / bounds.height * Double(streamHeight))
-
-        // Clamp to stream bounds
-        let x = max(0, min(Int32(streamWidth - 1), localX))
-        let y = max(0, min(Int32(streamHeight - 1), localY))
-
-        // Only send if position changed (or periodically for shape)
-        let posChanged = x != lastX || y != lastY
-        guard posChanged else { return }
-
-        lastX = x
-        lastY = y
-
-        // Detect cursor shape (simplified — always Arrow for MVP)
-        let shape: UInt8 = CursorShape.arrow.rawValue
-
-        sendUpdate(x: x, y: y, shape: shape)
+            let posChanged = x != lastX || y != lastY
+            guard posChanged else { return }
+            lastX = x
+            lastY = y
+            sendUpdate(x: x, y: y, shape: CursorShape.arrow.rawValue)
+        } else if wasInBounds {
+            // Cursor left virtual display — send hide signal (x=-1, y=-1)
+            wasInBounds = false
+            lastX = -1
+            lastY = -1
+            sendUpdate(x: -1, y: -1, shape: CursorShape.arrow.rawValue)
+        }
     }
 
     // MARK: - Send

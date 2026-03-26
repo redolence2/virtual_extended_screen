@@ -131,21 +131,22 @@ impl Renderer {
     }
 
     /// Render cached video frame + cursor, then present.
-    /// Can be called at high frequency for smooth cursor movement.
+    /// Re-uploads YUV data to texture each call (GPU upload is fast).
     pub fn present_with_cursor(&mut self, cursor: &CursorRenderer) {
         if let Some(ref cached) = self.last_frame {
-            // Create texture from cached data (cheap — GPU upload only)
+            let y_size = cached.pitch * cached.height as usize;
+            let uv_size = (cached.pitch / 2) * (cached.height as usize / 2);
+
             if let Ok(mut tex) = self.texture_creator.create_texture_streaming(
                 PixelFormatEnum::IYUV, cached.width, cached.height
             ) {
                 let _ = tex.update_yuv(
                     None,
-                    &cached.yuv_data[..cached.pitch * cached.height as usize],
+                    &cached.yuv_data[..y_size],
                     cached.pitch,
-                    &cached.yuv_data[cached.pitch * cached.height as usize..
-                                     cached.pitch * cached.height as usize + cached.pitch / 2 * cached.height as usize / 2],
+                    &cached.yuv_data[y_size..y_size + uv_size],
                     cached.pitch / 2,
-                    &cached.yuv_data[cached.pitch * cached.height as usize + cached.pitch / 2 * cached.height as usize / 2..],
+                    &cached.yuv_data[y_size + uv_size..],
                     cached.pitch / 2,
                 );
                 let dst = Rect::new(0, 0, self.width, self.height);
@@ -153,7 +154,10 @@ impl Renderer {
             }
         }
 
-        cursor.draw(&mut self.canvas);
+        // Only draw cursor if visible (x >= 0)
+        if cursor.visible && cursor.x >= 0 && cursor.y >= 0 {
+            cursor.draw(&mut self.canvas);
+        }
         self.canvas.present();
     }
 

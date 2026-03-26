@@ -241,7 +241,7 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                // Always draw cursor on top of latest frame at ~120Hz
+                // Always composite video + cursor at ~120Hz
                 if has_frame {
                     if let Some(ref mut r) = renderer_opt {
                         let cx = cursor_state_reader.x.load(Ordering::Relaxed);
@@ -249,6 +249,8 @@ async fn main() -> Result<()> {
                         let cs = cursor_state_reader.shape.load(Ordering::Relaxed) as u8;
                         if cx >= 0 && cy >= 0 {
                             cursor_renderer.update(cx, cy, cs);
+                        } else {
+                            cursor_renderer.visible = false; // cursor left virtual display
                         }
                         r.present_with_cursor(&cursor_renderer);
                     }
