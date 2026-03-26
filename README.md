@@ -54,7 +54,7 @@ swift smoke_test.swift
 
 Verifies all APIs are available on your macOS version.
 
-### 3. Start the host (Mac)
+### 3. Start the host FIRST (Mac)
 
 ```bash
 # H.264 (default, 20 Mbps)
@@ -70,7 +70,7 @@ swift run remote-display-host 3840 2160 60 --hevc --client <UBUNTU_IP>
 
 A new display called "Remote Extended Screen" appears in **System Settings > Displays**. Arrange it next to your other monitors.
 
-### 4. Start the client (Ubuntu)
+### 4. Start the client SECOND (Ubuntu)
 
 ```bash
 cd ubuntu-client
