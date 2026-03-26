@@ -261,16 +261,16 @@ async fn main() -> Result<()> {
                         Event::Quit { .. } => { return; }
                         Event::KeyDown { scancode: Some(sc), keycode, keymod, .. } => {
                             if let Some(_key_out) = input.process_key(
-                                sc as u32, keycode.map(|k| k as u32).unwrap_or(0),
-                                true, keymod.bits()
+                                sc as u32, keycode.map(|k| k.into_i32() as u32).unwrap_or(0),
+                                true, keymod.bits() as u16
                             ) {
                                 // TODO: send KeyEvent over TCP control channel
                             }
                         }
                         Event::KeyUp { scancode: Some(sc), keycode, keymod, .. } => {
                             if let Some(_key_out) = input.process_key(
-                                sc as u32, keycode.map(|k| k as u32).unwrap_or(0),
-                                false, keymod.bits()
+                                sc as u32, keycode.map(|k| k.into_i32() as u32).unwrap_or(0),
+                                false, keymod.bits() as u16
                             ) {
                                 // TODO: send KeyEvent over TCP control channel
                             }
