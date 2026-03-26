@@ -56,13 +56,16 @@ Verifies all APIs are available on your macOS version.
 
 ### 3. Start the host FIRST (Mac)
 
-```bash
-# H.264 (default, 20 Mbps)
-cd mac-host
-swift run remote-display-host 1920 1080 60 --client <UBUNTU_IP>
+**Important:** Run from the `mac-host/` directory (where `Package.swift` lives).
 
-# HEVC (40% less bandwidth, recommended)
+```bash
+cd <project-root>/mac-host
+
+# HEVC (recommended — 40% less bandwidth)
 swift run remote-display-host 1920 1080 60 --hevc --client <UBUNTU_IP>
+
+# H.264 (fallback, 20 Mbps)
+swift run remote-display-host 1920 1080 60 --client <UBUNTU_IP>
 
 # 4K
 swift run remote-display-host 3840 2160 60 --hevc --client <UBUNTU_IP>
@@ -72,13 +75,15 @@ A new display called "Remote Extended Screen" appears in **System Settings > Dis
 
 ### 4. Start the client SECOND (Ubuntu)
 
+**Important:** Run from the `ubuntu-client/` directory (where `Cargo.toml` lives).
+
 ```bash
-cd ubuntu-client
+cd <project-root>/ubuntu-client
 
 # Auto-discover Mac via mDNS
 cargo run --release
 
-# Or specify Mac IP directly
+# Or specify Mac IP directly (recommended)
 cargo run --release -- --host <MAC_IP>
 
 # Select which monitor to display on (if multiple)
