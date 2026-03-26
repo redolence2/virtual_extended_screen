@@ -14,6 +14,8 @@ pub struct VideoDecoder {
     decoder: ffmpeg_next::decoder::Video,
     frame_count: u64,
     codec_name: String,
+    /// Set to true after a successful keyframe decode; cleared on error.
+    pub has_reference: bool,
 }
 
 impl VideoDecoder {
@@ -46,13 +48,32 @@ impl VideoDecoder {
             decoder,
             frame_count: 0,
             codec_name: name.to_string(),
+            has_reference: false,
         })
     }
 
     /// Decode an Annex B frame. May return 0+ decoded frames.
+    /// If has_reference is false (lost reference frame), non-keyframes are skipped
+    /// to avoid gray error-concealment frames.
     pub fn decode(&mut self, data: &[u8], timestamp_us: u64) -> Result<Vec<DecodedFrame>> {
+        // Detect keyframe: Annex B start code + NAL type
+        let is_keyframe = detect_keyframe(data);
+
+        if !self.has_reference && !is_keyframe {
+            // Skip until we get a keyframe — avoids gray concealment frames
+            return Ok(vec![]);
+        }
+
         let packet = ffmpeg_next::Packet::copy(data);
-        self.decoder.send_packet(&packet).context("send_packet failed")?;
+        match self.decoder.send_packet(&packet) {
+            Ok(_) => {
+                if is_keyframe { self.has_reference = true; }
+            }
+            Err(e) => {
+                self.has_reference = false;
+                anyhow::bail!("send_packet failed: {}", e);
+            }
+        }
 
         let mut frames = Vec::new();
         let mut decoded = ffmpeg_next::frame::Video::empty();
@@ -84,5 +105,33 @@ impl VideoDecoder {
     pub fn codec_name(&self) -> &str { &self.codec_name }
 }
 
-// Legacy alias for backward compatibility
+// Legacy alias
 pub type H264Decoder = VideoDecoder;
+
+/// Detect if Annex B data starts with a keyframe NAL unit.
+/// Scans for start code (00 00 00 01) then checks NAL type.
+fn detect_keyframe(data: &[u8]) -> bool {
+    let mut i = 0;
+    while i + 4 < data.len() {
+        // Find start code
+        if data[i] == 0 && data[i+1] == 0 && data[i+2] == 0 && data[i+3] == 1 {
+            if i + 5 >= data.len() { break; }
+            let nal_byte = data[i + 4];
+
+            // H.264: NAL type is lower 5 bits. IDR = 5, SPS = 7, PPS = 8
+            let h264_type = nal_byte & 0x1F;
+            if h264_type == 5 || h264_type == 7 { return true; }
+
+            // HEVC: NAL type is (byte >> 1) & 0x3F. IDR_W_RADL=19, IDR_N_LP=20, VPS=32, SPS=33
+            let hevc_type = (nal_byte >> 1) & 0x3F;
+            if hevc_type == 19 || hevc_type == 20 || hevc_type == 32 || hevc_type == 33 {
+                return true;
+            }
+
+            i += 5;
+        } else {
+            i += 1;
+        }
+    }
+    false
+}

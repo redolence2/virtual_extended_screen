@@ -242,12 +242,15 @@ async fn main() -> Result<()> {
                                 decode_total_us += decode_us;
 
                                 for decoded in &decoded_frames {
+                                    // Skip corrupt frames (very small or zero-sized)
+                                    if decoded.planes[0].is_empty() { continue; }
+
                                     frame_count += 1;
                                     has_frame = true;
 
                                     if let Some(ref mut r) = renderer_opt {
                                         if let Err(e) = r.update_frame(decoded) {
-                                            log::warn!("Render error: {}", e);
+                                            // Don't update — keep showing last good frame
                                             continue;
                                         }
                                     }
