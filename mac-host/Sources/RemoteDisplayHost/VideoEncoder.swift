@@ -30,7 +30,7 @@ final class VideoEncoder {
             let is4K = width >= 3840 || height >= 2160
             switch codec {
             case .h264: return is4K ? 50_000_000 : 20_000_000
-            case .hevc: return is4K ? 30_000_000 : 12_000_000  // HEVC: ~40% better compression
+            case .hevc: return is4K ? 40_000_000 : 20_000_000  // HEVC: same bitrate as H.264 for max quality
             }
         }
     }

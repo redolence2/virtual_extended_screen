@@ -62,6 +62,7 @@ impl Renderer {
 
         let mut canvas = window.into_canvas()
             .accelerated()
+            .present_vsync()  // prevents tearing
             .build()
             .context("Failed to create SDL canvas")?;
 
