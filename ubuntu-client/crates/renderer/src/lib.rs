@@ -3,8 +3,8 @@ pub mod cursor_renderer;
 use anyhow::{Context, Result};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
-use sdl2::render::Canvas;
-use sdl2::video::Window;
+use sdl2::render::{Canvas, TextureCreator};
+use sdl2::video::{Window, WindowContext};
 use video_decode::DecodedFrame;
 pub use cursor_renderer::CursorRenderer;
 
@@ -12,10 +12,10 @@ pub use cursor_renderer::CursorRenderer;
 /// Creates one persistent YUV texture, reuses it across frames.
 pub struct Renderer {
     canvas: Canvas<Window>,
+    texture_creator: TextureCreator<WindowContext>,
     width: u32,
     height: u32,
     frame_count: u64,
-    /// Cached YUV data for cursor-only re-renders
     cached_yuv: Option<CachedYUV>,
 }
 
@@ -79,10 +79,12 @@ impl Renderer {
         canvas.clear();
         canvas.present();
 
+        let texture_creator = canvas.texture_creator();
         log::info!("Renderer ready on display {} ({}x{})", display_index, width, height);
 
         Ok(Self {
             canvas,
+            texture_creator,
             width,
             height,
             frame_count: 0,
@@ -132,10 +134,7 @@ impl Renderer {
     /// Creates one texture per call BUT properly drops it (no leak).
     pub fn present_with_cursor(&mut self, cursor: &CursorRenderer) {
         if let Some(ref yuv) = self.cached_yuv {
-            // Create a texture, upload YUV, copy to canvas, then drop texture.
-            // This is ~0.5ms on modern GPUs for 1080p.
-            let tc = self.canvas.texture_creator();
-            if let Ok(mut tex) = tc.create_texture_streaming(
+            if let Ok(mut tex) = self.texture_creator.create_texture_streaming(
                 PixelFormatEnum::IYUV, yuv.w, yuv.h
             ) {
                 let _ = tex.update_yuv(
