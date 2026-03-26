@@ -156,13 +156,11 @@ impl VideoReceiver {
                 chunk.per_frame.as_ref(),
                 &chunk.payload,
             ) {
-                // Send to decode. Drop frame if channel is full (latest wins).
-                match frame_tx.try_send(frame) {
+                // Send to decode. Use blocking send — never drop frames
+                // (dropping breaks the codec reference chain → gray frames).
+                match frame_tx.send(frame) {
                     Ok(_) => {}
-                    Err(mpsc::TrySendError::Full(_)) => {
-                        log::debug!("Decode queue full, dropping frame");
-                    }
-                    Err(mpsc::TrySendError::Disconnected(_)) => {
+                    Err(_) => {
                         log::info!("Frame channel disconnected, stopping");
                         break;
                     }

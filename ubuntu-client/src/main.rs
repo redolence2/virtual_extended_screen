@@ -94,7 +94,9 @@ async fn main() -> Result<()> {
     let stream_id = mode_confirm.stream_id;
     let config_id = mode_confirm.config_id;
 
-    let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(2);
+    // Large enough to never drop frames during bursts (decoder at 1ms handles 1000fps).
+    // Dropping frames here breaks the codec reference chain → gray frames.
+    let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(64);
 
     let _recv_handle = std::thread::Builder::new()
         .name("video-recv".into())

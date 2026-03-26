@@ -89,7 +89,7 @@ var hasSentKeyframe = false
 let useHEVC = CommandLine.arguments.contains("--hevc")
 var encoderConfig = VideoEncoder.Config(
     width: Int32(width), height: Int32(height), fps: Double(refreshRate),
-    keyframeIntervalSeconds: 0.5,  // faster recovery from corruption during drag/movement
+    keyframeIntervalSeconds: 0.25,  // very fast recovery — keyframe every 250ms
     codec: useHEVC ? .hevc : .h264
 )
 encoderConfig.bitrateBps = VideoEncoder.Config.defaultBitrate(
