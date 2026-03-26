@@ -30,12 +30,12 @@ pub fn discover_host(timeout: Duration) -> Result<Option<DiscoveredHost>> {
                         port: info.get_port(),
                     };
                     log::info!("Found RESC host: {} at {}:{}", host.name, host.host, host.port);
-                    mdns.shutdown()?;
+                    let _ = mdns.shutdown();
                     return Ok(Some(host));
                 }
             }
             Ok(_) => {} // other events, ignore
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
+            Err(flume::RecvTimeoutError::Timeout) => continue,
             Err(e) => {
                 log::warn!("mDNS recv error: {}", e);
                 break;
@@ -43,6 +43,6 @@ pub fn discover_host(timeout: Duration) -> Result<Option<DiscoveredHost>> {
         }
     }
 
-    mdns.shutdown()?;
+    let _ = mdns.shutdown();
     Ok(None)
 }
