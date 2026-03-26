@@ -21,6 +21,7 @@ final class HostSession {
         case idle
         case waitingForClient
         case negotiating
+        case waitingForStreamingReady
         case streaming
     }
 
@@ -36,8 +37,10 @@ final class HostSession {
     private var sessionID: UInt64 = 0
     private var videoPort: UInt16 = 0
 
-    /// Called when streaming starts — provides (streamID, videoPort) for the encoder to use.
+    /// Called when streaming starts — provides VideoSender for the encoder to use.
     var onStreamingStart: ((VideoSender) -> Void)?
+    /// Called to force a keyframe (ensures first frame client receives has SPS/PPS).
+    var onForceKeyframe: (() -> Void)?
 
     // MARK: - Init
 
@@ -69,21 +72,22 @@ final class HostSession {
     // MARK: - Message Handling
 
     private func handleMessage(_ data: Data) {
-        // Decode protobuf Envelope
-        // For now, we handle raw protobuf bytes manually since we don't have
-        // generated Swift protobuf code yet. We'll use a simplified approach.
-        // In Phase 3, we parse the envelope and dispatch by payload type.
-
-        // Simple approach: first 4+ bytes are protobuf fields.
-        // Field 2 (protocol_version) = varint
-        // Field 20 (mode_request) = length-delimited
-
-        // For MVP Phase 3: respond to any client message with ModeConfirm + StartStreaming
-        handleModeRequest(data)
+        switch state {
+        case .negotiating:
+            // First message from client = ModeRequest → respond with ModeConfirm + StartStreaming
+            handleModeRequest(data)
+        case .waitingForStreamingReady:
+            // Second message = StreamingReady → start sending video
+            handleStreamingReady(data)
+        default:
+            // Stats, RequestIDR, KeyEvent etc. — handle in later phases
+            break
+        }
     }
 
     private func handleModeRequest(_ data: Data) {
-        guard state == .negotiating else { return }
+        // Transition immediately to prevent duplicate handling
+        state = .waitingForStreamingReady
 
         // Generate session parameters
         sessionID = UInt64.random(in: 1...UInt64.max)
@@ -126,11 +130,13 @@ final class HostSession {
         )
         controlChannel.send(data: startStreaming)
 
-        // Wait briefly for StreamingReady, then start sending
-        // In Phase 3 MVP: start after a short delay (proper handshake in Phase 7)
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.startStreaming()
-        }
+        print("[RESC] Waiting for StreamingReady from client...")
+    }
+
+    private func handleStreamingReady(_ data: Data) {
+        guard state == .waitingForStreamingReady else { return }
+        print("[RESC] StreamingReady received, starting video")
+        startStreaming()
     }
 
     private func startStreaming() {
@@ -154,6 +160,8 @@ final class HostSession {
 
         self.videoSender = sender
         onStreamingStart?(sender)
+        // Force keyframe so client's first frame has SPS/PPS
+        onForceKeyframe?()
         print("[RESC] Streaming started: stream=\(streamID), config=\(configID)")
     }
 

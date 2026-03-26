@@ -126,7 +126,6 @@ let sessionConfig = HostSession.Config(
 )
 let hostSession = HostSession(config: sessionConfig)
 hostSession.onStreamingStart = { sender in
-    // Connect video sender to client
     if let client = clientHost {
         let videoPort = controlPort + 1
         sender.connect(host: client, port: videoPort)
@@ -134,8 +133,11 @@ hostSession.onStreamingStart = { sender in
         print("[RESC] Video sender connected to \(client):\(videoPort)")
     } else {
         print("[RESC] WARNING: No --client specified, video not sent over network")
-        print("[RESC] Use: --client <ubuntu-ip> to enable network streaming")
     }
+}
+hostSession.onForceKeyframe = {
+    encoder.forceKeyframe()
+    print("[RESC] Forced keyframe for streaming start")
 }
 
 do {

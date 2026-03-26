@@ -17,9 +17,9 @@ struct FrameSlot {
     active: bool,
     frame_id: u32,
     metadata: Option<VideoChunkPerFrame>,
-    data: Vec<u8>,       // preallocated contiguous buffer
-    chunk_offsets: Vec<u32>, // offset[chunk_id] = byte offset in data
-    received: [u64; 4],  // bitset for up to 256 chunks
+    data: Vec<u8>,           // preallocated buffer (chunks stored at stride offsets)
+    chunk_sizes: Vec<u16>,   // actual payload size per chunk
+    received: [u64; 4],      // bitset for up to 256 chunks
     chunks_received: u16,
     first_chunk_time: Instant,
 }
@@ -31,7 +31,7 @@ impl FrameSlot {
             frame_id: 0,
             metadata: None,
             data: vec![0u8; max_frame_bytes],
-            chunk_offsets: vec![0u32; max_chunks],
+            chunk_sizes: vec![0u16; max_chunks],
             received: [0u64; 4],
             chunks_received: 0,
             first_chunk_time: Instant::now(),
@@ -45,6 +45,7 @@ impl FrameSlot {
         self.received = [0u64; 4];
         self.chunks_received = 0;
         self.first_chunk_time = Instant::now();
+        for s in self.chunk_sizes.iter_mut() { *s = 0; }
     }
 
     fn mark_chunk(&mut self, chunk_id: u16) -> bool {
@@ -141,19 +142,28 @@ impl FrameAssembler {
             }
         }
 
-        // Store payload at correct offset
-        let offset = per_packet.chunk_id as usize * protocol::constants::MAX_VIDEO_PAYLOAD_BYTES;
+        // Store payload at stride offset (each chunk gets MAX_VIDEO_PAYLOAD_BYTES slot)
+        let cid = per_packet.chunk_id as usize;
+        let stride = protocol::constants::MAX_VIDEO_PAYLOAD_BYTES;
+        let offset = cid * stride;
         if offset + payload.len() <= slot.data.len() {
             slot.data[offset..offset + payload.len()].copy_from_slice(payload);
-            slot.chunk_offsets[per_packet.chunk_id as usize] = offset as u32;
+            slot.chunk_sizes[cid] = payload.len() as u16;
             slot.mark_chunk(per_packet.chunk_id);
         }
 
         // Check if complete
         if slot.is_complete() {
             let meta = slot.metadata.unwrap();
-            let total = meta.total_bytes as usize;
-            let frame_data = slot.data[..total].to_vec();
+
+            // Compact: copy chunks contiguously into output buffer
+            let mut frame_data = Vec::with_capacity(meta.total_bytes as usize);
+            for i in 0..meta.total_chunks as usize {
+                let chunk_offset = i * stride;
+                let chunk_len = slot.chunk_sizes[i] as usize;
+                frame_data.extend_from_slice(&slot.data[chunk_offset..chunk_offset + chunk_len]);
+            }
+
             slot.active = false;
             self.frames_completed += 1;
 
