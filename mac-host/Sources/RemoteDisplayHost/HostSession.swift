@@ -192,12 +192,17 @@ final class HostSession {
         // field 7: rotation = 0 (default, omitted)
         appendProtoUInt32(&mc, field: 8, value: width)        // stream_width
         appendProtoUInt32(&mc, field: 9, value: height)       // stream_height
-        // field 10: codec = 0 (H264, default)
-        appendProtoUInt32(&mc, field: 11, value: 3)           // codec_profile = H264_HIGH
+        // field 10: codec (0=H264, 1=HEVC) — must write explicitly even for 0
+        let codecValue: UInt32 = CommandLine.arguments.contains("--hevc") ? 1 : 0
+        if codecValue > 0 {
+            appendProtoUInt32(&mc, field: 10, value: codecValue)
+        }
+        let profileValue: UInt32 = codecValue == 1 ? 10 : 3  // HEVC_MAIN=10, H264_HIGH=3
+        appendProtoUInt32(&mc, field: 11, value: profileValue)
         appendProtoUInt32(&mc, field: 12, value: codecLevelIdc) // codec_level_idc
         appendProtoUInt32(&mc, field: 13, value: bitrateBps)  // bitrate_bps
         appendProtoUInt32(&mc, field: 14, value: 1400)        // max_datagram_bytes
-        appendProtoUInt32(&mc, field: 15, value: 1362)        // max_video_payload_bytes
+        appendProtoUInt32(&mc, field: 15, value: UInt32(ProtocolConstants.maxVideoPayloadBytes))
         appendProtoUInt32(&mc, field: 16, value: 256)         // max_total_chunks_per_frame
         appendProtoUInt32(&mc, field: 17, value: maxFrameBytes) // max_frame_bytes
         appendProtoUInt32(&mc, field: 20, value: videoPort)   // video_port
