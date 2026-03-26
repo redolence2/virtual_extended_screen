@@ -62,6 +62,10 @@ do {
     print("[RESC] ERROR: \(error)"); exit(1)
 }
 
+// Frame pacer: forces compositor to deliver steady 60fps
+let framePacer = FramePacer()
+framePacer.start(displayID: displayHandle.lastKnownDisplayID, fps: Double(refreshRate))
+
 // Set up capture pipeline
 let frameSlot = LatestFrameSlot()
 let capturer = DisplayCapturer(
@@ -210,6 +214,7 @@ signal(SIGINT) { _ in
     Task {
         encoder.stop()
         h264FileHandle?.closeFile()
+        framePacer.stop()
         cursorTracker?.stop()
         inputReceiver?.stop()
         activeVideoSender?.disconnect()
