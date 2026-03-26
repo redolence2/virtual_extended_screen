@@ -21,10 +21,10 @@ pub mod constants {
     pub const PACKET_TYPE_INPUT_EVENT: u8 = 2;
 
     pub const PACKET_PREFIX_BYTES: usize = 6;
-    pub const VIDEO_CHUNK_HEADER_BYTES: usize = 32;
-    pub const VIDEO_TOTAL_HEADER_BYTES: usize = PACKET_PREFIX_BYTES + VIDEO_CHUNK_HEADER_BYTES; // 38
+    pub const VIDEO_CHUNK_HEADER_BYTES: usize = 36;  // per-packet(16) + per-frame(20)
+    pub const VIDEO_TOTAL_HEADER_BYTES: usize = PACKET_PREFIX_BYTES + VIDEO_CHUNK_HEADER_BYTES; // 42
     pub const MAX_DATAGRAM_BYTES: usize = 1400;
-    pub const MAX_VIDEO_PAYLOAD_BYTES: usize = MAX_DATAGRAM_BYTES - VIDEO_TOTAL_HEADER_BYTES; // 1362
+    pub const MAX_VIDEO_PAYLOAD_BYTES: usize = MAX_DATAGRAM_BYTES - VIDEO_TOTAL_HEADER_BYTES; // 1358
 
     pub const CURSOR_UPDATE_BYTES: usize = 29;
     pub const CURSOR_TOTAL_PACKET_BYTES: usize = PACKET_PREFIX_BYTES + CURSOR_UPDATE_BYTES; // 35

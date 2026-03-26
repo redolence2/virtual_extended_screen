@@ -42,10 +42,10 @@ impl Renderer {
         let bounds = video.display_bounds(display_index)
             .map_err(|e| anyhow::anyhow!("display_bounds: {}", e))?;
 
-        // Create window on the target display
+        // Create fullscreen window on the target display (hides dock/panels)
         let window = video.window("RESC Receiver", bounds.width(), bounds.height())
             .position(bounds.x(), bounds.y())
-            .borderless()
+            .fullscreen_desktop()
             .build()
             .context("Failed to create SDL window")?;
 

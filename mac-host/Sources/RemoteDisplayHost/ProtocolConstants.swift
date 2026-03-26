@@ -12,10 +12,10 @@ enum ProtocolConstants {
 
     // Header sizes (bytes)
     static let packetPrefixBytes = 6       // magic(4) + version(1) + packet_type(1)
-    static let videoChunkHeaderBytes = 32  // per-packet(12) + per-frame(20)
-    static let videoTotalHeaderBytes = 38  // prefix + chunk header
+    static let videoChunkHeaderBytes = 36  // per-packet(16) + per-frame(20)
+    static let videoTotalHeaderBytes = 42  // prefix(6) + chunk header(36)
     static let maxDatagramBytes = 1400
-    static let maxVideoPayloadBytes = maxDatagramBytes - videoTotalHeaderBytes // 1362
+    static let maxVideoPayloadBytes = maxDatagramBytes - videoTotalHeaderBytes // 1358
 
     // Cursor
     static let cursorUpdateBytes = 29
