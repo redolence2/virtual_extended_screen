@@ -1,9 +1,12 @@
+pub mod cursor_renderer;
+
 use anyhow::{Context, Result};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use video_decode::DecodedFrame;
+pub use cursor_renderer::CursorRenderer;
 
 /// SDL2 fullscreen renderer for displaying decoded video frames.
 pub struct Renderer {
@@ -129,10 +132,21 @@ impl Renderer {
         let dst = Rect::new(0, 0, self.width, self.height);
         self.canvas.copy(&texture, None, Some(dst))
             .map_err(|e| anyhow::anyhow!("canvas copy: {}", e))?;
-        self.canvas.present();
 
+        // Don't present yet — caller draws cursor on top, then calls present()
         self.frame_count += 1;
         Ok(())
+    }
+
+    /// Draw cursor on top of the last rendered frame, then present.
+    pub fn present_with_cursor(&mut self, cursor: &CursorRenderer) {
+        cursor.draw(&mut self.canvas);
+        self.canvas.present();
+    }
+
+    /// Present without cursor.
+    pub fn present(&mut self) {
+        self.canvas.present();
     }
 
     pub fn frame_count(&self) -> u64 { self.frame_count }

@@ -64,6 +64,39 @@ pub mod binary {
         }
     }
 
+    /// Parsed CursorUpdate packet (29 bytes after PacketPrefix).
+    #[derive(Debug, Clone, Copy)]
+    pub struct CursorUpdate {
+        pub seq: u32,
+        pub timestamp_us: u64,
+        pub x_px: i32,
+        pub y_px: i32,
+        pub shape_id: u8,
+        pub hotspot_x_px: u16,
+        pub hotspot_y_px: u16,
+        pub cursor_scale: f32,
+    }
+
+    impl CursorUpdate {
+        pub fn parse(buf: &[u8]) -> Option<Self> {
+            if buf.len() < CURSOR_TOTAL_PACKET_BYTES { return None; }
+            let off = PACKET_PREFIX_BYTES;
+            Some(Self {
+                seq: u32::from_le_bytes([buf[off], buf[off+1], buf[off+2], buf[off+3]]),
+                timestamp_us: u64::from_le_bytes([
+                    buf[off+4], buf[off+5], buf[off+6], buf[off+7],
+                    buf[off+8], buf[off+9], buf[off+10], buf[off+11],
+                ]),
+                x_px: i32::from_le_bytes([buf[off+12], buf[off+13], buf[off+14], buf[off+15]]),
+                y_px: i32::from_le_bytes([buf[off+16], buf[off+17], buf[off+18], buf[off+19]]),
+                shape_id: buf[off+20],
+                hotspot_x_px: u16::from_le_bytes([buf[off+21], buf[off+22]]),
+                hotspot_y_px: u16::from_le_bytes([buf[off+23], buf[off+24]]),
+                cursor_scale: f32::from_bits(u32::from_le_bytes([buf[off+25], buf[off+26], buf[off+27], buf[off+28]])),
+            })
+        }
+    }
+
     /// Video chunk header — per-packet fields (always valid).
     #[derive(Debug, Clone, Copy)]
     pub struct VideoChunkPerPacket {

@@ -133,12 +133,24 @@ let sessionConfig = HostSession.Config(
     bitrateBps: encoderConfig.bitrateBps
 )
 let hostSession = HostSession(config: sessionConfig)
+// Cursor tracker (Phase 5)
+var cursorTracker: CursorTracker?
+
 hostSession.onStreamingStart = { sender in
     if let client = clientHost {
         let videoPort = controlPort + 1
+        let cursorPort = controlPort + 3 // video+1, input+2, cursor+3
         sender.connect(host: client, port: videoPort)
         activeVideoSender = sender
         print("[RESC] Video sender connected to \(client):\(videoPort)")
+
+        // Start cursor tracker
+        let tracker = CursorTracker(
+            displayID: displayHandle.lastKnownDisplayID,
+            streamWidth: width, streamHeight: height
+        )
+        tracker.start(host: client, port: cursorPort)
+        cursorTracker = tracker
     } else {
         print("[RESC] WARNING: No --client specified, video not sent over network")
     }
@@ -177,6 +189,7 @@ signal(SIGINT) { _ in
     Task {
         encoder.stop()
         h264FileHandle?.closeFile()
+        cursorTracker?.stop()
         activeVideoSender?.disconnect()
         hostSession.stop()
         await capturer.stop()
