@@ -81,11 +81,16 @@ var activeVideoSender: VideoSender?
 // Gate: don't send non-keyframes until first keyframe is sent (ensures SPS/PPS first)
 var hasSentKeyframe = false
 
-// Set up H.264 encoder
+// Set up encoder (H.264 default, --hevc for HEVC)
+let useHEVC = CommandLine.arguments.contains("--hevc")
 var encoderConfig = VideoEncoder.Config(
-    width: Int32(width), height: Int32(height), fps: Double(refreshRate)
+    width: Int32(width), height: Int32(height), fps: Double(refreshRate),
+    codec: useHEVC ? .hevc : .h264
 )
-encoderConfig.bitrateBps = VideoEncoder.Config.defaultBitrate(width: Int32(width), height: Int32(height))
+encoderConfig.bitrateBps = VideoEncoder.Config.defaultBitrate(
+    width: Int32(width), height: Int32(height), codec: encoderConfig.codec
+)
+print("[RESC] Codec: \(encoderConfig.codec), bitrate: \(encoderConfig.bitrateBps / 1_000_000)Mbps")
 
 let encoder = VideoEncoder(config: encoderConfig) { annexBData, isKeyframe, pts, encodeDurationMs in
     // Write to H.264 dump

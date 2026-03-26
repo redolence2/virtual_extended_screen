@@ -179,9 +179,21 @@ async fn main() -> Result<()> {
     let _decode_render_handle = std::thread::Builder::new()
         .name("decode-render".into())
         .spawn(move || {
-            let mut decoder = match video_decode::H264Decoder::new() {
+            // Determine codec from ModeConfirm (0=H.264, 1=HEVC)
+            let codec_id = mode_confirm.codec as u8;
+            let mut decoder = match video_decode::VideoDecoder::new(codec_id) {
                 Ok(d) => d,
-                Err(e) => { log::error!("Decoder init failed: {}", e); return; }
+                Err(e) => {
+                    log::error!("Decoder init failed for codec {}: {}", codec_id, e);
+                    // Fallback to H.264 if HEVC fails
+                    if codec_id != 0 {
+                        log::info!("Falling back to H.264 decoder");
+                        match video_decode::VideoDecoder::new(0) {
+                            Ok(d) => d,
+                            Err(e2) => { log::error!("H.264 fallback also failed: {}", e2); return; }
+                        }
+                    } else { return; }
+                }
             };
 
             // Init SDL2 (needed for both renderer and input)

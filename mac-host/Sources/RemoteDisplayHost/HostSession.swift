@@ -147,7 +147,7 @@ final class HostSession {
             configID: configID,
             width: UInt16(config.displayWidth),
             height: UInt16(config.displayHeight),
-            codec: 0 // H.264
+            codec: CommandLine.arguments.contains("--hevc") ? 1 : 0
         )
         let sender = VideoSender(config: senderConfig)
 
