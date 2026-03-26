@@ -232,14 +232,14 @@ async fn main() -> Result<()> {
             loop {
                 new_video_frame = false;
 
-                // Get the LATEST video frame — drain queue to skip stale frames
-                let mut latest_frame = None;
+                // Collect ALL available frames from queue, DECODE all (maintains
+                // HEVC reference chain), but only RENDER the last good one.
+                let mut frames_to_decode: Vec<AssembledFrame> = Vec::new();
                 match frame_rx.recv_timeout(Duration::from_millis(8)) {
                     Ok(frame) => {
-                        latest_frame = Some(frame);
-                        // Drain any queued frames, keep only the newest
-                        while let Ok(newer) = frame_rx.try_recv() {
-                            latest_frame = Some(newer);
+                        frames_to_decode.push(frame);
+                        while let Ok(more) = frame_rx.try_recv() {
+                            frames_to_decode.push(more);
                         }
                     }
                     Err(mpsc::RecvTimeoutError::Timeout) => {}
@@ -248,7 +248,13 @@ async fn main() -> Result<()> {
                         break;
                     }
                 }
-                if let Some(assembled) = latest_frame {
+
+                if !frames_to_decode.is_empty() {
+                    let batch_size = frames_to_decode.len();
+
+                    for (i, assembled) in frames_to_decode.iter().enumerate() {
+                        let is_last = i == batch_size - 1;
+
                         if let Some(ref mut f) = dump_file {
                             use std::io::Write;
                             f.write_all(&assembled.data).ok();
@@ -261,17 +267,15 @@ async fn main() -> Result<()> {
                                 decode_total_us += decode_us;
 
                                 for decoded in &decoded_frames {
-                                    // Skip corrupt frames (very small or zero-sized)
                                     if decoded.planes[0].is_empty() { continue; }
-
                                     frame_count += 1;
                                     has_frame = true;
-                                    new_video_frame = true;
 
-                                    if let Some(ref mut r) = renderer_opt {
-                                        if let Err(e) = r.update_frame(decoded) {
-                                            // Don't update — keep showing last good frame
-                                            continue;
+                                    // Only render the LAST frame in the batch (latest content)
+                                    if is_last {
+                                        new_video_frame = true;
+                                        if let Some(ref mut r) = renderer_opt {
+                                            let _ = r.update_frame(decoded);
                                         }
                                     }
 
@@ -285,13 +289,14 @@ async fn main() -> Result<()> {
                             }
                             Err(e) => { log::warn!("Decode error: {}", e); }
                         }
+                    }
 
-                        if frame_count > 0 && frame_count % 60 == 0 {
-                            let elapsed = start.elapsed().as_secs_f64();
-                            let fps = frame_count as f64 / elapsed;
-                            let avg_ms = (decode_total_us as f64 / frame_count as f64) / 1000.0;
-                            log::info!("Decoded: {} frames, {:.1} fps, avg decode {:.1}ms", frame_count, fps, avg_ms);
-                        }
+                    if frame_count > 0 && frame_count % 60 == 0 {
+                        let elapsed = start.elapsed().as_secs_f64();
+                        let fps = frame_count as f64 / elapsed;
+                        let avg_ms = (decode_total_us as f64 / frame_count as f64) / 1000.0;
+                        log::info!("Decoded: {} frames, {:.1} fps, avg decode {:.1}ms", frame_count, fps, avg_ms);
+                    }
                 }
 
                 // Process SDL2 events (input capture)

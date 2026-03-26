@@ -62,24 +62,10 @@ impl VideoDecoder {
     /// If has_reference is false (lost reference frame), non-keyframes are skipped
     /// to avoid gray error-concealment frames.
     pub fn decode(&mut self, data: &[u8], timestamp_us: u64) -> Result<Vec<DecodedFrame>> {
-        // Detect keyframe: Annex B start code + NAL type
-        let is_keyframe = detect_keyframe(data);
-
-        if !self.has_reference && !is_keyframe {
-            // Skip until we get a keyframe — avoids gray concealment frames
-            return Ok(vec![]);
-        }
-
+        // Always feed frames to decoder (maintains HEVC reference chain).
+        // Gray concealment frames are filtered by Y-plane variance check below.
         let packet = ffmpeg_next::Packet::copy(data);
-        match self.decoder.send_packet(&packet) {
-            Ok(_) => {
-                if is_keyframe { self.has_reference = true; }
-            }
-            Err(e) => {
-                self.has_reference = false;
-                anyhow::bail!("send_packet failed: {}", e);
-            }
-        }
+        self.decoder.send_packet(&packet).context("send_packet failed")?;
 
         let mut frames = Vec::new();
         let mut decoded = ffmpeg_next::frame::Video::empty();
