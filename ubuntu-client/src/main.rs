@@ -232,9 +232,23 @@ async fn main() -> Result<()> {
             loop {
                 new_video_frame = false;
 
-                // Try to get a new video frame (non-blocking with short timeout)
-                match frame_rx.recv_timeout(Duration::from_millis(16)) { // ~60Hz poll
-                    Ok(assembled) => {
+                // Get the LATEST video frame — drain queue to skip stale frames
+                let mut latest_frame = None;
+                match frame_rx.recv_timeout(Duration::from_millis(8)) {
+                    Ok(frame) => {
+                        latest_frame = Some(frame);
+                        // Drain any queued frames, keep only the newest
+                        while let Ok(newer) = frame_rx.try_recv() {
+                            latest_frame = Some(newer);
+                        }
+                    }
+                    Err(mpsc::RecvTimeoutError::Timeout) => {}
+                    Err(mpsc::RecvTimeoutError::Disconnected) => {
+                        log::info!("Frame channel disconnected");
+                        break;
+                    }
+                }
+                if let Some(assembled) = latest_frame {
                         if let Some(ref mut f) = dump_file {
                             use std::io::Write;
                             f.write_all(&assembled.data).ok();
@@ -278,14 +292,6 @@ async fn main() -> Result<()> {
                             let avg_ms = (decode_total_us as f64 / frame_count as f64) / 1000.0;
                             log::info!("Decoded: {} frames, {:.1} fps, avg decode {:.1}ms", frame_count, fps, avg_ms);
                         }
-                    }
-                    Err(mpsc::RecvTimeoutError::Timeout) => {
-                        // No new frame — that's fine, just re-render cursor
-                    }
-                    Err(mpsc::RecvTimeoutError::Disconnected) => {
-                        log::info!("Frame channel disconnected");
-                        break;
-                    }
                 }
 
                 // Process SDL2 events (input capture)
