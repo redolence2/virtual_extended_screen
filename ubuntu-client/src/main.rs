@@ -186,54 +186,72 @@ async fn main() -> Result<()> {
             let start = std::time::Instant::now();
             let mut frame_count = 0u64;
             let mut decode_total_us = 0u64;
+            let mut has_frame = false; // true once we've rendered at least one video frame
 
-            while let Ok(assembled) = frame_rx.recv() {
-                if let Some(ref mut f) = dump_file {
-                    use std::io::Write;
-                    f.write_all(&assembled.data).ok();
-                }
+            loop {
+                // Try to get a new video frame (non-blocking with short timeout)
+                match frame_rx.recv_timeout(Duration::from_millis(8)) {
+                    Ok(assembled) => {
+                        if let Some(ref mut f) = dump_file {
+                            use std::io::Write;
+                            f.write_all(&assembled.data).ok();
+                        }
 
-                let decode_start = std::time::Instant::now();
-                match decoder.decode(&assembled.data, assembled.timestamp_us) {
-                    Ok(decoded_frames) => {
-                        let decode_us = decode_start.elapsed().as_micros() as u64;
-                        decode_total_us += decode_us;
+                        let decode_start = std::time::Instant::now();
+                        match decoder.decode(&assembled.data, assembled.timestamp_us) {
+                            Ok(decoded_frames) => {
+                                let decode_us = decode_start.elapsed().as_micros() as u64;
+                                decode_total_us += decode_us;
 
-                        for decoded in &decoded_frames {
-                            frame_count += 1;
+                                for decoded in &decoded_frames {
+                                    frame_count += 1;
+                                    has_frame = true;
 
-                            if let Some(ref mut r) = renderer_opt {
-                                if let Err(e) = r.render_frame(decoded) {
-                                    log::warn!("Render error: {}", e);
-                                    continue;
+                                    if let Some(ref mut r) = renderer_opt {
+                                        if let Err(e) = r.update_frame(decoded) {
+                                            log::warn!("Render error: {}", e);
+                                            continue;
+                                        }
+                                    }
+
+                                    if frame_count == 1 {
+                                        log::info!(
+                                            "First decoded frame: {}x{}, decode {:.1}ms",
+                                            decoded.width, decoded.height, decode_us as f64 / 1000.0
+                                        );
+                                    }
                                 }
-
-                                // Read latest cursor state and draw
-                                let cx = cursor_state_reader.x.load(Ordering::Relaxed);
-                                let cy = cursor_state_reader.y.load(Ordering::Relaxed);
-                                let cs = cursor_state_reader.shape.load(Ordering::Relaxed) as u8;
-                                if cx >= 0 && cy >= 0 {
-                                    cursor_renderer.update(cx, cy, cs);
-                                }
-                                r.present_with_cursor(&cursor_renderer);
                             }
+                            Err(e) => { log::warn!("Decode error: {}", e); }
+                        }
 
-                            if frame_count == 1 {
-                                log::info!(
-                                    "First decoded frame: {}x{}, decode {:.1}ms",
-                                    decoded.width, decoded.height, decode_us as f64 / 1000.0
-                                );
-                            }
+                        if frame_count > 0 && frame_count % 60 == 0 {
+                            let elapsed = start.elapsed().as_secs_f64();
+                            let fps = frame_count as f64 / elapsed;
+                            let avg_ms = (decode_total_us as f64 / frame_count as f64) / 1000.0;
+                            log::info!("Decoded: {} frames, {:.1} fps, avg decode {:.1}ms", frame_count, fps, avg_ms);
                         }
                     }
-                    Err(e) => { log::warn!("Decode error: {}", e); }
+                    Err(mpsc::RecvTimeoutError::Timeout) => {
+                        // No new frame — that's fine, just re-render cursor
+                    }
+                    Err(mpsc::RecvTimeoutError::Disconnected) => {
+                        log::info!("Frame channel disconnected");
+                        break;
+                    }
                 }
 
-                if frame_count > 0 && frame_count % 60 == 0 {
-                    let elapsed = start.elapsed().as_secs_f64();
-                    let fps = frame_count as f64 / elapsed;
-                    let avg_ms = (decode_total_us as f64 / frame_count as f64) / 1000.0;
-                    log::info!("Decoded: {} frames, {:.1} fps, avg decode {:.1}ms", frame_count, fps, avg_ms);
+                // Always draw cursor on top of latest frame at ~120Hz
+                if has_frame {
+                    if let Some(ref mut r) = renderer_opt {
+                        let cx = cursor_state_reader.x.load(Ordering::Relaxed);
+                        let cy = cursor_state_reader.y.load(Ordering::Relaxed);
+                        let cs = cursor_state_reader.shape.load(Ordering::Relaxed) as u8;
+                        if cx >= 0 && cy >= 0 {
+                            cursor_renderer.update(cx, cy, cs);
+                        }
+                        r.present_with_cursor(&cursor_renderer);
+                    }
                 }
             }
             log::info!("Decode/render stopped: {} frames", frame_count);
