@@ -42,7 +42,13 @@ impl VideoDecoder {
         let decoder = context.decoder().video()
             .context(format!("Failed to open {} decoder", name))?;
 
-        log::info!("{} decoder initialized (software)", name);
+        // Disable error concealment — don't output gray frames on decode errors.
+        // Without this, ffmpeg fills missing reference areas with gray.
+        unsafe {
+            (*decoder.as_mut_ptr()).error_concealment = 0;
+        }
+
+        log::info!("{} decoder initialized (software, no error concealment)", name);
 
         Ok(Self {
             decoder,
@@ -79,9 +85,18 @@ impl VideoDecoder {
         let mut decoded = ffmpeg_next::frame::Video::empty();
 
         while self.decoder.receive_frame(&mut decoded).is_ok() {
-            self.frame_count += 1;
             let w = decoded.width();
             let h = decoded.height();
+
+            // Skip frames with decode errors (corrupt flag)
+            let is_corrupt = unsafe { (*decoded.as_ptr()).decode_error_flags != 0 };
+            if is_corrupt {
+                self.has_reference = false;
+                log::debug!("Skipping corrupt frame");
+                continue;
+            }
+
+            self.frame_count += 1;
 
             let y_stride = decoded.stride(0);
             let u_stride = decoded.stride(1);
