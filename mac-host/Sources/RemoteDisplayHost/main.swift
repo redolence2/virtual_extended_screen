@@ -78,6 +78,8 @@ let h264FileHandle: FileHandle? = {
 
 // Video sender (set when client connects and streaming starts)
 var activeVideoSender: VideoSender?
+// Gate: don't send non-keyframes until first keyframe is sent (ensures SPS/PPS first)
+var hasSentKeyframe = false
 
 // Set up H.264 encoder
 var encoderConfig = VideoEncoder.Config(
@@ -85,15 +87,21 @@ var encoderConfig = VideoEncoder.Config(
 )
 encoderConfig.bitrateBps = VideoEncoder.Config.defaultBitrate(width: Int32(width), height: Int32(height))
 
-var sessionStartTime: UInt64 = 0 // mach_absolute_time at session start
-
 let encoder = VideoEncoder(config: encoderConfig) { annexBData, isKeyframe, pts, encodeDurationMs in
     // Write to H.264 dump
     h264FileHandle?.write(annexBData)
 
     // Send over UDP if streaming
     if let sender = activeVideoSender {
-        // Compute timestamp_us relative to session start
+        // Skip non-keyframes until first keyframe is sent (client needs SPS/PPS first)
+        if !hasSentKeyframe {
+            if isKeyframe {
+                hasSentKeyframe = true
+                print("[RESC] First keyframe sent to client (\(annexBData.count / 1024)KB)")
+            } else {
+                return // skip this frame
+            }
+        }
         let timestampUs = UInt64(CMTimeGetSeconds(pts) * 1_000_000)
         sender.sendFrame(data: annexBData, isKeyframe: isKeyframe, timestampUs: timestampUs)
     }

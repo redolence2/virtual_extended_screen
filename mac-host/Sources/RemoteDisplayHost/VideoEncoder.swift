@@ -90,18 +90,19 @@ final class VideoEncoder {
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AverageBitRate,
                              value: config.bitrateBps as CFNumber)
 
-        // Also set data rate limits for CBR-like behavior: [bytes_per_second, duration_in_seconds]
-        let bytesPerSecond = Double(config.bitrateBps) / 8.0
-        let limits: [Double] = [bytesPerSecond * 1.5, 1.0]  // allow 1.5x burst over 1s
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_DataRateLimits,
-                             value: limits as CFArray)
-
         // Keyframe interval
         let keyframeInterval = Int32(config.fps * config.keyframeIntervalSeconds)
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxKeyFrameInterval,
                              value: keyframeInterval as CFNumber)
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration,
                              value: config.keyframeIntervalSeconds as CFNumber)
+
+        // Limit max frame size to prevent huge keyframes
+        // Set data rate limits tighter: max 2x average over 0.1s window
+        let tightBytesPerSec = Double(config.bitrateBps) / 8.0
+        let tightLimits: [Double] = [tightBytesPerSec * 2.0, 0.1]
+        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_DataRateLimits,
+                             value: tightLimits as CFArray)
 
         // No B-frames (reduces latency, simplifies decode)
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AllowFrameReordering,
