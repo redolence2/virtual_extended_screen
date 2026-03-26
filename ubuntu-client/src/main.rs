@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
 
     let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(2);
 
-    let recv_handle = std::thread::Builder::new()
+    let _recv_handle = std::thread::Builder::new()
         .name("video-recv".into())
         .spawn(move || {
             let mut receiver = net_transport::video_receiver::VideoReceiver::new(
@@ -80,7 +80,7 @@ async fn main() -> Result<()> {
 
     // 6. Frame consumer (Phase 3: log stats; Phase 4: decode+render)
     let dump_path = args.dump_h264.clone();
-    let consumer_handle = std::thread::Builder::new()
+    let _consumer_handle = std::thread::Builder::new()
         .name("frame-consumer".into())
         .spawn(move || {
             let mut file = dump_path.as_ref().map(|p| {
