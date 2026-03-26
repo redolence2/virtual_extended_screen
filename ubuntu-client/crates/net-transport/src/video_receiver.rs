@@ -111,6 +111,28 @@ impl VideoReceiver {
 
             self.packets_received += 1;
 
+            if self.packets_received == 1 {
+                log::info!(
+                    "First video packet: frame_id={}, chunk_id={}, size={}B, stream_id={}",
+                    chunk.per_packet.frame_id, chunk.per_packet.chunk_id,
+                    chunk.per_packet.chunk_size, chunk.per_packet.stream_id
+                );
+                if let Some(ref pf) = chunk.per_frame {
+                    log::info!(
+                        "  Frame meta: {}x{}, total_chunks={}, total_bytes={}, keyframe={}",
+                        pf.width, pf.height, pf.total_chunks, pf.total_bytes, pf.is_keyframe
+                    );
+                }
+            }
+
+            if self.packets_received % 100 == 0 {
+                log::info!(
+                    "Recv stats: {} packets, {} dropped, {} assembled, {} frame_drops",
+                    self.packets_received, self.packets_dropped,
+                    self.assembler.frames_completed, self.assembler.frames_dropped
+                );
+            }
+
             // Feed to assembler
             if let Some(frame) = self.assembler.process_chunk(
                 &chunk.per_packet,

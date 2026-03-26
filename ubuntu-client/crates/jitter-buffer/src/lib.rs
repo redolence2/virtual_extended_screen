@@ -185,7 +185,7 @@ impl FrameAssembler {
     pub fn expire_stale(&mut self) {
         let now = Instant::now();
         for slot in &mut self.slots {
-            if slot.active && now.duration_since(slot.first_chunk_time).as_millis() > 30 {
+            if slot.active && now.duration_since(slot.first_chunk_time).as_millis() > 500 {
                 log::debug!("Frame {} timed out ({} chunks received)",
                            slot.frame_id, slot.chunks_received);
                 slot.active = false;
