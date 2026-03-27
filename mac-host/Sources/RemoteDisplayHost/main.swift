@@ -10,6 +10,28 @@ import VirtualDisplayBridge
 // Phase 3: Protocol + Transport + Control Channel
 
 print("[RESC] Remote Extended Screen Host starting...")
+
+// Kill any stale host processes from previous runs (prevents -3805 capture errors)
+do {
+    let selfPID = ProcessInfo.processInfo.processIdentifier
+    let task = Process()
+    task.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+    task.arguments = ["-f", "remote-display-host"]
+    let pipe = Pipe()
+    task.standardOutput = pipe
+    try task.run()
+    task.waitUntilExit()
+    let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    for line in output.split(separator: "\n") {
+        if let pid = Int32(line.trimmingCharacters(in: .whitespaces)), pid != selfPID {
+            print("[RESC] Killing stale host process (PID \(pid))")
+            kill(pid, SIGTERM)
+            usleep(200_000) // 200ms for graceful shutdown
+            kill(pid, SIGKILL) // force if still alive
+        }
+    }
+}
+
 ProtocolConstants.logAndVerify()
 print("[RESC] macOS build: \(CGVirtualDisplayBridge.osBuildVersion())")
 

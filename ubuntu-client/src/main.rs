@@ -59,6 +59,27 @@ struct SharedCursorState {
 async fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     protocol::constants::log_and_verify();
+
+    // Kill any stale client processes from previous runs
+    let self_pid = std::process::id();
+    if let Ok(output) = std::process::Command::new("pgrep")
+        .args(["-f", "remote-display-client"])
+        .output()
+    {
+        if let Ok(pids) = String::from_utf8(output.stdout) {
+            for line in pids.lines() {
+                if let Ok(pid) = line.trim().parse::<u32>() {
+                    if pid != self_pid {
+                        log::info!("Killing stale client process (PID {})", pid);
+                        unsafe { libc::kill(pid as i32, libc::SIGTERM); }
+                        std::thread::sleep(Duration::from_millis(200));
+                        unsafe { libc::kill(pid as i32, libc::SIGKILL); }
+                    }
+                }
+            }
+        }
+    }
+
     let args = Args::parse();
 
     // 1. Discover host
