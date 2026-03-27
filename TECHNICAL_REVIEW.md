@@ -925,3 +925,156 @@ the decoder cannot keep up (e.g., CPU spike, large keyframe burst), the receiver
 will block, causing UDP packets to queue in the kernel socket buffer. If that overflows,
 packets are silently lost at the OS level. There is no explicit backpressure signal
 from decoder to receiver.
+
+---
+
+## 7. Post-Review Changes (Milestones A–C + 4K/Vertical Support)
+
+An external code review produced 14 improvement items organized into three milestones,
+plus additional work on vertical display support and 4K60 hardware decode. All items
+were implemented across commits `952432f` through `cee521c`.
+
+### Milestone A — Stability Hotfix
+
+**Thread-safe streaming state (Item 1):**
+New `StreamingState` class (`StreamingState.swift`) with a dedicated serial
+`DispatchQueue`. All access to `activeVideoSender`, `hasSentKeyframe`, stream/config IDs
+goes through atomic methods. Eliminates data races from the concurrent encoder callback
+and session management threads. The old bare `var activeVideoSender` and `hasSentKeyframe`
+in `main.swift` are removed.
+
+**Smart queue policy (Item 5):**
+Frame channel reduced from 64 → 8 → 4 slots. When the queue is full, non-keyframe
+frames are dropped (with counter increment); keyframes always block-wait for space.
+This prevents latency accumulation while preserving the codec reference chain.
+
+**Persistent texture cache (Item 8):**
+`PersistentTexture` wraps a raw `SDL_Texture` pointer, recreated only when frame
+dimensions change. Uses SDL2 C API directly (`SDL_UpdateYUVTexture`, `SDL_RenderCopy`,
+`SDL_RenderCopyEx`) to avoid Rust lifetime constraints. Eliminates per-frame GPU texture
+allocation overhead.
+
+**Real stats telemetry (Item 9):**
+`SharedReceiverStats` with `AtomicU64` counters for packets received/dropped and frames
+completed/dropped. The video receiver flushes local counters to shared atomics every
+100 packets. The stats reporter computes per-interval loss/drop rates (not cumulative)
+and sends real values to the host via the Stats protobuf message. The `BitrateAdapter`
+can now respond to actual network conditions.
+
+**Bugfixes found during self-review of Milestone A:**
+- Stats atomics were only written after the receiver thread exited (always 0 during streaming)
+- `frames_dropped` counter was incremented even for keyframes that were block-sent (not dropped)
+- `frame_drop_rate` used all-time cumulative totals instead of per-interval
+
+### Milestone B — Latency Tuning
+
+**Jitter buffer hardening (Item 6):**
+- Assembly deadline: 100ms per frame; expired frames are dropped with `Timeout` reason
+- Drop reason tracking: separate counters for `timeout_drops`, `oversize_drops`, `eviction_drops`
+- Single-chunk optimization: skips the compaction copy loop when only 1 chunk
+- Strict validation split: packet-level checks always, frame-metadata only on chunk 0
+
+**Decoder recovery states (Item 7):**
+State machine: `Healthy` → `WaitingForIDR` → `Recovering` (5 clean frames) → `Healthy`.
+In `WaitingForIDR`, non-keyframes are not fed to the decoder at all, preventing cascading
+corruption from broken reference chains. IDR requests are rate-limited to 250ms and sent
+via the existing control channel (not a second TCP connection — that caused a black screen
+bug). The Mac host handles `RequestIDR` during the streaming state by calling
+`encoder.forceKeyframe()`, also rate-limited to 250ms.
+
+### Milestone C — Architecture Hardening
+
+**Protocol constants unification (Items 11–13):**
+- Fixed stale `video.proto` comments (header was documented as 32 bytes, actually 36)
+- Created `proto/constants.json`: single canonical golden source of truth for all 13 constants
+- Added `ProtocolConstants.logAndVerify()` (Swift) and `protocol::constants::log_and_verify()`
+  (Rust), both called at startup. These assert self-consistency and crash on mismatch.
+- Rust test `constants_match_golden_file` reads `constants.json` and asserts all values match
+
+**SessionStateMachine integration (Item 10):**
+Removed the duplicate `HostSession.State` enum. `HostSession` now delegates all lifecycle
+state to `SessionStateMachine` as the single authority. An `awaitingStreamingReady` flag
+handles the negotiation sub-phase. Reconnect detection: if a client connects while in
+`.disconnected` state, `sm.handleReconnect()` is called instead of starting fresh.
+Added `onReleaseInput` callback for stuck key cleanup on disconnect.
+
+**Tests (Item 14) — 15 tests, all passing:**
+
+*Protocol crate (8 tests):*
+- `constants_self_consistent`: verifies computed constants match
+- `constants_match_golden_file`: reads `proto/constants.json`, asserts all 13 values
+- `packet_prefix_valid_parse`, `packet_prefix_invalid_magic`, `packet_prefix_too_short`
+- `video_chunk_roundtrip`: builds a 52-byte packet, verifies all header and payload fields
+- `cursor_update_roundtrip`: builds a 35-byte packet, verifies all fields
+- `protobuf_envelope_roundtrip`: encode/decode `RequestIdr` envelope
+
+*Jitter buffer crate (7 tests):*
+- `single_chunk_frame_completes`
+- `out_of_order_chunks_assemble`: sends chunks 2, 0, 1 and verifies correct reassembly
+- `missing_chunk_timeout`: verifies `timeout_drops` counter after deadline
+- `oversize_frame_rejected`, `oversize_chunk_count_rejected`
+- `slot_eviction_on_full`: fills 4 slots, verifies oldest evicted
+- `duplicate_chunk_ignored`
+
+### Vertical Display Support
+
+Full support for portrait-mode monitors (e.g., 1080×1920 or 2160×3840 with `xrandr --rotate left`).
+
+**Problem:** SDL2's `fullscreen_desktop` renders to the physical framebuffer, bypassing
+xrandr rotation. A 1080×1920 stream was either clipped (half black) or squished into the
+landscape framebuffer.
+
+**Solution:** Auto-detect orientation mismatch (stream portrait vs canvas landscape) and
+pre-rotate using `SDL_RenderCopyEx` with −90° angle. The texture is placed at scaled
+dimensions centered on the canvas; after the physical monitor's CW rotation, the content
+appears correctly. When stream and canvas orientations match, the normal non-rotated path
+is used — no regression for landscape setups.
+
+**Cursor:** Arrow shape is rotated 90° CW on the canvas to compensate for the physical
+rotation. Cursor position is transformed from stream coordinates to rotated+scaled canvas
+coordinates.
+
+**Input:** Mouse coordinates are inverse-transformed from canvas space back to stream space,
+accounting for both rotation and resolution scaling. Scroll axes are swapped.
+
+**4K scaling:** When the stream resolution differs from the physical monitor (e.g., 4K stream
+on a 1080p monitor), the rotation path computes a scale factor so the rotated content fits
+the canvas. Cursor and input coordinates use the same scale.
+
+### NVDEC Hardware Decode (4K60)
+
+Added NVIDIA CUVID decoder support for H.264 and HEVC via the RTX GPU's NVDEC engine.
+
+**Implementation:** `VideoDecoder::new()` tries `h264_cuvid`/`hevc_cuvid` first. Creates a
+CUDA hardware device context (`av_hwdevice_ctx_create`), sets it on the decoder context, and
+opens the CUVID decoder. Decoded frames are transferred from GPU to CPU via
+`av_hwframe_transfer_data`, producing NV12 output. The NV12 UV plane is de-interleaved to
+separate U/V planes (I420) for the existing renderer. Falls back to software decode (4 threads)
+if CUVID is unavailable.
+
+**4K capacity:** `max_total_chunks_per_frame` increased from 256 to 512 (handles 5× IDR spikes
+at 4K). Jitter buffer bitset expanded from `[u64; 4]` to `[u64; 8]` (512 chunk tracking).
+
+### Latency Optimization
+
+- Removed `present_vsync()`: saves up to 16ms per frame (was waiting for VBlank)
+- Reduced decode loop poll timeout: 8ms → 1ms (faster reaction to new frames)
+- Reduced frame queue: 8 → 4 slots (less buffering)
+- Combined: ~20–30ms latency reduction, noticeable for window dragging responsiveness
+
+### Previously Identified Deficiencies — Status Update
+
+| Deficiency | Status | Resolution |
+|-----------|--------|------------|
+| Data races on `activeVideoSender` | **Fixed** | `StreamingState` with serial queue |
+| Placeholder stats (always 0.0) | **Fixed** | Real per-interval telemetry via `SharedReceiverStats` |
+| No decoder recovery / IDR requests | **Fixed** | State machine + rate-limited `RequestIDR` |
+| Per-frame texture allocation | **Fixed** | `PersistentTexture` cache |
+| Dead-code `SessionStateMachine` | **Fixed** | Integrated as single state authority |
+| No unit tests | **Fixed** | 15 tests across protocol + jitter buffer |
+| Protocol constant drift risk | **Fixed** | `constants.json` golden file + CI test |
+| 64-slot frame queue hides lag | **Fixed** | Reduced to 4 + smart drop policy |
+| Software-only decode (no 4K60) | **Fixed** | NVDEC/CUVID hardware decode |
+| No vertical display support | **Fixed** | Auto-rotate + scaled cursor/input |
+| Hard-coded port offsets | Unchanged | Protocol supports arbitrary ports; host uses offsets |
+| Hand-rolled protobuf (Swift) | Unchanged | Works correctly; migration to swift-protobuf deferred |
