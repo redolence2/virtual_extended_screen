@@ -92,10 +92,11 @@ impl InputCapture {
     }
 
     /// Transform canvas coords to stream coords (handles xrandr rotation).
-    /// Inverse of the -90° CCW rendering: canvas (cx, cy) → stream (cy, stream_h - 1 - cx)
+    /// Inverse of rendering: canvas (sy, stream_w-1-sx) → stream (sx, sy)
+    /// So: stream_x = stream_w - 1 - canvas_y, stream_y = canvas_x
     fn to_stream_coords(&self, x: i32, y: i32) -> (i32, i32) {
         if self.rotated {
-            (y, self.stream_height as i32 - 1 - x)
+            (self.stream_width as i32 - 1 - y, x)
         } else {
             (x, y)
         }
@@ -126,8 +127,8 @@ impl InputCapture {
     pub fn send_scroll(&mut self, dx: i16, dy: i16) {
         if self.ownership != InputOwnership::RemoteControlGrabbed { return; }
         if self.rotated {
-            // Swap scroll axes for rotated display
-            self.send_input_event(3, 0, 0, 0, dy, -dx);
+            // Swap scroll axes: canvas horizontal → stream vertical and vice versa
+            self.send_input_event(3, 0, 0, 0, -dy, dx);
         } else {
             self.send_input_event(3, 0, 0, 0, dx, dy);
         }

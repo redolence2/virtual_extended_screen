@@ -238,10 +238,10 @@ impl Renderer {
         if cursor.visible && cursor.x >= 0 && cursor.y >= 0 {
             if rotated {
                 // Transform cursor from stream coords to rotated canvas coords.
-                // 90° CCW rotation: stream (sx, sy) → canvas (max_sy - sy, sx)
+                // Must match video rendering: stream (sx, sy) → canvas (sy, stream_w - sx)
                 let mut rotated_cursor = cursor.clone();
-                rotated_cursor.x = self.height as i32 - 1 - cursor.y;
-                rotated_cursor.y = cursor.x;
+                rotated_cursor.x = cursor.y;
+                rotated_cursor.y = self.width as i32 - 1 - cursor.x;
                 rotated_cursor.draw(&mut self.canvas);
             } else {
                 cursor.draw(&mut self.canvas);
