@@ -33,6 +33,8 @@ final class ControlChannel {
 
         let params = NWParameters.tcp
         params.serviceClass = .responsiveData
+        // Allow immediate rebind after previous process dies (skip TIME_WAIT)
+        params.allowLocalEndpointReuse = true
 
         let listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: port)!)
         listener.stateUpdateHandler = { state in

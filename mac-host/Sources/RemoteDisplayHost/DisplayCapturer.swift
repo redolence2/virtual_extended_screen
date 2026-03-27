@@ -146,6 +146,22 @@ extension DisplayCapturer: SCStreamOutput {
 
 extension DisplayCapturer: SCStreamDelegate {
     func stream(_ stream: SCStream, didStopWithError error: Error) {
+        let errMsg = "\(error)"
         print("[RESC] Capture stream stopped with error: \(error)")
+        // Auto-restart on -3805 (interrupted connection from stale session)
+        if errMsg.contains("3805") {
+            print("[RESC] Attempting capture restart in 2 seconds...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                guard let self = self else { return }
+                Task {
+                    do {
+                        try await self.start()
+                        print("[RESC] Capture restarted successfully")
+                    } catch {
+                        print("[RESC] Capture restart failed: \(error)")
+                    }
+                }
+            }
+        }
     }
 }
