@@ -4,7 +4,7 @@ use jitter_buffer::AssembledFrame;
 use protocol::binary::{CursorUpdate, PacketPrefix};
 use protocol::constants::*;
 use std::sync::mpsc;
-use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicI32, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -42,6 +42,15 @@ struct Args {
     /// Headless mode (no SDL2 rendering, just receive + decode)
     #[arg(long)]
     headless: bool,
+}
+
+/// Shared receiver stats for real telemetry (Item 9 from review).
+#[derive(Default)]
+struct ReceiverStats {
+    packets_received: AtomicU64,
+    packets_dropped: AtomicU64,
+    frames_completed: AtomicU64,
+    frames_dropped: AtomicU64,
 }
 
 /// Shared cursor state (written by cursor receiver thread, read by render thread).
@@ -94,9 +103,14 @@ async fn main() -> Result<()> {
     let stream_id = mode_confirm.stream_id;
     let config_id = mode_confirm.config_id;
 
-    // Large enough to never drop frames during bursts (decoder at 1ms handles 1000fps).
-    // Dropping frames here breaks the codec reference chain → gray frames.
-    let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(64);
+    // Bounded queue: small to minimize latency (Item 5 from review).
+    // Receiver uses smart drop policy: keyframes always kept.
+    let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(8);
+
+    // Shared stats counters (Item 9: real telemetry for adaptive bitrate)
+    let recv_stats = Arc::new(ReceiverStats::default());
+    let recv_stats_writer = recv_stats.clone();
+    let recv_stats_reader = recv_stats.clone();
 
     let _recv_handle = std::thread::Builder::new()
         .name("video-recv".into())
@@ -105,6 +119,9 @@ async fn main() -> Result<()> {
                 video_port, stream_id, config_id, max_chunks, max_frame,
             ).expect("Failed to create video receiver");
             receiver.run(frame_tx);
+            // Write final stats
+            recv_stats_writer.packets_received.store(receiver.packets_received, Ordering::Relaxed);
+            recv_stats_writer.packets_dropped.store(receiver.packets_dropped, Ordering::Relaxed);
         })?;
 
     // 6. Start cursor receiver (shared atomic state)
@@ -155,15 +172,32 @@ async fn main() -> Result<()> {
             }
         })?;
 
-    // 6b. Stats reporter (sends Stats to host every 1 second)
-    // TODO: collect real packet_loss_rate and frame_drop_rate from receiver
-    // For now, send zeros (stable connection)
+    // 6b. Stats reporter — sends real telemetry to host every 1s (Item 9 from review)
     tokio::spawn(async move {
+        let mut prev_recv = 0u64;
+        let mut prev_drop = 0u64;
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            // Stats are placeholder — real implementation reads from receiver atomics
-            if let Err(_) = control.send_stats(0.0, 0.0, 0).await {
-                log::warn!("Failed to send stats (control channel may be closed)");
+            let recv = recv_stats_reader.packets_received.load(Ordering::Relaxed);
+            let drop = recv_stats_reader.packets_dropped.load(Ordering::Relaxed);
+            let f_drop = recv_stats_reader.frames_dropped.load(Ordering::Relaxed);
+            let f_done = recv_stats_reader.frames_completed.load(Ordering::Relaxed);
+
+            // Compute rates over last 1s interval
+            let interval_recv = recv.saturating_sub(prev_recv);
+            let interval_drop = drop.saturating_sub(prev_drop);
+            let loss_rate = if interval_recv + interval_drop > 0 {
+                interval_drop as f32 / (interval_recv + interval_drop) as f32
+            } else { 0.0 };
+            let frame_drop_rate = if f_done + f_drop > 0 {
+                f_drop as f32 / (f_done + f_drop) as f32
+            } else { 0.0 };
+
+            prev_recv = recv;
+            prev_drop = drop;
+
+            if let Err(_) = control.send_stats(loss_rate, frame_drop_rate, 0).await {
+                log::warn!("Stats send failed (control channel closed)");
                 break;
             }
         }

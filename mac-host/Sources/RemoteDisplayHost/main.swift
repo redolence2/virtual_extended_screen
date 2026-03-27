@@ -80,16 +80,14 @@ let h264FileHandle: FileHandle? = {
     return FileHandle(forWritingAtPath: path)
 }()
 
-// Video sender (set when client connects and streaming starts)
-var activeVideoSender: VideoSender?
-// Gate: don't send non-keyframes until first keyframe is sent (ensures SPS/PPS first)
-var hasSentKeyframe = false
+// Thread-safe streaming state (Item 1 from review: eliminates data races)
+let streamingState = StreamingState()
 
 // Set up encoder (H.264 default, --hevc for HEVC)
 let useHEVC = CommandLine.arguments.contains("--hevc")
 var encoderConfig = VideoEncoder.Config(
     width: Int32(width), height: Int32(height), fps: Double(refreshRate),
-    keyframeIntervalSeconds: 0.5,  // keyframe every 0.5s — balance between bandwidth and recovery
+    keyframeIntervalSeconds: 0.5,
     codec: useHEVC ? .hevc : .h264
 )
 encoderConfig.bitrateBps = VideoEncoder.Config.defaultBitrate(
@@ -98,23 +96,9 @@ encoderConfig.bitrateBps = VideoEncoder.Config.defaultBitrate(
 print("[RESC] Codec: \(encoderConfig.codec), bitrate: \(encoderConfig.bitrateBps / 1_000_000)Mbps")
 
 let encoder = VideoEncoder(config: encoderConfig) { annexBData, isKeyframe, pts, encodeDurationMs in
-    // Write to H.264 dump
     h264FileHandle?.write(annexBData)
-
-    // Send over UDP if streaming
-    if let sender = activeVideoSender {
-        // Skip non-keyframes until first keyframe is sent (client needs SPS/PPS first)
-        if !hasSentKeyframe {
-            if isKeyframe {
-                hasSentKeyframe = true
-                print("[RESC] First keyframe sent to client (\(annexBData.count / 1024)KB)")
-            } else {
-                return // skip this frame
-            }
-        }
-        let timestampUs = UInt64(CMTimeGetSeconds(pts) * 1_000_000)
-        sender.sendFrame(data: annexBData, isKeyframe: isKeyframe, timestampUs: timestampUs)
-    }
+    let timestampUs = UInt64(CMTimeGetSeconds(pts) * 1_000_000)
+    streamingState.sendFrame(data: annexBData, isKeyframe: isKeyframe, timestampUs: timestampUs)
 }
 
 // Encoder thread
@@ -156,7 +140,7 @@ hostSession.onStreamingStart = { (sender: VideoSender) in
         let inputPort = controlPort + 2
         let cursorPort = controlPort + 3
         sender.connect(host: client, port: videoPort)
-        activeVideoSender = sender
+        streamingState.startStreaming(sender: sender, streamID: 0, configID: 0)
         print("[RESC] Video sender → \(client):\(videoPort)")
 
         // Start cursor tracker
@@ -217,13 +201,15 @@ signal(SIGINT) { _ in
         framePacer.stop()
         cursorTracker?.stop()
         inputReceiver?.stop()
-        activeVideoSender?.disconnect()
+        streamingState.stopStreaming()
         hostSession.stop()
         await capturer.stop()
         displayManager.destroy()
         let s = encoder.stats
         print("[RESC] Final: \(s.frames) frames, \(s.keyframes) KF, avg \(String(format: "%.1f", s.avgEncodeMs))ms")
-        if let vs = activeVideoSender?.stats {
+        let vs = streamingState.stats
+        if vs.packets > 0 {
+            let vs = vs
             print("[RESC] Sent: \(vs.packets) packets, \(vs.bytes / 1024)KB")
         }
         exit(0)

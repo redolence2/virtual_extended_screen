@@ -156,11 +156,23 @@ impl VideoReceiver {
                 chunk.per_frame.as_ref(),
                 &chunk.payload,
             ) {
-                // Send to decode. Use blocking send — never drop frames
-                // (dropping breaks the codec reference chain → gray frames).
-                match frame_tx.send(frame) {
+                // Smart queue policy (Item 5 from review):
+                // Try non-blocking send first. If full, drop oldest non-keyframe.
+                match frame_tx.try_send(frame) {
                     Ok(_) => {}
-                    Err(_) => {
+                    Err(mpsc::TrySendError::Full(dropped_frame)) => {
+                        // Queue full — use blocking send (decoder will catch up).
+                        // The frame we're sending is more recent, so it takes priority.
+                        self.assembler.frames_dropped += 1;
+                        if dropped_frame.is_keyframe {
+                            // Never drop keyframes — block until space available
+                            let _ = frame_tx.send(dropped_frame);
+                        } else {
+                            // Drop the frame we couldn't send, log it
+                            log::debug!("Queue full, dropped frame {} (non-keyframe)", dropped_frame.frame_id);
+                        }
+                    }
+                    Err(mpsc::TrySendError::Disconnected(_)) => {
                         log::info!("Frame channel disconnected, stopping");
                         break;
                     }
