@@ -228,7 +228,7 @@ final class HostSession {
         appendProtoUInt32(&mc, field: 13, value: bitrateBps)  // bitrate_bps
         appendProtoUInt32(&mc, field: 14, value: 1400)        // max_datagram_bytes
         appendProtoUInt32(&mc, field: 15, value: UInt32(ProtocolConstants.maxVideoPayloadBytes))
-        appendProtoUInt32(&mc, field: 16, value: 256)         // max_total_chunks_per_frame
+        appendProtoUInt32(&mc, field: 16, value: 512)         // max_total_chunks_per_frame (supports 4K IDR spikes)
         appendProtoUInt32(&mc, field: 17, value: maxFrameBytes) // max_frame_bytes
         appendProtoUInt32(&mc, field: 20, value: videoPort)   // video_port
         appendProtoUInt32(&mc, field: 21, value: videoPort + 1) // input_udp_port

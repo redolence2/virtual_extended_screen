@@ -33,7 +33,7 @@ struct FrameSlot {
     metadata: Option<VideoChunkPerFrame>,
     data: Vec<u8>,           // preallocated buffer (chunks stored at stride offsets)
     chunk_sizes: Vec<u16>,   // actual payload size per chunk
-    received: [u64; 4],      // bitset for up to 256 chunks
+    received: [u64; 8],      // bitset for up to 512 chunks (supports 4K IDR spikes)
     chunks_received: u16,
     first_chunk_time: Instant,
 }
@@ -46,7 +46,7 @@ impl FrameSlot {
             metadata: None,
             data: vec![0u8; max_frame_bytes],
             chunk_sizes: vec![0u16; max_chunks],
-            received: [0u64; 4],
+            received: [0u64; 8],
             chunks_received: 0,
             first_chunk_time: Instant::now(),
         }
@@ -56,7 +56,7 @@ impl FrameSlot {
         self.active = true;
         self.frame_id = frame_id;
         self.metadata = None;
-        self.received = [0u64; 4];
+        self.received = [0u64; 8];
         self.chunks_received = 0;
         self.first_chunk_time = Instant::now();
         for s in self.chunk_sizes.iter_mut() { *s = 0; }
@@ -65,7 +65,7 @@ impl FrameSlot {
     fn mark_chunk(&mut self, chunk_id: u16) -> bool {
         let idx = chunk_id as usize / 64;
         let bit = chunk_id as usize % 64;
-        if idx >= 4 { return false; }
+        if idx >= 8 { return false; }
         let was_set = (self.received[idx] >> bit) & 1 == 1;
         if !was_set {
             self.received[idx] |= 1u64 << bit;
@@ -154,7 +154,7 @@ impl FrameAssembler {
             for cid in 0..self.max_chunks_per_frame {
                 let idx = cid as usize / 64;
                 let bit = cid as usize % 64;
-                if idx < 4 && (slot.received[idx] >> bit) & 1 == 1 && cid >= meta.total_chunks {
+                if idx < 8 && (slot.received[idx] >> bit) & 1 == 1 && cid >= meta.total_chunks {
                     slot.received[idx] &= !(1u64 << bit);
                     slot.chunks_received -= 1;
                 }
