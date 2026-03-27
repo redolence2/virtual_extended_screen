@@ -77,11 +77,10 @@ fn draw_arrow(canvas: &mut sdl2::render::Canvas<Window>, base_x: i32, base_y: i3
 
     for &(dy, dx, w) in rows {
         if rotated {
-            // Rotate arrow shape 90° CCW on canvas to compensate for physical CW monitor rotation.
-            // (dx, dy) → (-dy, dx): horizontal lines become vertical, extending left from tip.
+            // Rotate arrow shape 90° CW on canvas to compensate for physical monitor rotation.
             let _ = canvas.fill_rect(Rect::new(
-                base_x - dy - pad,
-                base_y + dx - pad,
+                base_x + dy - pad,
+                base_y - dx - w as i32 + 1 - pad,
                 1 + pad as u32 * 2,
                 w + pad as u32 * 2,
             ));
