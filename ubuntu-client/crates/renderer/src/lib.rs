@@ -218,15 +218,12 @@ impl Renderer {
     }
 
     /// Check if stream/canvas orientation mismatch requires rotation.
-    fn is_rotated(&self) -> bool {
-        if let Some(ref yuv) = self.cached_yuv {
-            let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
-            let stream_portrait = yuv.h > yuv.w;
-            let canvas_portrait = ch > cw;
-            stream_portrait != canvas_portrait
-        } else {
-            false
-        }
+    /// Uses stream dimensions (self.width/height) — works before first frame arrives.
+    pub fn is_rotated(&self) -> bool {
+        let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
+        let stream_portrait = self.height > self.width;
+        let canvas_portrait = ch > cw;
+        stream_portrait != canvas_portrait
     }
 
     /// Render cached video + cursor overlay via persistent texture.

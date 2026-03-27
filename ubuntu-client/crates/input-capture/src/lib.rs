@@ -19,6 +19,9 @@ pub struct InputCapture {
     seq: u32,
     stream_width: u32,
     stream_height: u32,
+    /// When true, canvas is landscape but stream is portrait (xrandr rotation).
+    /// Mouse coords are transformed from canvas space to stream space.
+    pub rotated: bool,
     // Grab hotkey: Ctrl+Alt+G to grab, Ctrl+Alt+Escape to release
     pub grab_pending: bool,
     pub release_pending: bool,
@@ -48,6 +51,7 @@ impl InputCapture {
             seq: 0,
             stream_width,
             stream_height,
+            rotated: false,
             grab_pending: false,
             release_pending: false,
         }
@@ -87,28 +91,46 @@ impl InputCapture {
         })
     }
 
+    /// Transform canvas coords to stream coords (handles xrandr rotation).
+    /// Inverse of the -90° CCW rendering: canvas (cx, cy) → stream (cy, stream_h - 1 - cx)
+    fn to_stream_coords(&self, x: i32, y: i32) -> (i32, i32) {
+        if self.rotated {
+            (y, self.stream_height as i32 - 1 - x)
+        } else {
+            (x, y)
+        }
+    }
+
     /// Send mouse move event over UDP.
     pub fn send_mouse_move(&mut self, x: i32, y: i32) {
         if self.ownership != InputOwnership::RemoteControlGrabbed { return; }
-        self.send_input_event(0, x, y, 0, 0, 0);
+        let (sx, sy) = self.to_stream_coords(x, y);
+        self.send_input_event(0, sx, sy, 0, 0, 0);
     }
 
     /// Send mouse button down over UDP.
     pub fn send_mouse_down(&mut self, x: i32, y: i32, button: u8) {
         if self.ownership != InputOwnership::RemoteControlGrabbed { return; }
-        self.send_input_event(1, x, y, button, 0, 0);
+        let (sx, sy) = self.to_stream_coords(x, y);
+        self.send_input_event(1, sx, sy, button, 0, 0);
     }
 
     /// Send mouse button up over UDP.
     pub fn send_mouse_up(&mut self, x: i32, y: i32, button: u8) {
         if self.ownership != InputOwnership::RemoteControlGrabbed { return; }
-        self.send_input_event(2, x, y, button, 0, 0);
+        let (sx, sy) = self.to_stream_coords(x, y);
+        self.send_input_event(2, sx, sy, button, 0, 0);
     }
 
     /// Send scroll event over UDP.
     pub fn send_scroll(&mut self, dx: i16, dy: i16) {
         if self.ownership != InputOwnership::RemoteControlGrabbed { return; }
-        self.send_input_event(3, 0, 0, 0, dx, dy);
+        if self.rotated {
+            // Swap scroll axes for rotated display
+            self.send_input_event(3, 0, 0, 0, dy, -dx);
+        } else {
+            self.send_input_event(3, 0, 0, 0, dx, dy);
+        }
     }
 
     pub fn grab(&mut self) {

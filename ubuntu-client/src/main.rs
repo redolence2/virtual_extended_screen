@@ -250,6 +250,14 @@ async fn main() -> Result<()> {
                 &host_addr_for_input, input_udp_port, stream_width, stream_height
             );
 
+            // Detect xrandr rotation: stream portrait vs canvas landscape
+            if let Some(ref r) = renderer_opt {
+                if r.is_rotated() {
+                    input.rotated = true;
+                    log::info!("Rotation detected: input coords will be transformed");
+                }
+            }
+
             let mut dump_file = dump_path.as_ref().map(|p| {
                 std::fs::File::create(p).expect("Failed to create dump file")
             });
