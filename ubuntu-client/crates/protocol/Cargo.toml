@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+log = "0.4"
 prost = "0.13"
+
+[dev-dependencies]
+serde_json = "1"
 
 [build-dependencies]
 prost-build = "0.13"

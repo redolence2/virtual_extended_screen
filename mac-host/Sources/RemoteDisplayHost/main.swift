@@ -10,6 +10,7 @@ import VirtualDisplayBridge
 // Phase 3: Protocol + Transport + Control Channel
 
 print("[RESC] Remote Extended Screen Host starting...")
+ProtocolConstants.logAndVerify()
 print("[RESC] macOS build: \(CGVirtualDisplayBridge.osBuildVersion())")
 
 // Parse command-line arguments

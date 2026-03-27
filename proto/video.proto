@@ -7,22 +7,24 @@ package resc.video;
 // This file provides the canonical enum values for reference and for any
 // protobuf messages that need to reference codec types.
 //
-// Protocol Constants (v1) — for human reference; implemented as code constants:
+// Protocol Constants (v1) — canonical values; see proto/constants.json for CI verification.
 //   PROTOCOL_VERSION              = 1
 //   MAX_DATAGRAM_BYTES            = 1400
 //   PACKET_PREFIX_BYTES           = 6    (magic[4] + version[1] + packet_type[1])
-//   VIDEO_CHUNK_HEADER_BYTES      = 32   (per-packet[12] + per-frame[20])
-//   VIDEO_TOTAL_HEADER_BYTES      = 38   (PACKET_PREFIX_BYTES + VIDEO_CHUNK_HEADER_BYTES)
-//   MAX_VIDEO_PAYLOAD_BYTES       = 1362 (MAX_DATAGRAM_BYTES - VIDEO_TOTAL_HEADER_BYTES)
+//   VIDEO_CHUNK_HEADER_BYTES      = 36   (per-packet[16] + per-frame[20])
+//   VIDEO_TOTAL_HEADER_BYTES      = 42   (PACKET_PREFIX_BYTES + VIDEO_CHUNK_HEADER_BYTES)
+//   MAX_VIDEO_PAYLOAD_BYTES       = 1358 (MAX_DATAGRAM_BYTES - VIDEO_TOTAL_HEADER_BYTES)
 //   CURSOR_UPDATE_BYTES           = 29
 //   CURSOR_TOTAL_PACKET_BYTES     = 35   (PACKET_PREFIX_BYTES + CURSOR_UPDATE_BYTES)
+//   INPUT_EVENT_BYTES             = 22
+//   INPUT_TOTAL_PACKET_BYTES      = 28   (PACKET_PREFIX_BYTES + INPUT_EVENT_BYTES)
 //
 // PacketPrefix (6 bytes, all UDP packets):
 //   magic:       [u8; 4]  = b"RESC"
 //   version:     u8       = PROTOCOL_VERSION
 //   packet_type: u8       = 0=video_chunk, 1=cursor_update, 2=input_event
 //
-// VideoChunkHeader (32 bytes, after PacketPrefix):
+// VideoChunkHeader (36 bytes, after PacketPrefix):
 //   Per-packet (always valid):
 //     stream_id:    u32
 //     config_id:    u32

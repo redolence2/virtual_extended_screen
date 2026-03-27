@@ -33,6 +33,26 @@ enum ProtocolConstants {
     static let default1080p = (width: 1920, height: 1080, refreshRateMillihz: UInt32(60000))
     static let default4K = (width: 3840, height: 2160, refreshRateMillihz: UInt32(60000))
 
+    /// Log and verify all protocol constants at startup.
+    /// Crashes on mismatch — prevents silent wire-format drift.
+    static func logAndVerify() {
+        print("[RESC] Protocol constants v\(protocolVersion):")
+        print("[RESC]   PACKET_PREFIX_BYTES      = \(packetPrefixBytes)")
+        print("[RESC]   VIDEO_CHUNK_HEADER_BYTES  = \(videoChunkHeaderBytes)")
+        print("[RESC]   VIDEO_TOTAL_HEADER_BYTES  = \(videoTotalHeaderBytes)")
+        print("[RESC]   MAX_VIDEO_PAYLOAD_BYTES   = \(maxVideoPayloadBytes)")
+        print("[RESC]   CURSOR_TOTAL_PACKET_BYTES = \(cursorTotalPacketBytes)")
+        print("[RESC]   INPUT_TOTAL_PACKET_BYTES  = \(inputTotalPacketBytes)")
+
+        // Self-consistency checks
+        assert(packetPrefixBytes == 6, "PacketPrefix must be 6 bytes")
+        assert(videoChunkHeaderBytes == 36, "VideoChunkHeader must be 36 bytes")
+        assert(videoTotalHeaderBytes == packetPrefixBytes + videoChunkHeaderBytes)
+        assert(maxVideoPayloadBytes == maxDatagramBytes - videoTotalHeaderBytes)
+        assert(cursorTotalPacketBytes == packetPrefixBytes + cursorUpdateBytes)
+        assert(inputTotalPacketBytes == packetPrefixBytes + inputEventBytes)
+    }
+
     // Codec level computation
     static func codecLevelIdc(width: Int, height: Int) -> UInt32 {
         if width >= 3840 || height >= 2160 { return 51 } // Level 5.1 for 4K

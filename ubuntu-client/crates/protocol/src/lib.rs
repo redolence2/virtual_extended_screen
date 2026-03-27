@@ -33,6 +33,24 @@ pub mod constants {
     pub const INPUT_TOTAL_PACKET_BYTES: usize = PACKET_PREFIX_BYTES + INPUT_EVENT_BYTES; // 28
 
     pub const MDNS_SERVICE_TYPE: &str = "_remotedisplay._tcp.local.";
+
+    /// Log and verify all constants at startup. Panics on self-inconsistency.
+    pub fn log_and_verify() {
+        log::info!("Protocol constants v{}:", PROTOCOL_VERSION);
+        log::info!("  PACKET_PREFIX_BYTES      = {}", PACKET_PREFIX_BYTES);
+        log::info!("  VIDEO_CHUNK_HEADER_BYTES  = {}", VIDEO_CHUNK_HEADER_BYTES);
+        log::info!("  VIDEO_TOTAL_HEADER_BYTES  = {}", VIDEO_TOTAL_HEADER_BYTES);
+        log::info!("  MAX_VIDEO_PAYLOAD_BYTES   = {}", MAX_VIDEO_PAYLOAD_BYTES);
+        log::info!("  CURSOR_TOTAL_PACKET_BYTES = {}", CURSOR_TOTAL_PACKET_BYTES);
+        log::info!("  INPUT_TOTAL_PACKET_BYTES  = {}", INPUT_TOTAL_PACKET_BYTES);
+
+        assert_eq!(PACKET_PREFIX_BYTES, 6);
+        assert_eq!(VIDEO_CHUNK_HEADER_BYTES, 36);
+        assert_eq!(VIDEO_TOTAL_HEADER_BYTES, PACKET_PREFIX_BYTES + VIDEO_CHUNK_HEADER_BYTES);
+        assert_eq!(MAX_VIDEO_PAYLOAD_BYTES, MAX_DATAGRAM_BYTES - VIDEO_TOTAL_HEADER_BYTES);
+        assert_eq!(CURSOR_TOTAL_PACKET_BYTES, PACKET_PREFIX_BYTES + CURSOR_UPDATE_BYTES);
+        assert_eq!(INPUT_TOTAL_PACKET_BYTES, PACKET_PREFIX_BYTES + INPUT_EVENT_BYTES);
+    }
 }
 
 /// Binary packet structures for UDP channels (NOT protobuf).
@@ -170,5 +188,146 @@ pub mod binary {
                 payload: buf[payload_start..payload_end].to_vec(),
             })
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::binary::*;
+    use super::constants::*;
+
+    #[test]
+    fn constants_self_consistent() {
+        assert_eq!(PACKET_PREFIX_BYTES, 6);
+        assert_eq!(VIDEO_TOTAL_HEADER_BYTES, PACKET_PREFIX_BYTES + VIDEO_CHUNK_HEADER_BYTES);
+        assert_eq!(MAX_VIDEO_PAYLOAD_BYTES, MAX_DATAGRAM_BYTES - VIDEO_TOTAL_HEADER_BYTES);
+        assert_eq!(CURSOR_TOTAL_PACKET_BYTES, PACKET_PREFIX_BYTES + CURSOR_UPDATE_BYTES);
+        assert_eq!(INPUT_TOTAL_PACKET_BYTES, PACKET_PREFIX_BYTES + INPUT_EVENT_BYTES);
+    }
+
+    #[test]
+    fn constants_match_golden_file() {
+        let json_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../proto/constants.json");
+        let json_str = std::fs::read_to_string(json_path)
+            .expect("proto/constants.json must exist");
+        let v: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+        assert_eq!(v["PROTOCOL_VERSION"], PROTOCOL_VERSION as u64);
+        assert_eq!(v["PACKET_PREFIX_BYTES"], PACKET_PREFIX_BYTES as u64);
+        assert_eq!(v["VIDEO_CHUNK_HEADER_BYTES"], VIDEO_CHUNK_HEADER_BYTES as u64);
+        assert_eq!(v["VIDEO_TOTAL_HEADER_BYTES"], VIDEO_TOTAL_HEADER_BYTES as u64);
+        assert_eq!(v["MAX_DATAGRAM_BYTES"], MAX_DATAGRAM_BYTES as u64);
+        assert_eq!(v["MAX_VIDEO_PAYLOAD_BYTES"], MAX_VIDEO_PAYLOAD_BYTES as u64);
+        assert_eq!(v["CURSOR_UPDATE_BYTES"], CURSOR_UPDATE_BYTES as u64);
+        assert_eq!(v["CURSOR_TOTAL_PACKET_BYTES"], CURSOR_TOTAL_PACKET_BYTES as u64);
+        assert_eq!(v["INPUT_EVENT_BYTES"], INPUT_EVENT_BYTES as u64);
+        assert_eq!(v["INPUT_TOTAL_PACKET_BYTES"], INPUT_TOTAL_PACKET_BYTES as u64);
+        assert_eq!(v["PACKET_TYPE_VIDEO_CHUNK"], PACKET_TYPE_VIDEO_CHUNK as u64);
+        assert_eq!(v["PACKET_TYPE_CURSOR_UPDATE"], PACKET_TYPE_CURSOR_UPDATE as u64);
+        assert_eq!(v["PACKET_TYPE_INPUT_EVENT"], PACKET_TYPE_INPUT_EVENT as u64);
+    }
+
+    #[test]
+    fn packet_prefix_valid_parse() {
+        let buf = [0x52, 0x45, 0x53, 0x43, 1, 0]; // RESC, v1, video
+        let prefix = PacketPrefix::parse(&buf).unwrap();
+        assert!(prefix.is_valid());
+        assert_eq!(prefix.packet_type, PACKET_TYPE_VIDEO_CHUNK);
+    }
+
+    #[test]
+    fn packet_prefix_invalid_magic() {
+        let buf = [0x00, 0x00, 0x00, 0x00, 1, 0];
+        assert!(PacketPrefix::parse(&buf).is_none());
+    }
+
+    #[test]
+    fn packet_prefix_too_short() {
+        let buf = [0x52, 0x45, 0x53];
+        assert!(PacketPrefix::parse(&buf).is_none());
+    }
+
+    #[test]
+    fn video_chunk_roundtrip() {
+        // Build a valid single-chunk video packet
+        let mut buf = vec![0u8; VIDEO_TOTAL_HEADER_BYTES + 10];
+        // PacketPrefix
+        buf[0..4].copy_from_slice(&MAGIC);
+        buf[4] = PROTOCOL_VERSION;
+        buf[5] = PACKET_TYPE_VIDEO_CHUNK;
+        // Per-packet: stream_id=1, config_id=2, frame_id=3, chunk_id=0, chunk_size=10
+        buf[6..10].copy_from_slice(&1u32.to_le_bytes());
+        buf[10..14].copy_from_slice(&2u32.to_le_bytes());
+        buf[14..18].copy_from_slice(&3u32.to_le_bytes());
+        buf[18..20].copy_from_slice(&0u16.to_le_bytes());
+        buf[20..22].copy_from_slice(&10u16.to_le_bytes());
+        // Per-frame: timestamp=1000, keyframe=1, codec=0, 1920x1080, 1 chunk, 10 bytes
+        buf[22..30].copy_from_slice(&1000u64.to_le_bytes());
+        buf[30] = 1; // keyframe
+        buf[31] = 0; // H.264
+        buf[32..34].copy_from_slice(&1920u16.to_le_bytes());
+        buf[34..36].copy_from_slice(&1080u16.to_le_bytes());
+        buf[36..38].copy_from_slice(&1u16.to_le_bytes());
+        buf[38..42].copy_from_slice(&10u32.to_le_bytes());
+        // Payload
+        buf[42..52].copy_from_slice(&[0xAA; 10]);
+
+        let parsed = VideoChunkPacket::parse(&buf).unwrap();
+        assert_eq!(parsed.per_packet.stream_id, 1);
+        assert_eq!(parsed.per_packet.config_id, 2);
+        assert_eq!(parsed.per_packet.frame_id, 3);
+        assert_eq!(parsed.per_packet.chunk_id, 0);
+        assert_eq!(parsed.per_packet.chunk_size, 10);
+        let pf = parsed.per_frame.unwrap();
+        assert_eq!(pf.timestamp_us, 1000);
+        assert!(pf.is_keyframe);
+        assert_eq!(pf.codec, 0);
+        assert_eq!(pf.width, 1920);
+        assert_eq!(pf.height, 1080);
+        assert_eq!(pf.total_chunks, 1);
+        assert_eq!(pf.total_bytes, 10);
+        assert_eq!(parsed.payload, vec![0xAA; 10]);
+    }
+
+    #[test]
+    fn cursor_update_roundtrip() {
+        let mut buf = vec![0u8; CURSOR_TOTAL_PACKET_BYTES];
+        buf[0..4].copy_from_slice(&MAGIC);
+        buf[4] = PROTOCOL_VERSION;
+        buf[5] = PACKET_TYPE_CURSOR_UPDATE;
+        let off = PACKET_PREFIX_BYTES;
+        buf[off..off+4].copy_from_slice(&42u32.to_le_bytes()); // seq
+        buf[off+4..off+12].copy_from_slice(&99999u64.to_le_bytes()); // timestamp
+        buf[off+12..off+16].copy_from_slice(&100i32.to_le_bytes()); // x
+        buf[off+16..off+20].copy_from_slice(&200i32.to_le_bytes()); // y
+        buf[off+20] = 1; // shape
+
+        let parsed = CursorUpdate::parse(&buf).unwrap();
+        assert_eq!(parsed.seq, 42);
+        assert_eq!(parsed.x_px, 100);
+        assert_eq!(parsed.y_px, 200);
+        assert_eq!(parsed.shape_id, 1);
+    }
+
+    #[test]
+    fn protobuf_envelope_roundtrip() {
+        use prost::Message;
+        use super::resc_control;
+
+        let envelope = resc_control::Envelope {
+            session_id: 42,
+            protocol_version: PROTOCOL_VERSION as u32,
+            payload: Some(resc_control::envelope::Payload::RequestIdr(
+                resc_control::RequestIdr {
+                    stream_id: 1,
+                    config_id: 2,
+                    reason: 1,
+                },
+            )),
+        };
+        let bytes = envelope.encode_to_vec();
+        let decoded = resc_control::Envelope::decode(&bytes[..]).unwrap();
+        assert_eq!(decoded.session_id, 42);
+        assert_eq!(decoded.protocol_version, 1);
     }
 }

@@ -254,3 +254,118 @@ impl FrameAssembler {
         oldest
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use protocol::binary::*;
+    use protocol::constants::*;
+
+    fn make_pp(frame_id: u32, chunk_id: u16, chunk_size: u16) -> VideoChunkPerPacket {
+        VideoChunkPerPacket { stream_id: 1, config_id: 1, frame_id, chunk_id, chunk_size }
+    }
+
+    fn make_pf(total_chunks: u16, total_bytes: u32) -> VideoChunkPerFrame {
+        VideoChunkPerFrame {
+            timestamp_us: 1000, is_keyframe: true, codec: 0,
+            width: 1920, height: 1080, total_chunks, total_bytes,
+        }
+    }
+
+    #[test]
+    fn single_chunk_frame_completes() {
+        let mut asm = FrameAssembler::new(16, 100_000);
+        let pp = make_pp(1, 0, 5);
+        let pf = make_pf(1, 5);
+        let payload = vec![0xAA; 5];
+
+        let result = asm.process_chunk(&pp, Some(&pf), &payload);
+        assert!(result.is_some());
+        let frame = result.unwrap();
+        assert_eq!(frame.frame_id, 1);
+        assert_eq!(frame.data, vec![0xAA; 5]);
+        assert_eq!(asm.frames_completed, 1);
+    }
+
+    #[test]
+    fn out_of_order_chunks_assemble() {
+        let mut asm = FrameAssembler::new(16, 100_000);
+        let pf = make_pf(3, 15);
+
+        // Send chunks 2, 0, 1
+        let r = asm.process_chunk(&make_pp(1, 2, 5), None, &[0xCC; 5]);
+        assert!(r.is_none());
+        let r = asm.process_chunk(&make_pp(1, 0, 5), Some(&pf), &[0xAA; 5]);
+        assert!(r.is_none());
+        let r = asm.process_chunk(&make_pp(1, 1, 5), None, &[0xBB; 5]);
+        assert!(r.is_some());
+
+        let frame = r.unwrap();
+        // Data should be chunk0 ++ chunk1 ++ chunk2
+        assert_eq!(&frame.data[0..5], &[0xAA; 5]);
+        assert_eq!(&frame.data[5..10], &[0xBB; 5]);
+        assert_eq!(&frame.data[10..15], &[0xCC; 5]);
+    }
+
+    #[test]
+    fn missing_chunk_timeout() {
+        let mut asm = FrameAssembler::new(16, 100_000);
+        asm.assembly_deadline_ms = 0; // immediate timeout
+
+        let pf = make_pf(3, 15);
+        asm.process_chunk(&make_pp(1, 0, 5), Some(&pf), &[0xAA; 5]);
+        // Only 1 of 3 chunks — expire immediately
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        asm.expire_stale();
+
+        assert_eq!(asm.frames_dropped, 1);
+        assert_eq!(asm.timeout_drops, 1);
+    }
+
+    #[test]
+    fn oversize_frame_rejected() {
+        let mut asm = FrameAssembler::new(16, 1000); // max 1000 bytes
+        let pf = make_pf(1, 2000); // claims 2000 bytes
+
+        let r = asm.process_chunk(&make_pp(1, 0, 5), Some(&pf), &[0xAA; 5]);
+        assert!(r.is_none());
+        assert_eq!(asm.oversize_drops, 1);
+    }
+
+    #[test]
+    fn oversize_chunk_count_rejected() {
+        let mut asm = FrameAssembler::new(4, 100_000); // max 4 chunks
+        let pf = make_pf(5, 25); // claims 5 chunks
+
+        let r = asm.process_chunk(&make_pp(1, 0, 5), Some(&pf), &[0xAA; 5]);
+        assert!(r.is_none());
+        assert_eq!(asm.oversize_drops, 1);
+    }
+
+    #[test]
+    fn slot_eviction_on_full() {
+        let mut asm = FrameAssembler::new(16, 100_000);
+        // Fill all 4 slots with incomplete frames (frame_id 1-4)
+        for fid in 1..=4u32 {
+            let pf = make_pf(2, 10);
+            asm.process_chunk(&make_pp(fid, 0, 5), Some(&pf), &[0xAA; 5]);
+        }
+        // Add frame 5 — should evict frame 1 (lowest id)
+        let pf = make_pf(2, 10);
+        asm.process_chunk(&make_pp(5, 0, 5), Some(&pf), &[0xAA; 5]);
+        assert_eq!(asm.eviction_drops, 1);
+    }
+
+    #[test]
+    fn duplicate_chunk_ignored() {
+        let mut asm = FrameAssembler::new(16, 100_000);
+        let pf = make_pf(2, 10);
+
+        asm.process_chunk(&make_pp(1, 0, 5), Some(&pf), &[0xAA; 5]);
+        asm.process_chunk(&make_pp(1, 0, 5), Some(&pf), &[0xAA; 5]); // duplicate
+        // Should still need chunk 1 to complete
+        let r = asm.process_chunk(&make_pp(1, 1, 5), None, &[0xBB; 5]);
+        assert!(r.is_some());
+        assert_eq!(asm.frames_completed, 1);
+    }
+}

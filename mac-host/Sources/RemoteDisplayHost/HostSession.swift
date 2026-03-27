@@ -15,34 +15,27 @@ final class HostSession {
         var bitrateBps: UInt32
     }
 
-    // MARK: - State
-
-    enum State {
-        case idle
-        case waitingForClient
-        case negotiating
-        case waitingForStreamingReady
-        case streaming
-    }
-
     // MARK: - Properties
 
     private let config: Config
     private let controlChannel: ControlChannel
     private let discovery: Discovery
+    /// Single source of lifecycle state (Item 10: eliminates parallel state enums)
+    private let sm = SessionStateMachine(gracePeriodSec: 30.0)
+    private var awaitingStreamingReady = false
     private var videoSender: VideoSender?
-    private var state: State = .idle
     private var streamID: UInt32 = 0
     private var configID: UInt32 = 0
     private var sessionID: UInt64 = 0
     private var videoPort: UInt16 = 0
-    /// Rate-limit IDR requests (Item 7: 250ms minimum between requests)
     private var lastIDRRequestTime: Date?
 
     /// Called when streaming starts — provides VideoSender for the encoder to use.
     var onStreamingStart: ((VideoSender) -> Void)?
     /// Called to force a keyframe (ensures first frame client receives has SPS/PPS).
     var onForceKeyframe: (() -> Void)?
+    /// Called on disconnect to release stuck keys/buttons.
+    var onReleaseInput: (() -> Void)?
 
     // MARK: - Init
 
@@ -63,33 +56,34 @@ final class HostSession {
             onMessage: { [weak self] data in self?.handleMessage(data) },
             onClientConnected: { [weak self] endpoint in
                 print("[RESC] Client connected from \(endpoint)")
-                self?.state = .negotiating
+                if self?.sm.state == .disconnected {
+                    self?.sm.handleReconnect()
+                } else {
+                    self?.sm.transition(to: .negotiating)
+                }
+                self?.awaitingStreamingReady = false
             }
         )
 
-        state = .waitingForClient
+        sm.transition(to: .waitingForClient)
         print("[RESC] Host session started, waiting for client on port \(config.controlPort)")
     }
 
     // MARK: - Message Handling
 
     private func handleMessage(_ data: Data) {
-        switch state {
-        case .negotiating:
-            // First message from client = ModeRequest → respond with ModeConfirm + StartStreaming
-            handleModeRequest(data)
-        case .waitingForStreamingReady:
-            // Second message = StreamingReady → start sending video
+        if sm.state == .negotiating && awaitingStreamingReady {
             handleStreamingReady(data)
-        default:
-            // Handle Stats, RequestIDR during streaming
+        } else if sm.state == .negotiating {
+            handleModeRequest(data)
+        } else {
             handleStreamingMessage(data)
         }
     }
 
     private func handleModeRequest(_ data: Data) {
-        // Transition immediately to prevent duplicate handling
-        state = .waitingForStreamingReady
+        // Mark sub-state to prevent duplicate handling
+        awaitingStreamingReady = true
 
         // Generate session parameters
         sessionID = UInt64.random(in: 1...UInt64.max)
@@ -164,13 +158,14 @@ final class HostSession {
     }
 
     private func handleStreamingReady(_ data: Data) {
-        guard state == .waitingForStreamingReady else { return }
+        guard awaitingStreamingReady else { return }
+        awaitingStreamingReady = false
         print("[RESC] StreamingReady received, starting video")
         startStreaming()
     }
 
     private func startStreaming() {
-        state = .streaming
+        sm.transition(to: .streaming)
 
         let senderConfig = VideoSender.StreamConfig(
             streamID: streamID,
