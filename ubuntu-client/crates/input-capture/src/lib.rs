@@ -22,6 +22,9 @@ pub struct InputCapture {
     /// When true, canvas is landscape but stream is portrait (xrandr rotation).
     /// Mouse coords are transformed from canvas space to stream space.
     pub rotated: bool,
+    /// Canvas dimensions (physical) — needed for scaling when stream != canvas resolution.
+    pub canvas_width: u32,
+    pub canvas_height: u32,
     // Grab hotkey: Ctrl+Alt+G to grab, Ctrl+Alt+Escape to release
     pub grab_pending: bool,
     pub release_pending: bool,
@@ -52,6 +55,8 @@ impl InputCapture {
             stream_width,
             stream_height,
             rotated: false,
+            canvas_width: stream_width,
+            canvas_height: stream_height,
             grab_pending: false,
             release_pending: false,
         }
@@ -91,14 +96,29 @@ impl InputCapture {
         })
     }
 
-    /// Transform canvas coords to stream coords (handles xrandr rotation).
-    /// Inverse of rendering: canvas (sy, stream_w-1-sx) → stream (sx, sy)
-    /// So: stream_x = stream_w - 1 - canvas_y, stream_y = canvas_x
+    /// Transform canvas coords to stream coords (handles rotation + scaling).
     fn to_stream_coords(&self, x: i32, y: i32) -> (i32, i32) {
         if self.rotated {
-            (self.stream_width as i32 - 1 - y, x)
+            // Inverse of rendering: canvas → unscale → un-rotate → stream
+            let cw = self.canvas_width as f64;
+            let ch = self.canvas_height as f64;
+            let sw = self.stream_width as f64;
+            let sh = self.stream_height as f64;
+            let scale = (cw / sh).min(ch / sw);
+            let offset_x = (cw - sh * scale) / 2.0;
+            let offset_y = (ch - sw * scale) / 2.0;
+            // Un-scale: canvas → rotated stream coords
+            let ry = (x as f64 - offset_x) / scale;
+            let rx = (y as f64 - offset_y) / scale;
+            // Un-rotate: rotated (ry, rx) → stream (stream_w - 1 - rx, ry)
+            let sx = sw - 1.0 - rx;
+            let sy = ry;
+            (sx.round() as i32, sy.round() as i32)
         } else {
-            (x, y)
+            // Scale from canvas to stream coords
+            let sx = (x as f64 * self.stream_width as f64 / self.canvas_width as f64) as i32;
+            let sy = (y as f64 * self.stream_height as f64 / self.canvas_height as f64) as i32;
+            (sx, sy)
         }
     }
 

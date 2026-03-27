@@ -64,21 +64,25 @@ impl PersistentTexture {
 
             if stream_portrait != canvas_portrait {
                 // Orientation mismatch: SDL2 fullscreen bypasses xrandr rotation.
-                // Pre-rotate content to compensate. Place texture at its natural
-                // dimensions centered on the canvas, then rotate 90° CW. The physical
-                // monitor rotation (90° CCW for xrandr --rotate left) un-does it.
-                let dx = (canvas_w as i32 - self.w as i32) / 2;
-                let dy = (canvas_h as i32 - self.h as i32) / 2;
+                // After -90° rotation, texture dimensions effectively swap (w↔h).
+                // Scale so the rotated content fits the canvas (handles 4K stream on 1080p monitor).
+                let scale_x = canvas_w as f64 / self.h as f64; // post-rotation width = tex height
+                let scale_y = canvas_h as f64 / self.w as f64; // post-rotation height = tex width
+                let scale = scale_x.min(scale_y);
+                let dst_w = (self.w as f64 * scale) as i32;
+                let dst_h = (self.h as f64 * scale) as i32;
+                let dx = (canvas_w as i32 - dst_w) / 2;
+                let dy = (canvas_h as i32 - dst_h) / 2;
                 let dst = sdl2::sys::SDL_Rect {
-                    x: dx, y: dy, w: self.w as i32, h: self.h as i32,
+                    x: dx, y: dy, w: dst_w, h: dst_h,
                 };
                 sdl2::sys::SDL_RenderCopyEx(
                     canvas.raw(),
                     self.tex_ptr,
                     std::ptr::null(),
                     &dst,
-                    -90.0, // 90° CCW compensates for --rotate left
-                    std::ptr::null(), // rotate around dst center
+                    -90.0,
+                    std::ptr::null(),
                     sdl2::sys::SDL_RendererFlip::SDL_FLIP_NONE,
                 );
             } else {
@@ -226,6 +230,14 @@ impl Renderer {
         stream_portrait != canvas_portrait
     }
 
+    /// Compute the rotation scale factor (stream → canvas after rotation).
+    fn rotation_scale(&self) -> f64 {
+        let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
+        let scale_x = cw as f64 / self.height as f64;
+        let scale_y = ch as f64 / self.width as f64;
+        scale_x.min(scale_y)
+    }
+
     /// Render cached video + cursor overlay via persistent texture.
     pub fn present_with_cursor(&mut self, cursor: &CursorRenderer) {
         let rotated = self.is_rotated();
@@ -237,14 +249,26 @@ impl Renderer {
 
         if cursor.visible && cursor.x >= 0 && cursor.y >= 0 {
             if rotated {
-                // Transform cursor from stream coords to rotated canvas coords.
-                // Must match video rendering: stream (sx, sy) → canvas (sy, stream_w - sx)
+                let scale = self.rotation_scale();
+                let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
+                // After -90° rotation, effective: (sy, stream_w - sx), then scale + center
+                let rx = (cursor.y as f64 * scale) as i32 + (cw as i32 - (self.height as f64 * scale) as i32) / 2;
+                let ry = ((self.width as i32 - 1 - cursor.x) as f64 * scale) as i32 + (ch as i32 - (self.width as f64 * scale) as i32) / 2;
                 let mut rotated_cursor = cursor.clone();
-                rotated_cursor.x = cursor.y;
-                rotated_cursor.y = self.width as i32 - 1 - cursor.x;
+                rotated_cursor.x = rx;
+                rotated_cursor.y = ry;
                 rotated_cursor.draw(&mut self.canvas);
             } else {
-                cursor.draw(&mut self.canvas);
+                // Scale cursor for non-rotated resolution mismatch
+                let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
+                if cw != self.width || ch != self.height {
+                    let mut scaled_cursor = cursor.clone();
+                    scaled_cursor.x = (cursor.x as f64 * cw as f64 / self.width as f64) as i32;
+                    scaled_cursor.y = (cursor.y as f64 * ch as f64 / self.height as f64) as i32;
+                    scaled_cursor.draw(&mut self.canvas);
+                } else {
+                    cursor.draw(&mut self.canvas);
+                }
             }
         }
         self.canvas.present();
@@ -256,6 +280,11 @@ impl Renderer {
 
     pub fn render_frame(&mut self, frame: &DecodedFrame) -> Result<()> {
         self.update_frame(frame)
+    }
+
+    /// Get the actual canvas output size (physical resolution).
+    pub fn canvas_size(&self) -> (u32, u32) {
+        self.canvas.output_size().unwrap_or((self.width, self.height))
     }
 
     pub fn frame_count(&self) -> u64 { self.frame_count }

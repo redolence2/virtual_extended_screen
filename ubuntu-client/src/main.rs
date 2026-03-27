@@ -269,12 +269,16 @@ async fn main() -> Result<()> {
                 &host_addr_for_input, input_udp_port, stream_width, stream_height
             );
 
-            // Detect xrandr rotation: stream portrait vs canvas landscape
+            // Detect xrandr rotation + set canvas dimensions for coordinate mapping
             if let Some(ref r) = renderer_opt {
+                let (cw, ch) = r.canvas_size();
+                input.canvas_width = cw;
+                input.canvas_height = ch;
                 if r.is_rotated() {
                     input.rotated = true;
                     cursor_renderer.rotated = true;
-                    log::info!("Rotation detected: input + cursor shape will be transformed");
+                    log::info!("Rotation detected: stream {}x{} → canvas {}x{} (scaled)",
+                              stream_width, stream_height, cw, ch);
                 }
             }
 
