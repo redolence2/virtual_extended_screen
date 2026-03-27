@@ -1,5 +1,6 @@
 #!/bin/bash
-# RESC Host Launcher — edit defaults here:
+# RESC Host Launcher — opens Terminal with the host process
+# Edit these defaults:
 CLIENT_IP="192.168.50.47"
 WIDTH=1080
 HEIGHT=1920
@@ -7,17 +8,22 @@ FPS=60
 CODEC="--hevc"
 PORT=9870
 
-# Find the binary relative to the project
-PROJECT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
-BIN="$PROJECT_DIR/.build/release/remote-display-host"
+# Absolute path to binary
+BIN="/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/mac-host/.build/release/remote-display-host"
 
 if [ ! -f "$BIN" ]; then
-    BIN="$PROJECT_DIR/.build/debug/remote-display-host"
+    BIN="/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/mac-host/.build/debug/remote-display-host"
 fi
 
 if [ ! -f "$BIN" ]; then
-    osascript -e 'display alert "RESC Host" message "Binary not found.\nRun: cd mac-host && swift build -c release"'
+    osascript -e 'display alert "RESC Host" message "Binary not found. Run:\ncd mac-host && swift build -c release"'
     exit 1
 fi
 
-exec "$BIN" "$WIDTH" "$HEIGHT" "$FPS" $CODEC --client "$CLIENT_IP" --port "$PORT"
+# Launch in Terminal so output is visible and process responds properly
+osascript -e "
+tell application \"Terminal\"
+    activate
+    do script \"'$BIN' $WIDTH $HEIGHT $FPS $CODEC --client $CLIENT_IP --port $PORT\"
+end tell
+"
