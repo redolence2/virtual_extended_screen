@@ -71,9 +71,9 @@ async fn main() -> Result<()> {
                 if let Ok(pid) = line.trim().parse::<u32>() {
                     if pid != self_pid {
                         log::info!("Killing stale client process (PID {})", pid);
-                        unsafe { libc::kill(pid as i32, libc::SIGTERM); }
+                        let _ = std::process::Command::new("kill").args([&pid.to_string()]).output();
                         std::thread::sleep(Duration::from_millis(200));
-                        unsafe { libc::kill(pid as i32, libc::SIGKILL); }
+                        let _ = std::process::Command::new("kill").args(["-9", &pid.to_string()]).output();
                     }
                 }
             }
