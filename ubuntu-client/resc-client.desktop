@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=RESC Virtual Display
+Comment=Remote Extended Screen Client - connects to Mac host
+Exec=/home/wan/SSD_4T/AGI/virtual_extended_screen/ubuntu-client/launch.sh
+Icon=/home/wan/SSD_4T/AGI/virtual_extended_screen/ubuntu-client/resc-icon.svg
+Terminal=false
+Type=Application
+Categories=Utility;System;
+StartupNotify=false
