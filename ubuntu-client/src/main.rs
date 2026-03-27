@@ -474,7 +474,6 @@ async fn main() -> Result<()> {
                             } else {
                                 // Mac cursor not on virtual display — use local mouse as fallback
                                 cursor_renderer.update(mouse.x(), mouse.y(), 0);
-                                }
                             }
                             r.present_with_cursor(&cursor_renderer);
                         }
