@@ -387,6 +387,15 @@ async fn main() -> Result<()> {
                     use sdl2::keyboard::Mod;
                     match event {
                         Event::Quit { .. } => { return; }
+                        // Ctrl+Alt+Q: quit the application (works in fullscreen without terminal)
+                        Event::KeyDown { scancode: Some(sc), keymod, .. }
+                            if sc == sdl2::keyboard::Scancode::Q
+                            && keymod.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD)
+                            && keymod.intersects(Mod::LALTMOD | Mod::RALTMOD)
+                        => {
+                            log::info!("Ctrl+Alt+Q pressed, quitting");
+                            return;
+                        }
                         Event::KeyDown { scancode: Some(sc), keycode, keymod, .. } => {
                             if let Some(_key_out) = input.process_key(
                                 sc as u32, keycode.map(|k| k.into_i32() as u32).unwrap_or(0),
