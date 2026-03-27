@@ -30,6 +30,8 @@ do {
             kill(pid, SIGKILL) // force if still alive
         }
     }
+    // Give ScreenCaptureKit time to clean up after killing stale processes
+    usleep(1_000_000) // 1 second
 }
 
 ProtocolConstants.logAndVerify()
@@ -198,20 +200,33 @@ do {
     print("[RESC] ERROR: Host session start failed: \(error)")
 }
 
-// Start capture
+// Start capture with retry (ScreenCaptureKit needs time after stale session cleanup)
 Task {
-    do {
-        try await capturer.start()
-    } catch {
-        let errMsg = "\(error)"
-        if errMsg.contains("3801") || errMsg.contains("TCC") || errMsg.contains("declined") {
-            print("[RESC] Screen Recording permission needed.")
-            print("[RESC]   System Settings → Privacy & Security → Screen Recording")
-            print("[RESC] Virtual display is alive. Waiting for Ctrl+C...")
-        } else {
-            print("[RESC] ERROR: Capture failed: \(error)")
-            displayManager.destroy(); exit(1)
+    var lastError: Error?
+    for attempt in 1...5 {
+        do {
+            try await capturer.start()
+            lastError = nil
+            break
+        } catch {
+            lastError = error
+            let errMsg = "\(error)"
+            if errMsg.contains("3801") || errMsg.contains("TCC") || errMsg.contains("declined") {
+                print("[RESC] Screen Recording permission needed.")
+                print("[RESC]   System Settings → Privacy & Security → Screen Recording")
+                print("[RESC] Virtual display is alive. Waiting for Ctrl+C...")
+                return
+            }
+            print("[RESC] Capture attempt \(attempt)/5 failed: \(error)")
+            if attempt < 5 {
+                print("[RESC] Retrying in 2 seconds...")
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            }
         }
+    }
+    if let error = lastError {
+        print("[RESC] ERROR: Capture failed after 5 attempts: \(error)")
+        displayManager.destroy(); exit(1)
     }
 }
 
