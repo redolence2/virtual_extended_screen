@@ -254,7 +254,8 @@ async fn main() -> Result<()> {
             if let Some(ref r) = renderer_opt {
                 if r.is_rotated() {
                     input.rotated = true;
-                    log::info!("Rotation detected: input coords will be transformed");
+                    cursor_renderer.rotated = true;
+                    log::info!("Rotation detected: input + cursor shape will be transformed");
                 }
             }
 

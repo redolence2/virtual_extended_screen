@@ -11,11 +11,13 @@ pub struct CursorRenderer {
     pub y: i32,
     pub shape_id: u8,
     pub visible: bool,
+    /// When true, rotate the arrow shape to compensate for physical monitor rotation.
+    pub rotated: bool,
 }
 
 impl CursorRenderer {
     pub fn new() -> Self {
-        Self { x: 0, y: 0, shape_id: 0, visible: false }
+        Self { x: 0, y: 0, shape_id: 0, visible: false, rotated: false }
     }
 
     pub fn update(&mut self, x: i32, y: i32, shape_id: u8) {
@@ -39,17 +41,17 @@ impl CursorRenderer {
 
         // Outer (black) - slightly larger
         canvas.set_draw_color(outline);
-        draw_arrow(canvas, x, y, 1);
+        draw_arrow(canvas, x, y, 1, self.rotated);
 
         // Inner (white)
         canvas.set_draw_color(fill);
-        draw_arrow(canvas, x + 1, y + 1, 0);
+        draw_arrow(canvas, x + 1, y + 1, 0, self.rotated);
     }
 }
 
 /// Draw a simple arrow cursor using horizontal lines.
 /// Each row is (y_offset, x_start, width).
-fn draw_arrow(canvas: &mut sdl2::render::Canvas<Window>, base_x: i32, base_y: i32, pad: i32) {
+fn draw_arrow(canvas: &mut sdl2::render::Canvas<Window>, base_x: i32, base_y: i32, pad: i32, rotated: bool) {
     let rows: &[(i32, i32, u32)] = &[
         (0, 0, 1),
         (1, 0, 2),
@@ -74,11 +76,22 @@ fn draw_arrow(canvas: &mut sdl2::render::Canvas<Window>, base_x: i32, base_y: i3
     ];
 
     for &(dy, dx, w) in rows {
-        let _ = canvas.fill_rect(Rect::new(
-            base_x + dx - pad,
-            base_y + dy - pad,
-            w + pad as u32 * 2,
-            1 + pad as u32 * 2,
-        ));
+        if rotated {
+            // Rotate arrow shape 90° CCW on canvas to compensate for physical CW monitor rotation.
+            // (dx, dy) → (-dy, dx): horizontal lines become vertical, extending left from tip.
+            let _ = canvas.fill_rect(Rect::new(
+                base_x - dy - pad,
+                base_y + dx - pad,
+                1 + pad as u32 * 2,
+                w + pad as u32 * 2,
+            ));
+        } else {
+            let _ = canvas.fill_rect(Rect::new(
+                base_x + dx - pad,
+                base_y + dy - pad,
+                w + pad as u32 * 2,
+                1 + pad as u32 * 2,
+            ));
+        }
     }
 }
