@@ -25,7 +25,7 @@ static NSString *const kErrorDomain = @"com.resc.virtualdisplay";
         // Use distinctive values for identification via CGDisplayVendorNumber etc.
         _vendorID = 0x0E5C;    // distinctive value for display enumeration
         _productID = 0x0001;
-        _serialNumber = arc4random();  // random per instance for uniqueness
+        _serialNumber = 0x52455343; // "RESC" — fixed so macOS remembers display arrangement
     }
     return self;
 }
