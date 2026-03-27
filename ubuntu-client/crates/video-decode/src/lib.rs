@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use std::time::Instant;
 
 /// A decoded video frame with YUV420P pixel data.
 pub struct DecodedFrame {
@@ -9,13 +10,38 @@ pub struct DecodedFrame {
     pub strides: [usize; 3],
 }
 
+/// Decoder recovery state machine (Item 7 from review).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DecoderState {
+    /// Normal operation — decoding all frames.
+    Healthy,
+    /// Lost reference frame. Dropping non-keyframes, waiting for IDR.
+    WaitingForIDR,
+    /// Got a keyframe after WaitingForIDR, verifying stability.
+    Recovering,
+}
+
+/// Reason for requesting an IDR from the host.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum IDRReason {
+    DecodeError,
+    CorruptFrame,
+    ReferenceLoss,
+}
+
 /// Video decoder supporting H.264 and HEVC via ffmpeg/libavcodec.
 pub struct VideoDecoder {
     decoder: ffmpeg_next::decoder::Video,
     frame_count: u64,
     codec_name: String,
-    /// Set to true after a successful keyframe decode; cleared on error.
-    pub has_reference: bool,
+    /// Recovery state machine.
+    pub state: DecoderState,
+    /// Last time we requested an IDR (rate limiting).
+    last_idr_request: Option<Instant>,
+    /// Pending IDR request reason (consumed by caller).
+    pub pending_idr_reason: Option<IDRReason>,
+    /// Frames decoded since last state change (for Recovering → Healthy).
+    frames_since_recovery: u32,
 }
 
 impl VideoDecoder {
@@ -43,7 +69,6 @@ impl VideoDecoder {
             .context(format!("Failed to open {} decoder", name))?;
 
         // Disable error concealment — don't output gray frames on decode errors.
-        // Without this, ffmpeg fills missing reference areas with gray.
         unsafe {
             (*decoder.as_mut_ptr()).error_concealment = 0;
         }
@@ -54,18 +79,50 @@ impl VideoDecoder {
             decoder,
             frame_count: 0,
             codec_name: name.to_string(),
-            has_reference: false,
+            state: DecoderState::Healthy,
+            last_idr_request: None,
+            pending_idr_reason: None,
+            frames_since_recovery: 0,
         })
     }
 
+    /// Request an IDR if rate limit allows (250ms between requests).
+    fn request_idr(&mut self, reason: IDRReason) {
+        let now = Instant::now();
+        let can_request = match self.last_idr_request {
+            Some(last) => now.duration_since(last).as_millis() >= 250,
+            None => true,
+        };
+        if can_request {
+            self.pending_idr_reason = Some(reason);
+            self.last_idr_request = Some(now);
+            log::warn!("Requesting IDR: {:?} (state: {:?})", reason, self.state);
+        }
+    }
+
+    /// Transition to WaitingForIDR state.
+    fn enter_waiting_for_idr(&mut self, reason: IDRReason) {
+        if self.state != DecoderState::WaitingForIDR {
+            log::warn!("Decoder → WaitingForIDR (was {:?}, reason: {:?})", self.state, reason);
+            self.state = DecoderState::WaitingForIDR;
+        }
+        self.request_idr(reason);
+    }
+
     /// Decode an Annex B frame. May return 0+ decoded frames.
-    /// If has_reference is false (lost reference frame), non-keyframes are skipped
-    /// to avoid gray error-concealment frames.
-    pub fn decode(&mut self, data: &[u8], timestamp_us: u64) -> Result<Vec<DecodedFrame>> {
-        // Always feed frames to decoder (maintains HEVC reference chain).
-        // Gray concealment frames are filtered by Y-plane variance check below.
+    /// In WaitingForIDR state, non-keyframes are skipped entirely.
+    pub fn decode(&mut self, data: &[u8], timestamp_us: u64, is_keyframe: bool) -> Result<Vec<DecodedFrame>> {
+        // In WaitingForIDR: skip non-keyframes (don't feed to decoder — broken references)
+        if self.state == DecoderState::WaitingForIDR && !is_keyframe {
+            return Ok(Vec::new());
+        }
+
+        // Feed frame to decoder
         let packet = ffmpeg_next::Packet::copy(data);
-        self.decoder.send_packet(&packet).context("send_packet failed")?;
+        if let Err(e) = self.decoder.send_packet(&packet) {
+            self.enter_waiting_for_idr(IDRReason::DecodeError);
+            return Err(anyhow::anyhow!("send_packet failed: {}", e));
+        }
 
         let mut frames = Vec::new();
         let mut decoded = ffmpeg_next::frame::Video::empty();
@@ -77,15 +134,14 @@ impl VideoDecoder {
             // Skip frames with decode errors
             let is_corrupt = unsafe { (*decoded.as_ptr()).decode_error_flags != 0 };
             if is_corrupt {
-                self.has_reference = false;
+                self.enter_waiting_for_idr(IDRReason::CorruptFrame);
                 continue;
             }
 
-            // Skip gray concealment frames: sample Y plane, if too uniform → likely error concealment
+            // Skip gray concealment frames: sample Y plane variance
             let y_data = decoded.data(0);
             let y_stride = decoded.stride(0);
             if w > 0 && h > 0 && !y_data.is_empty() {
-                // Sample 16 pixels spread across the frame
                 let mut sum: u64 = 0;
                 let mut sum_sq: u64 = 0;
                 let samples = 16usize;
@@ -98,10 +154,24 @@ impl VideoDecoder {
                 }
                 let mean = sum / samples as u64;
                 let variance = sum_sq / samples as u64 - mean * mean;
-                // Gray concealment: mean ~128, variance ~0
                 if variance < 4 && mean > 100 && mean < 160 {
-                    self.has_reference = false;
-                    continue; // skip gray frame
+                    self.enter_waiting_for_idr(IDRReason::ReferenceLoss);
+                    continue;
+                }
+            }
+
+            // Good frame — update state
+            if is_keyframe && self.state == DecoderState::WaitingForIDR {
+                log::info!("Decoder → Recovering (keyframe received)");
+                self.state = DecoderState::Recovering;
+                self.frames_since_recovery = 0;
+            }
+
+            if self.state == DecoderState::Recovering {
+                self.frames_since_recovery += 1;
+                if self.frames_since_recovery >= 5 {
+                    log::info!("Decoder → Healthy (5 clean frames after recovery)");
+                    self.state = DecoderState::Healthy;
                 }
             }
 
@@ -131,31 +201,3 @@ impl VideoDecoder {
 
 // Legacy alias
 pub type H264Decoder = VideoDecoder;
-
-/// Detect if Annex B data starts with a keyframe NAL unit.
-/// Scans for start code (00 00 00 01) then checks NAL type.
-fn detect_keyframe(data: &[u8]) -> bool {
-    let mut i = 0;
-    while i + 4 < data.len() {
-        // Find start code
-        if data[i] == 0 && data[i+1] == 0 && data[i+2] == 0 && data[i+3] == 1 {
-            if i + 5 >= data.len() { break; }
-            let nal_byte = data[i + 4];
-
-            // H.264: NAL type is lower 5 bits. IDR = 5, SPS = 7, PPS = 8
-            let h264_type = nal_byte & 0x1F;
-            if h264_type == 5 || h264_type == 7 { return true; }
-
-            // HEVC: NAL type is (byte >> 1) & 0x3F. IDR_W_RADL=19, IDR_N_LP=20, VPS=32, SPS=33
-            let hevc_type = (nal_byte >> 1) & 0x3F;
-            if hevc_type == 19 || hevc_type == 20 || hevc_type == 32 || hevc_type == 33 {
-                return true;
-            }
-
-            i += 5;
-        } else {
-            i += 1;
-        }
-    }
-    false
-}

@@ -153,5 +153,19 @@ impl ControlChannel {
         self.send(&envelope).await
     }
 
+    /// Send RequestIDR to host (asks for keyframe).
+    pub async fn send_request_idr(&mut self, stream_id: u32, config_id: u32, reason: i32) -> Result<()> {
+        let envelope = resc_control::Envelope {
+            session_id: self.session_id,
+            protocol_version: protocol::constants::PROTOCOL_VERSION as u32,
+            payload: Some(resc_control::envelope::Payload::RequestIdr(resc_control::RequestIdr {
+                stream_id,
+                config_id,
+                reason,
+            })),
+        };
+        self.send(&envelope).await
+    }
+
     pub fn session_id(&self) -> u64 { self.session_id }
 }

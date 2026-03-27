@@ -36,6 +36,8 @@ final class HostSession {
     private var configID: UInt32 = 0
     private var sessionID: UInt64 = 0
     private var videoPort: UInt16 = 0
+    /// Rate-limit IDR requests (Item 7: 250ms minimum between requests)
+    private var lastIDRRequestTime: Date?
 
     /// Called when streaming starts — provides VideoSender for the encoder to use.
     var onStreamingStart: ((VideoSender) -> Void)?
@@ -80,8 +82,8 @@ final class HostSession {
             // Second message = StreamingReady → start sending video
             handleStreamingReady(data)
         default:
-            // Stats, RequestIDR, KeyEvent etc. — handle in later phases
-            break
+            // Handle Stats, RequestIDR during streaming
+            handleStreamingMessage(data)
         }
     }
 
@@ -131,6 +133,34 @@ final class HostSession {
         controlChannel.send(data: startStreaming)
 
         print("[RESC] Waiting for StreamingReady from client...")
+    }
+
+    /// Handle messages during streaming (Stats, RequestIDR, etc.)
+    private func handleStreamingMessage(_ data: Data) {
+        // Decode protobuf envelope to check for RequestIDR
+        // RequestIDR has field 31 in the Envelope oneof.
+        // For now, detect RequestIDR by checking if the envelope contains
+        // the field tag for request_idr (field 31, wire type 2 = length-delimited).
+        // Tag = (31 << 3) | 2 = 250.
+        // This is a minimal check; full protobuf parsing comes in Milestone C (Item 2).
+        if data.contains(where: { _ in true }) {
+            // Try to find RequestIDR field tag (varint 250 = 0xFA)
+            // In length-prefixed envelope, scan for the tag
+            for i in 0..<data.count {
+                if data[i] == 0xFA && i + 1 < data.count {
+                    // Likely RequestIDR message — force a keyframe
+                    let lastIDRTime = lastIDRRequestTime ?? Date.distantPast
+                    let elapsed = Date().timeIntervalSince(lastIDRTime)
+                    if elapsed >= 0.25 { // Rate limit: 250ms
+                        lastIDRRequestTime = Date()
+                        onForceKeyframe?()
+                        print("[RESC] IDR requested by client (rate-limited)")
+                    }
+                    return
+                }
+            }
+        }
+        // Other messages (Stats, etc.) — silently consumed for now
     }
 
     private func handleStreamingReady(_ data: Data) {

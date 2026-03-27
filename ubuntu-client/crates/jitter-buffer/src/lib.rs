@@ -1,16 +1,30 @@
 use protocol::binary::{VideoChunkPerFrame, VideoChunkPerPacket};
 use std::time::Instant;
 
+/// Why a frame was dropped (for telemetry).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DropReason {
+    Timeout,       // Assembly deadline exceeded
+    Oversize,      // total_bytes or total_chunks exceeded limits
+    MissingChunks, // Evicted with incomplete chunks
+    Evicted,       // Evicted by newer frame needing the slot
+}
+
 /// Assembles video frames from UDP chunks. Preallocated, no per-packet heap allocs in hot path.
 /// Tracks received chunks via bitset. Max 4 in-flight frames.
 pub struct FrameAssembler {
-    slots: [FrameSlot; 4], // max 4 in-flight frames
+    slots: [FrameSlot; 4],
     max_chunks_per_frame: u16,
     max_frame_bytes: u32,
+    /// Assembly deadline in ms — frames older than this are expired.
+    assembly_deadline_ms: u64,
     /// Stats
     pub frames_completed: u64,
     pub frames_dropped: u64,
     pub chunks_dropped: u64,
+    pub timeout_drops: u64,
+    pub oversize_drops: u64,
+    pub eviction_drops: u64,
 }
 
 struct FrameSlot {
@@ -57,7 +71,7 @@ impl FrameSlot {
             self.received[idx] |= 1u64 << bit;
             self.chunks_received += 1;
         }
-        !was_set // returns true if newly marked
+        !was_set
     }
 
     fn is_complete(&self) -> bool {
@@ -89,9 +103,13 @@ impl FrameAssembler {
             slots,
             max_chunks_per_frame,
             max_frame_bytes,
+            assembly_deadline_ms: 100, // 100ms default, tight for real-time
             frames_completed: 0,
             frames_dropped: 0,
             chunks_dropped: 0,
+            timeout_drops: 0,
+            oversize_drops: 0,
+            eviction_drops: 0,
         }
     }
 
@@ -102,7 +120,7 @@ impl FrameAssembler {
         per_frame: Option<&VideoChunkPerFrame>,
         payload: &[u8],
     ) -> Option<AssembledFrame> {
-        // Validation: chunk_size vs payload
+        // Packet-level validation (always, regardless of chunk_id)
         if payload.len() > protocol::constants::MAX_VIDEO_PAYLOAD_BYTES {
             self.chunks_dropped += 1;
             return None;
@@ -116,22 +134,23 @@ impl FrameAssembler {
         let slot_idx = self.find_or_allocate_slot(per_packet.frame_id);
         let slot = &mut self.slots[slot_idx];
 
-        // Store metadata from chunk 0
+        // Frame-metadata validation (only when per_frame is present, i.e. chunk_id==0)
         if let Some(meta) = per_frame {
             if meta.total_chunks > self.max_chunks_per_frame {
                 slot.active = false;
                 self.frames_dropped += 1;
+                self.oversize_drops += 1;
                 return None;
             }
             if meta.total_bytes > self.max_frame_bytes {
                 slot.active = false;
                 self.frames_dropped += 1;
+                self.oversize_drops += 1;
                 return None;
             }
             slot.metadata = Some(*meta);
 
             // Discard out-of-range chunks received before metadata
-            // (validation rule 6 from spec)
             for cid in 0..self.max_chunks_per_frame {
                 let idx = cid as usize / 64;
                 let bit = cid as usize % 64;
@@ -142,7 +161,7 @@ impl FrameAssembler {
             }
         }
 
-        // Store payload at stride offset (each chunk gets MAX_VIDEO_PAYLOAD_BYTES slot)
+        // Store payload at stride offset
         let cid = per_packet.chunk_id as usize;
         let stride = protocol::constants::MAX_VIDEO_PAYLOAD_BYTES;
         let offset = cid * stride;
@@ -155,14 +174,21 @@ impl FrameAssembler {
         // Check if complete
         if slot.is_complete() {
             let meta = slot.metadata.unwrap();
+            let total_chunks = meta.total_chunks as usize;
 
-            // Compact: copy chunks contiguously into output buffer
-            let mut frame_data = Vec::with_capacity(meta.total_bytes as usize);
-            for i in 0..meta.total_chunks as usize {
-                let chunk_offset = i * stride;
-                let chunk_len = slot.chunk_sizes[i] as usize;
-                frame_data.extend_from_slice(&slot.data[chunk_offset..chunk_offset + chunk_len]);
-            }
+            // Optimization: skip compaction for single-chunk frames (already contiguous)
+            let frame_data = if total_chunks == 1 {
+                let chunk_len = slot.chunk_sizes[0] as usize;
+                slot.data[..chunk_len].to_vec()
+            } else {
+                let mut buf = Vec::with_capacity(meta.total_bytes as usize);
+                for i in 0..total_chunks {
+                    let chunk_offset = i * stride;
+                    let chunk_len = slot.chunk_sizes[i] as usize;
+                    buf.extend_from_slice(&slot.data[chunk_offset..chunk_offset + chunk_len]);
+                }
+                buf
+            };
 
             slot.active = false;
             self.frames_completed += 1;
@@ -181,15 +207,22 @@ impl FrameAssembler {
         None
     }
 
-    /// Check for timed-out frames (>30ms since first chunk).
+    /// Expire frames that exceeded the assembly deadline.
     pub fn expire_stale(&mut self) {
         let now = Instant::now();
+        let deadline = self.assembly_deadline_ms;
         for slot in &mut self.slots {
-            if slot.active && now.duration_since(slot.first_chunk_time).as_millis() > 500 {
-                log::debug!("Frame {} timed out ({} chunks received)",
-                           slot.frame_id, slot.chunks_received);
+            if slot.active && now.duration_since(slot.first_chunk_time).as_millis() > deadline as u128 {
+                log::debug!(
+                    "Frame {} timed out after {}ms ({}/{} chunks)",
+                    slot.frame_id,
+                    deadline,
+                    slot.chunks_received,
+                    slot.metadata.map(|m| m.total_chunks).unwrap_or(0)
+                );
                 slot.active = false;
                 self.frames_dropped += 1;
+                self.timeout_drops += 1;
             }
         }
     }
@@ -216,6 +249,7 @@ impl FrameAssembler {
             .map(|(i, _)| i)
             .unwrap_or(0);
         self.frames_dropped += 1;
+        self.eviction_drops += 1;
         self.slots[oldest].reset(frame_id);
         oldest
     }

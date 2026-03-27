@@ -162,6 +162,25 @@ async fn main() -> Result<()> {
             }
         })?;
 
+    // IDR request channel: decode thread → tokio → control channel (Item 7 from review)
+    let (idr_tx, mut idr_rx) = tokio::sync::mpsc::channel::<i32>(4);
+    let idr_stream_id = stream_id;
+    let idr_config_id = config_id;
+    {
+        let mut control_for_idr = net_transport::control_channel::ControlChannel::connect(
+            &host_addr, control_port
+        ).await?;
+        tokio::spawn(async move {
+            while let Some(reason) = idr_rx.recv().await {
+                if let Err(e) = control_for_idr.send_request_idr(idr_stream_id, idr_config_id, reason).await {
+                    log::warn!("IDR request send failed: {}", e);
+                    break;
+                }
+                log::info!("IDR request sent to host (reason={})", reason);
+            }
+        });
+    }
+
     // 6b. Stats reporter — sends real telemetry to host every 1s (Item 9 from review)
     tokio::spawn(async move {
         let mut prev_recv = 0u64;
@@ -301,8 +320,17 @@ async fn main() -> Result<()> {
                         }
 
                         let decode_start = std::time::Instant::now();
-                        match decoder.decode(&assembled.data, assembled.timestamp_us) {
+                        match decoder.decode(&assembled.data, assembled.timestamp_us, assembled.is_keyframe) {
                             Ok(decoded_frames) => {
+                                // Check for pending IDR request from decoder
+                                if let Some(reason) = decoder.pending_idr_reason.take() {
+                                    let reason_code = match reason {
+                                        video_decode::IDRReason::DecodeError => 2,
+                                        video_decode::IDRReason::CorruptFrame => 2,
+                                        video_decode::IDRReason::ReferenceLoss => 3,
+                                    };
+                                    let _ = idr_tx.try_send(reason_code);
+                                }
                                 let decode_us = decode_start.elapsed().as_micros() as u64;
                                 decode_total_us += decode_us;
 
@@ -327,7 +355,17 @@ async fn main() -> Result<()> {
                                     }
                                 }
                             }
-                            Err(e) => { log::warn!("Decode error: {}", e); }
+                            Err(e) => {
+                                log::warn!("Decode error: {}", e);
+                                if let Some(reason) = decoder.pending_idr_reason.take() {
+                                    let reason_code = match reason {
+                                        video_decode::IDRReason::DecodeError => 2,
+                                        video_decode::IDRReason::CorruptFrame => 2,
+                                        video_decode::IDRReason::ReferenceLoss => 3,
+                                    };
+                                    let _ = idr_tx.try_send(reason_code);
+                                }
+                            }
                         }
                     }
 
