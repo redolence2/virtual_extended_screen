@@ -132,7 +132,6 @@ impl Renderer {
     }
 
     /// Render cached video + cursor overlay, then present.
-    /// Creates one texture per call BUT properly drops it (no leak).
     pub fn present_with_cursor(&mut self, cursor: &CursorRenderer) {
         if let Some(ref yuv) = self.cached_yuv {
             if let Ok(mut tex) = self.texture_creator.create_texture_streaming(
@@ -144,7 +143,9 @@ impl Renderer {
                     &yuv.u, yuv.u_pitch,
                     &yuv.v, yuv.v_pitch,
                 );
-                let dst = Rect::new(0, 0, self.width, self.height);
+                // Use actual canvas size (handles xrandr rotation correctly)
+                let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
+                let dst = Rect::new(0, 0, cw, ch);
                 let _ = self.canvas.copy(&tex, None, Some(dst));
                 // tex is dropped here — no GPU memory leak
             }
