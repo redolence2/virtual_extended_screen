@@ -142,8 +142,7 @@ impl Renderer {
 
         let mut canvas = window.into_canvas()
             .accelerated()
-            // No VSync — saves up to 16ms latency per frame. At 60fps input rate,
-            // tearing is minimal and responsiveness matters more for remote display.
+            .present_vsync()
             .build()
             .context("Failed to create SDL canvas")?;
 
