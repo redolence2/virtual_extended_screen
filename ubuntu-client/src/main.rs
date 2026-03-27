@@ -452,26 +452,28 @@ async fn main() -> Result<()> {
                     sdl.mouse().set_relative_mouse_mode(false); // release mouse
                 }
 
-                // Only re-render when something changed (not every 8ms)
+                // Only re-render when something changed (not every 1ms)
                 if has_frame {
-                    // Check if cursor moved
                     let cx = cursor_state_reader.x.load(Ordering::Relaxed);
                     let cy = cursor_state_reader.y.load(Ordering::Relaxed);
                     let cs = cursor_state_reader.shape.load(Ordering::Relaxed) as u8;
 
                     let cursor_moved = cx != cursor_renderer.x || cy != cursor_renderer.y;
-                    let need_render = new_video_frame || cursor_moved;
+                    // Also track local mouse movement
+                    let mouse = event_pump.mouse_state();
+                    let local_moved = mouse.x() != cursor_renderer.x || mouse.y() != cursor_renderer.y;
+                    let need_render = new_video_frame || cursor_moved || local_moved;
 
                     if need_render {
                         if let Some(ref mut r) = renderer_opt {
                             if input.ownership == input_capture::InputOwnership::RemoteControlGrabbed {
-                                let mouse = event_pump.mouse_state();
                                 cursor_renderer.update(mouse.x(), mouse.y(), 0);
+                            } else if cx >= 0 && cy >= 0 {
+                                // Mac cursor is on the virtual display — use its position
+                                cursor_renderer.update(cx, cy, cs);
                             } else {
-                                if cx >= 0 && cy >= 0 {
-                                    cursor_renderer.update(cx, cy, cs);
-                                } else {
-                                    cursor_renderer.visible = false;
+                                // Mac cursor not on virtual display — use local mouse as fallback
+                                cursor_renderer.update(mouse.x(), mouse.y(), 0);
                                 }
                             }
                             r.present_with_cursor(&cursor_renderer);
