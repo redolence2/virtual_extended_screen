@@ -4,7 +4,7 @@ use jitter_buffer::AssembledFrame;
 use protocol::binary::{CursorUpdate, PacketPrefix};
 use protocol::constants::*;
 use std::sync::mpsc;
-use std::sync::atomic::{AtomicI32, AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -44,14 +44,8 @@ struct Args {
     headless: bool,
 }
 
-/// Shared receiver stats for real telemetry (Item 9 from review).
-#[derive(Default)]
-struct ReceiverStats {
-    packets_received: AtomicU64,
-    packets_dropped: AtomicU64,
-    frames_completed: AtomicU64,
-    frames_dropped: AtomicU64,
-}
+// Re-export from net-transport (single source of truth for shared stats)
+use net_transport::video_receiver::SharedReceiverStats;
 
 /// Shared cursor state (written by cursor receiver thread, read by render thread).
 struct SharedCursorState {
@@ -107,21 +101,17 @@ async fn main() -> Result<()> {
     // Receiver uses smart drop policy: keyframes always kept.
     let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(8);
 
-    // Shared stats counters (Item 9: real telemetry for adaptive bitrate)
-    let recv_stats = Arc::new(ReceiverStats::default());
-    let recv_stats_writer = recv_stats.clone();
+    // Shared stats — receiver updates atomics in real-time, stats reporter reads them
+    let recv_stats = Arc::new(SharedReceiverStats::default());
     let recv_stats_reader = recv_stats.clone();
 
     let _recv_handle = std::thread::Builder::new()
         .name("video-recv".into())
         .spawn(move || {
             let mut receiver = net_transport::video_receiver::VideoReceiver::new(
-                video_port, stream_id, config_id, max_chunks, max_frame,
+                video_port, stream_id, config_id, max_chunks, max_frame, recv_stats,
             ).expect("Failed to create video receiver");
             receiver.run(frame_tx);
-            // Write final stats
-            recv_stats_writer.packets_received.store(receiver.packets_received, Ordering::Relaxed);
-            recv_stats_writer.packets_dropped.store(receiver.packets_dropped, Ordering::Relaxed);
         })?;
 
     // 6. Start cursor receiver (shared atomic state)
@@ -176,25 +166,32 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         let mut prev_recv = 0u64;
         let mut prev_drop = 0u64;
+        let mut prev_f_done = 0u64;
+        let mut prev_f_drop = 0u64;
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
             let recv = recv_stats_reader.packets_received.load(Ordering::Relaxed);
             let drop = recv_stats_reader.packets_dropped.load(Ordering::Relaxed);
-            let f_drop = recv_stats_reader.frames_dropped.load(Ordering::Relaxed);
             let f_done = recv_stats_reader.frames_completed.load(Ordering::Relaxed);
+            let f_drop = recv_stats_reader.frames_dropped.load(Ordering::Relaxed);
 
-            // Compute rates over last 1s interval
-            let interval_recv = recv.saturating_sub(prev_recv);
-            let interval_drop = drop.saturating_sub(prev_drop);
-            let loss_rate = if interval_recv + interval_drop > 0 {
-                interval_drop as f32 / (interval_recv + interval_drop) as f32
+            // Per-interval rates (recovers after bursts)
+            let int_recv = recv.saturating_sub(prev_recv);
+            let int_drop = drop.saturating_sub(prev_drop);
+            let int_f_done = f_done.saturating_sub(prev_f_done);
+            let int_f_drop = f_drop.saturating_sub(prev_f_drop);
+
+            let loss_rate = if int_recv + int_drop > 0 {
+                int_drop as f32 / (int_recv + int_drop) as f32
             } else { 0.0 };
-            let frame_drop_rate = if f_done + f_drop > 0 {
-                f_drop as f32 / (f_done + f_drop) as f32
+            let frame_drop_rate = if int_f_done + int_f_drop > 0 {
+                int_f_drop as f32 / (int_f_done + int_f_drop) as f32
             } else { 0.0 };
 
             prev_recv = recv;
             prev_drop = drop;
+            prev_f_done = f_done;
+            prev_f_drop = f_drop;
 
             if let Err(_) = control.send_stats(loss_rate, frame_drop_rate, 0).await {
                 log::warn!("Stats send failed (control channel closed)");

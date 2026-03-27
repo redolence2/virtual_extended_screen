@@ -209,7 +209,6 @@ signal(SIGINT) { _ in
         print("[RESC] Final: \(s.frames) frames, \(s.keyframes) KF, avg \(String(format: "%.1f", s.avgEncodeMs))ms")
         let vs = streamingState.stats
         if vs.packets > 0 {
-            let vs = vs
             print("[RESC] Sent: \(vs.packets) packets, \(vs.bytes / 1024)KB")
         }
         exit(0)

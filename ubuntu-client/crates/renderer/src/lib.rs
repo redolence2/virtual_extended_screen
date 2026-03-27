@@ -3,7 +3,7 @@ pub mod cursor_renderer;
 use anyhow::{Context, Result};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
-use sdl2::render::{Canvas, Texture, TextureCreator};
+use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use video_decode::DecodedFrame;
 pub use cursor_renderer::CursorRenderer;
