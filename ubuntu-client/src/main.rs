@@ -100,7 +100,7 @@ async fn main() -> Result<()> {
 
     // Bounded queue: small to minimize latency (Item 5 from review).
     // Receiver uses smart drop policy: keyframes always kept.
-    let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(8);
+    let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(4);
 
     // Shared stats — receiver updates atomics in real-time, stats reporter reads them
     let recv_stats = Arc::new(SharedReceiverStats::default());
@@ -298,7 +298,7 @@ async fn main() -> Result<()> {
                 // Collect ALL available frames from queue, DECODE all (maintains
                 // HEVC reference chain), but only RENDER the last good one.
                 let mut frames_to_decode: Vec<AssembledFrame> = Vec::new();
-                match frame_rx.recv_timeout(Duration::from_millis(8)) {
+                match frame_rx.recv_timeout(Duration::from_millis(1)) {
                     Ok(frame) => {
                         frames_to_decode.push(frame);
                         while let Ok(more) = frame_rx.try_recv() {
