@@ -49,22 +49,50 @@ impl PersistentTexture {
         Some(Self { tex_ptr: raw, w, h })
     }
 
-    fn update_and_copy(&mut self, canvas: &mut Canvas<Window>, yuv: &CachedYUV, dst: Rect) {
+    fn update_and_copy(&mut self, canvas: &mut Canvas<Window>, yuv: &CachedYUV, canvas_w: u32, canvas_h: u32) {
         unsafe {
-            // Update YUV planes directly via SDL2 C API
             sdl2::sys::SDL_UpdateYUVTexture(
                 self.tex_ptr,
-                std::ptr::null(), // entire texture
+                std::ptr::null(),
                 yuv.y.as_ptr(), yuv.y_pitch as i32,
                 yuv.u.as_ptr(), yuv.u_pitch as i32,
                 yuv.v.as_ptr(), yuv.v_pitch as i32,
             );
-            sdl2::sys::SDL_RenderCopy(
-                canvas.raw(),
-                self.tex_ptr,
-                std::ptr::null(), // src: entire texture
-                &sdl2::sys::SDL_Rect { x: dst.x(), y: dst.y(), w: dst.width() as i32, h: dst.height() as i32 },
-            );
+
+            let stream_portrait = self.h > self.w;
+            let canvas_portrait = canvas_h > canvas_w;
+
+            if stream_portrait != canvas_portrait {
+                // Orientation mismatch: SDL2 fullscreen bypasses xrandr rotation.
+                // Pre-rotate content to compensate. Place texture at its natural
+                // dimensions centered on the canvas, then rotate 90° CW. The physical
+                // monitor rotation (90° CCW for xrandr --rotate left) un-does it.
+                let dx = (canvas_w as i32 - self.w as i32) / 2;
+                let dy = (canvas_h as i32 - self.h as i32) / 2;
+                let dst = sdl2::sys::SDL_Rect {
+                    x: dx, y: dy, w: self.w as i32, h: self.h as i32,
+                };
+                sdl2::sys::SDL_RenderCopyEx(
+                    canvas.raw(),
+                    self.tex_ptr,
+                    std::ptr::null(),
+                    &dst,
+                    90.0, // 90° CW compensates for --rotate left
+                    std::ptr::null(), // rotate around dst center
+                    sdl2::sys::SDL_RendererFlip::SDL_FLIP_NONE,
+                );
+            } else {
+                // Orientations match — render normally
+                let dst = sdl2::sys::SDL_Rect {
+                    x: 0, y: 0, w: canvas_w as i32, h: canvas_h as i32,
+                };
+                sdl2::sys::SDL_RenderCopy(
+                    canvas.raw(),
+                    self.tex_ptr,
+                    std::ptr::null(),
+                    &dst,
+                );
+            }
         }
     }
 }
@@ -189,16 +217,38 @@ impl Renderer {
         Ok(())
     }
 
+    /// Check if stream/canvas orientation mismatch requires rotation.
+    fn is_rotated(&self) -> bool {
+        if let Some(ref yuv) = self.cached_yuv {
+            let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
+            let stream_portrait = yuv.h > yuv.w;
+            let canvas_portrait = ch > cw;
+            stream_portrait != canvas_portrait
+        } else {
+            false
+        }
+    }
+
     /// Render cached video + cursor overlay via persistent texture.
     pub fn present_with_cursor(&mut self, cursor: &CursorRenderer) {
+        let rotated = self.is_rotated();
+
         if let (Some(ref yuv), Some(ref mut tex)) = (&self.cached_yuv, &mut self.persistent_tex) {
             let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
-            let dst = Rect::new(0, 0, cw, ch);
-            tex.update_and_copy(&mut self.canvas, yuv, dst);
+            tex.update_and_copy(&mut self.canvas, yuv, cw, ch);
         }
 
         if cursor.visible && cursor.x >= 0 && cursor.y >= 0 {
-            cursor.draw(&mut self.canvas);
+            if rotated {
+                // Transform cursor from stream coords to rotated canvas coords.
+                // 90° CW rotation: stream (sx, sy) → canvas (sy, stream_w - 1 - sx)
+                let mut rotated_cursor = cursor.clone();
+                rotated_cursor.x = cursor.y;
+                rotated_cursor.y = self.width as i32 - 1 - cursor.x;
+                rotated_cursor.draw(&mut self.canvas);
+            } else {
+                cursor.draw(&mut self.canvas);
+            }
         }
         self.canvas.present();
     }

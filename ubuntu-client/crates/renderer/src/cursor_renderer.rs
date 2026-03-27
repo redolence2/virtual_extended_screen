@@ -5,6 +5,7 @@ use sdl2::video::Window;
 
 /// Renders a simple cursor sprite on top of the video frame.
 /// MVP: Arrow cursor as a simple white triangle with black outline.
+#[derive(Clone)]
 pub struct CursorRenderer {
     pub x: i32,
     pub y: i32,
