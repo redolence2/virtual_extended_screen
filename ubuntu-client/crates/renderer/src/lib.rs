@@ -146,7 +146,8 @@ impl Renderer {
             .build()
             .context("Failed to create SDL canvas")?;
 
-        sdl.mouse().show_cursor(false);
+        // Keep system cursor visible — the Mac overlay cursor draws on top when active.
+        // Hiding it makes the display unusable when Mac cursor isn't on the virtual display.
 
         if flash_test {
             log::info!("Flash test on display {} for 2 seconds...", display_index);
