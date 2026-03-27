@@ -77,7 +77,7 @@ impl PersistentTexture {
                     self.tex_ptr,
                     std::ptr::null(),
                     &dst,
-                    90.0, // 90° CW compensates for --rotate left
+                    -90.0, // 90° CCW compensates for --rotate left
                     std::ptr::null(), // rotate around dst center
                     sdl2::sys::SDL_RendererFlip::SDL_FLIP_NONE,
                 );
@@ -241,10 +241,10 @@ impl Renderer {
         if cursor.visible && cursor.x >= 0 && cursor.y >= 0 {
             if rotated {
                 // Transform cursor from stream coords to rotated canvas coords.
-                // 90° CW rotation: stream (sx, sy) → canvas (sy, stream_w - 1 - sx)
+                // 90° CCW rotation: stream (sx, sy) → canvas (max_sy - sy, sx)
                 let mut rotated_cursor = cursor.clone();
-                rotated_cursor.x = cursor.y;
-                rotated_cursor.y = self.width as i32 - 1 - cursor.x;
+                rotated_cursor.x = self.height as i32 - 1 - cursor.y;
+                rotated_cursor.y = cursor.x;
                 rotated_cursor.draw(&mut self.canvas);
             } else {
                 cursor.draw(&mut self.canvas);
