@@ -2,6 +2,7 @@ import Foundation
 import VirtualDisplayBridge
 
 /// Monitors macOS Night Shift by polling CBBlueLightClient via safe ObjC helper.
+/// All calls run on the main queue (CBBlueLightClient requires main thread).
 final class NightShiftMonitor {
 
     private var timer: DispatchSourceTimer?
@@ -16,11 +17,12 @@ final class NightShiftMonitor {
     }
 
     func start() {
-        let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
-        // Initial read on the utility queue (safe for CBBlueLightClient)
+        // Initial read on main thread
         lastStrength = RESCGetNightShiftStrength()
 
-        timer.schedule(deadline: .now() + 0.5, repeating: 2.0)
+        // Poll on main queue — CBBlueLightClient requires main thread
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + 2.0, repeating: 2.0)
         timer.setEventHandler { [weak self] in
             self?.poll()
         }
