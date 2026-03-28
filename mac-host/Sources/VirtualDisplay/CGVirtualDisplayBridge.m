@@ -20,6 +20,7 @@ float RESCGetNightShiftStrength(void) {
     Class cls = NSClassFromString(@"CBBlueLightClient");
     if (!cls) return 0;
 
+    // Create fresh client each call — cached instances don't see Night Shift toggle
     id client = [[cls alloc] init];
     SEL sel = NSSelectorFromString(@"getBlueLightStatus:");
     if (![client respondsToSelector:sel]) return 0;

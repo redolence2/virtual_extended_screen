@@ -1,5 +1,6 @@
 import Foundation
 import SwiftProtobuf
+import VirtualDisplayBridge
 
 /// Manages the host-side session: control channel, mode negotiation, video sending.
 /// Implements the Idle → Negotiating → Streaming state progression.
@@ -188,6 +189,13 @@ final class HostSession {
         // Force keyframe so client's first frame has SPS/PPS
         onForceKeyframe?()
         print("[RESC] Streaming started: stream=\(streamID), config=\(configID)")
+
+        // Send current Night Shift state to newly connected client
+        let strength = RESCGetNightShiftStrength()
+        if strength > 0 {
+            sendDisplaySettings(warmStrength: strength)
+            print("[RESC] Sent initial Night Shift to client: \(String(format: "%.0f%%", strength * 100))")
+        }
     }
 
     /// Send DisplaySettings (warm_strength) to client via control channel.
