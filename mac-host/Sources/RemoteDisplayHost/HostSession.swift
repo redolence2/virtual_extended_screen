@@ -196,7 +196,6 @@ final class HostSession {
 
     /// Send DisplaySettings (warm_strength) to client via control channel.
     func sendDisplaySettings(warmStrength: Float) {
-        guard sm.state == .streaming else { return }
         // Hand-rolled protobuf: Envelope { session_id, protocol_version, display_settings { warm_strength } }
         var inner = Data()
         // DisplaySettings.warm_strength (field 1, wire type 5 = fixed32/float)
