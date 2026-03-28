@@ -191,8 +191,7 @@ final class HostSession {
         onForceKeyframe?()
         print("[RESC] Streaming started: stream=\(streamID), config=\(configID)")
 
-        // Send current Night Shift state to newly connected client (via callback)
-        onSendInitialSettings?()
+        // Night Shift state will be sent on next monitor poll (~2s)
     }
 
     /// Send DisplaySettings (warm_strength) to client via control channel.

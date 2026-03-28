@@ -185,6 +185,8 @@ hostSession.onStreamingStart = { (sender: VideoSender) in
         let receiver = InputReceiver(port: inputPort, injector: injector)
         receiver.start()
         inputReceiver = receiver
+        // Force Night Shift resend to new client on next poll
+        nightShiftMonitor.forceResend()
     } else {
         print("[RESC] WARNING: No --client specified")
     }
@@ -201,13 +203,6 @@ nightShiftMonitor.onChange = { strength in
 }
 nightShiftMonitor.start()
 
-hostSession.onSendInitialSettings = {
-    let strength = nightShiftMonitor.lastStrength
-    if strength > 0 {
-        hostSession.sendDisplaySettings(warmStrength: strength)
-        print("[RESC] Sent initial Night Shift to client: \(String(format: "%.0f%%", strength * 100))")
-    }
-}
 
 do {
     try hostSession.start()

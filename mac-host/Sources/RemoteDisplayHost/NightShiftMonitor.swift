@@ -10,6 +10,11 @@ final class NightShiftMonitor {
     /// Called when Night Shift strength changes. 0.0 = off, up to 1.0 = max warm.
     var onChange: ((Float) -> Void)?
 
+    /// Force resend on next poll (call when client connects).
+    func forceResend() {
+        lastStrength = -1
+    }
+
     func start() {
         let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
         // Initial read on the utility queue (safe for CBBlueLightClient)
