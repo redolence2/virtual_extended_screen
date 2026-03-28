@@ -36,6 +36,7 @@ message Envelope {
     // Runtime (30–39)
     Stats stats = 30;
     RequestIDR request_idr = 31;
+    DisplaySettings display_settings = 32;
 
     // Input (40–49)
     KeyEvent key_event = 40;
@@ -171,6 +172,11 @@ message RequestIDR {
   }
 
   Reason reason = 3;
+}
+
+// Host → Client display settings (e.g., Night Shift warm filter)
+message DisplaySettings {
+  float warm_strength = 1;  // 0.0 = off, 1.0 = maximum warmth
 }
 
 // ----------------------

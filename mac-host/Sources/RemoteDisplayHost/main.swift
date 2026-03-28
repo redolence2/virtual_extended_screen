@@ -194,6 +194,13 @@ hostSession.onForceKeyframe = {
     print("[RESC] Forced keyframe for streaming start")
 }
 
+// Night Shift monitor — sends warm filter strength to client
+let nightShiftMonitor = NightShiftMonitor()
+nightShiftMonitor.onChange = { strength in
+    hostSession.sendDisplaySettings(warmStrength: strength)
+}
+nightShiftMonitor.start()
+
 do {
     try hostSession.start()
 } catch {

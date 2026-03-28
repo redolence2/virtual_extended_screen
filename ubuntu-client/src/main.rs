@@ -189,52 +189,75 @@ async fn main() -> Result<()> {
     let idr_stream_id = stream_id;
     let idr_config_id = config_id;
 
-    // 6b. Stats reporter + IDR sender — shares single control channel
+    // Warm filter strength (set by Mac's Night Shift via control channel)
+    let warm_strength = Arc::new(std::sync::atomic::AtomicU32::new(0)); // f32 bits stored as u32
+    let warm_strength_writer = warm_strength.clone();
+    let warm_strength_reader = warm_strength.clone();
+
+    // 6b. Bidirectional control channel: stats/IDR out, DisplaySettings in
     tokio::spawn(async move {
         let mut prev_recv = 0u64;
         let mut prev_drop = 0u64;
         let mut prev_f_done = 0u64;
         let mut prev_f_drop = 0u64;
+        let mut stats_interval = tokio::time::interval(Duration::from_millis(100));
+
         loop {
-            // Check for IDR requests (non-blocking) before sleeping
-            while let Ok(reason) = idr_rx.try_recv() {
-                if let Err(e) = control.send_request_idr(idr_stream_id, idr_config_id, reason).await {
-                    log::warn!("IDR request send failed: {}", e);
-                } else {
-                    log::info!("IDR request sent to host (reason={})", reason);
+            tokio::select! {
+                // Receive messages from host (DisplaySettings for Night Shift)
+                msg = control.recv() => {
+                    match msg {
+                        Ok(envelope) => {
+                            if let Some(protocol::resc_control::envelope::Payload::DisplaySettings(ds)) = envelope.payload {
+                                let bits = ds.warm_strength.to_bits();
+                                warm_strength_writer.store(bits, Ordering::Relaxed);
+                                log::info!("Night Shift: warm_strength={:.0}%", ds.warm_strength * 100.0);
+                            }
+                        }
+                        Err(e) => {
+                            log::warn!("Control recv error: {} (host may have disconnected)", e);
+                            break;
+                        }
+                    }
                 }
-            }
+                // IDR requests from decoder
+                reason = idr_rx.recv() => {
+                    if let Some(reason) = reason {
+                        if let Err(e) = control.send_request_idr(idr_stream_id, idr_config_id, reason).await {
+                            log::warn!("IDR request send failed: {}", e);
+                        }
+                    }
+                }
+                // Periodic stats send
+                _ = stats_interval.tick() => {
+                    let recv = recv_stats_reader.packets_received.load(Ordering::Relaxed);
+                    let drop = recv_stats_reader.packets_dropped.load(Ordering::Relaxed);
+                    let f_done = recv_stats_reader.frames_completed.load(Ordering::Relaxed);
+                    let f_drop = recv_stats_reader.frames_dropped.load(Ordering::Relaxed);
 
-            tokio::time::sleep(Duration::from_millis(100)).await;
+                    let int_recv = recv.saturating_sub(prev_recv);
+                    let int_drop = drop.saturating_sub(prev_drop);
+                    let int_f_done = f_done.saturating_sub(prev_f_done);
+                    let int_f_drop = f_drop.saturating_sub(prev_f_drop);
 
-            // Send stats every ~1s (10 iterations of 100ms)
-            let recv = recv_stats_reader.packets_received.load(Ordering::Relaxed);
-            let drop = recv_stats_reader.packets_dropped.load(Ordering::Relaxed);
-            let f_done = recv_stats_reader.frames_completed.load(Ordering::Relaxed);
-            let f_drop = recv_stats_reader.frames_dropped.load(Ordering::Relaxed);
+                    if int_recv > 0 || int_drop > 0 || int_f_done > 0 || int_f_drop > 0 {
+                        let loss_rate = if int_recv + int_drop > 0 {
+                            int_drop as f32 / (int_recv + int_drop) as f32
+                        } else { 0.0 };
+                        let frame_drop_rate = if int_f_done + int_f_drop > 0 {
+                            int_f_drop as f32 / (int_f_done + int_f_drop) as f32
+                        } else { 0.0 };
 
-            let int_recv = recv.saturating_sub(prev_recv);
-            let int_drop = drop.saturating_sub(prev_drop);
-            let int_f_done = f_done.saturating_sub(prev_f_done);
-            let int_f_drop = f_drop.saturating_sub(prev_f_drop);
+                        prev_recv = recv;
+                        prev_drop = drop;
+                        prev_f_done = f_done;
+                        prev_f_drop = f_drop;
 
-            // Only send stats every ~1s worth of changes
-            if int_recv > 0 || int_drop > 0 || int_f_done > 0 || int_f_drop > 0 {
-                let loss_rate = if int_recv + int_drop > 0 {
-                    int_drop as f32 / (int_recv + int_drop) as f32
-                } else { 0.0 };
-                let frame_drop_rate = if int_f_done + int_f_drop > 0 {
-                    int_f_drop as f32 / (int_f_done + int_f_drop) as f32
-                } else { 0.0 };
-
-                prev_recv = recv;
-                prev_drop = drop;
-                prev_f_done = f_done;
-                prev_f_drop = f_drop;
-
-                if let Err(_) = control.send_stats(loss_rate, frame_drop_rate, 0).await {
-                    log::warn!("Stats send failed (control channel closed)");
-                    break;
+                        if let Err(_) = control.send_stats(loss_rate, frame_drop_rate, 0).await {
+                            log::warn!("Stats send failed");
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -315,6 +338,12 @@ async fn main() -> Result<()> {
 
             loop {
                 new_video_frame = false;
+
+                // Update warm filter from Night Shift control message
+                if let Some(ref mut r) = renderer_opt {
+                    let bits = warm_strength_reader.load(Ordering::Relaxed);
+                    r.warm_strength = f32::from_bits(bits);
+                }
 
                 // Collect ALL available frames from queue, DECODE all (maintains
                 // HEVC reference chain), but only RENDER the last good one.

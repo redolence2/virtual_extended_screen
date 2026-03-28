@@ -17,8 +17,9 @@ pub struct Renderer {
     height: u32,
     frame_count: u64,
     cached_yuv: Option<CachedYUV>,
-    /// Persistent texture — recreated only on dimension change (Item 8 from review)
     persistent_tex: Option<PersistentTexture>,
+    /// Night Shift warm filter strength: 0.0=off, 1.0=max warm.
+    pub warm_strength: f32,
 }
 
 struct CachedYUV {
@@ -171,6 +172,7 @@ impl Renderer {
             frame_count: 0,
             cached_yuv: None,
             persistent_tex: None,
+            warm_strength: 0.0,
         })
     }
 
@@ -197,6 +199,19 @@ impl Renderer {
             let src = row * frame.strides[2];
             let dst = row * (w / 2);
             v[dst..dst + w / 2].copy_from_slice(&frame.planes[2][src..src + w / 2]);
+        }
+
+        // Apply warm filter (Night Shift) by shifting UV chrominance
+        if self.warm_strength > 0.0 {
+            let s = self.warm_strength;
+            let u_shift = (-20.0 * s) as i16; // less blue
+            let v_shift = (15.0 * s) as i16;  // more red
+            for val in u.iter_mut() {
+                *val = (*val as i16 + u_shift).clamp(0, 255) as u8;
+            }
+            for val in v.iter_mut() {
+                *val = (*val as i16 + v_shift).clamp(0, 255) as u8;
+            }
         }
 
         self.cached_yuv = Some(CachedYUV {
