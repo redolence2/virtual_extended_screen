@@ -201,6 +201,14 @@ nightShiftMonitor.onChange = { strength in
 }
 nightShiftMonitor.start()
 
+hostSession.onSendInitialSettings = {
+    let strength = nightShiftMonitor.lastStrength
+    if strength > 0 {
+        hostSession.sendDisplaySettings(warmStrength: strength)
+        print("[RESC] Sent initial Night Shift to client: \(String(format: "%.0f%%", strength * 100))")
+    }
+}
+
 do {
     try hostSession.start()
 } catch {

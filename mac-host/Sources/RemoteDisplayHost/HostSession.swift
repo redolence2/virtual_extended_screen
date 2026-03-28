@@ -1,6 +1,5 @@
 import Foundation
 import SwiftProtobuf
-import VirtualDisplayBridge
 
 /// Manages the host-side session: control channel, mode negotiation, video sending.
 /// Implements the Idle → Negotiating → Streaming state progression.
@@ -37,6 +36,8 @@ final class HostSession {
     var onForceKeyframe: (() -> Void)?
     /// Called on disconnect to release stuck keys/buttons.
     var onReleaseInput: (() -> Void)?
+    /// Called when streaming starts to send initial display settings.
+    var onSendInitialSettings: (() -> Void)?
 
     // MARK: - Init
 
@@ -190,12 +191,8 @@ final class HostSession {
         onForceKeyframe?()
         print("[RESC] Streaming started: stream=\(streamID), config=\(configID)")
 
-        // Send current Night Shift state to newly connected client
-        let strength = RESCGetNightShiftStrength()
-        if strength > 0 {
-            sendDisplaySettings(warmStrength: strength)
-            print("[RESC] Sent initial Night Shift to client: \(String(format: "%.0f%%", strength * 100))")
-        }
+        // Send current Night Shift state to newly connected client (via callback)
+        onSendInitialSettings?()
     }
 
     /// Send DisplaySettings (warm_strength) to client via control channel.

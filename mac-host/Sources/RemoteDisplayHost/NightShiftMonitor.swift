@@ -5,13 +5,16 @@ import VirtualDisplayBridge
 final class NightShiftMonitor {
 
     private var timer: DispatchSourceTimer?
-    private var lastStrength: Float = -1
+    private(set) var lastStrength: Float = 0
 
     /// Called when Night Shift strength changes. 0.0 = off, up to 1.0 = max warm.
     var onChange: ((Float) -> Void)?
 
     func start() {
         let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
+        // Initial read on the utility queue (safe for CBBlueLightClient)
+        lastStrength = RESCGetNightShiftStrength()
+
         timer.schedule(deadline: .now() + 0.5, repeating: 2.0)
         timer.setEventHandler { [weak self] in
             self?.poll()
