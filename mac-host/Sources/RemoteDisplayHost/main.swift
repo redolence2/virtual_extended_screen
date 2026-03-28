@@ -199,7 +199,9 @@ hostSession.onForceKeyframe = {
 // Night Shift monitor — sends warm filter strength to client
 let nightShiftMonitor = NightShiftMonitor()
 nightShiftMonitor.onChange = { strength in
-    hostSession.sendDisplaySettings(warmStrength: strength)
+    DispatchQueue.main.async {
+        hostSession.sendDisplaySettings(warmStrength: strength)
+    }
 }
 nightShiftMonitor.start()
 
