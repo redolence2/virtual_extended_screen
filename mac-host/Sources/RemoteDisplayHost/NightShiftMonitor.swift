@@ -1,35 +1,18 @@
 import Foundation
+import CoreGraphics
 
-/// Monitors macOS Night Shift state via CBBlueLightClient (CoreBrightness private framework).
-/// Polls every 2 seconds and calls the onChange callback when strength changes.
+/// Monitors macOS Night Shift by reading the display gamma table.
+/// When Night Shift is active, the blue channel gamma is reduced.
+/// Polls every 2 seconds and calls onChange when strength changes.
 final class NightShiftMonitor {
 
     private var timer: DispatchSourceTimer?
     private var lastStrength: Float = -1
-    private var blueLightClient: AnyObject?
-    private var getStatusSel: Selector?
 
-    /// Called when Night Shift strength changes. Strength is 0.0 (off) to 1.0 (max warm).
+    /// Called when Night Shift strength changes. 0.0 = off, up to ~1.0 = max warm.
     var onChange: ((Float) -> Void)?
 
-    init() {
-        // Load CoreBrightness framework at runtime
-        if let bundle = Bundle(path: "/System/Library/PrivateFrameworks/CoreBrightness.framework") {
-            bundle.load()
-        }
-        // Create CBBlueLightClient instance
-        if let cls = NSClassFromString("CBBlueLightClient") as? NSObject.Type {
-            blueLightClient = cls.init()
-            getStatusSel = NSSelectorFromString("getBlueLightStatus:")
-        }
-    }
-
     func start() {
-        guard blueLightClient != nil else {
-            print("[RESC] Night Shift monitoring unavailable (CBBlueLightClient not found)")
-            return
-        }
-
         let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
         timer.schedule(deadline: .now(), repeating: 2.0)
         timer.setEventHandler { [weak self] in
@@ -37,7 +20,7 @@ final class NightShiftMonitor {
         }
         timer.resume()
         self.timer = timer
-        print("[RESC] Night Shift monitor started (polling every 2s)")
+        print("[RESC] Night Shift monitor started (gamma-based, polling every 2s)")
     }
 
     func stop() {
@@ -45,45 +28,38 @@ final class NightShiftMonitor {
         timer = nil
     }
 
-    /// Read Night Shift state. Returns strength 0.0-1.0, or 0 if off/unavailable.
+    /// Detect Night Shift by comparing red vs blue gamma.
+    /// Returns 0.0 when off, up to ~0.7 at maximum Night Shift.
     func currentStrength() -> Float {
-        guard let client = blueLightClient else { return 0 }
+        var redTable = [CGGammaValue](repeating: 0, count: 256)
+        var greenTable = [CGGammaValue](repeating: 0, count: 256)
+        var blueTable = [CGGammaValue](repeating: 0, count: 256)
+        var sampleCount: UInt32 = 0
 
-        // CBBlueLightClient.getBlueLightStatus: fills a struct with enabled + strength
-        // The struct layout (from reverse engineering):
-        //   offset 0: bool enabled
-        //   offset 4: float strength (0.0 to 1.0)
-        //   ... other fields
-        var statusData = [UInt8](repeating: 0, count: 512)
-
-        // Call [client getBlueLightStatus:&statusData]
-        let method = unsafeBitCast(
-            (client as! NSObject).method(for: NSSelectorFromString("getBlueLightStatus:")),
-            to: (@convention(c) (AnyObject, Selector, UnsafeMutableRawPointer) -> Bool).self
+        let err = CGGetDisplayTransferByTable(
+            CGMainDisplayID(), 256,
+            &redTable, &greenTable, &blueTable,
+            &sampleCount
         )
-        let success = statusData.withUnsafeMutableBufferPointer { buf in
-            method(client as! NSObject, NSSelectorFromString("getBlueLightStatus:"), buf.baseAddress!)
-        }
+        guard err == .success, sampleCount > 0 else { return 0 }
 
-        if success {
-            // Parse: enabled at offset 0 (as i32), strength at offset 8 (as Float)
-            let enabled = statusData.withUnsafeBufferPointer { buf in
-                buf.baseAddress!.withMemoryRebound(to: Int32.self, capacity: 1) { $0.pointee }
-            }
-            if enabled != 0 {
-                let strength: Float = statusData.withUnsafeBufferPointer { buf in
-                    (buf.baseAddress! + 8).withMemoryRebound(to: Float.self, capacity: 1) { $0.pointee }
-                }
-                return max(0, min(1, strength))
-            }
-        }
+        let idx = Int(sampleCount) - 1
+        let redHigh = redTable[idx]
+        let blueHigh = blueTable[idx]
 
+        // Night Shift reduces blue relative to red.
+        // Normal: red ≈ blue ≈ 1.0. Night Shift: blue < red.
+        if redHigh > 0.01 && blueHigh < redHigh - 0.02 {
+            let strength = Float(1.0 - Double(blueHigh) / Double(redHigh))
+            return max(0, min(1, strength))
+        }
         return 0
     }
 
     private func poll() {
         let strength = currentStrength()
-        if strength != lastStrength {
+        // Only notify on meaningful change (> 1% difference)
+        if abs(strength - lastStrength) > 0.01 {
             lastStrength = strength
             if strength > 0 {
                 print("[RESC] Night Shift: ON (strength \(String(format: "%.0f%%", strength * 100)))")
