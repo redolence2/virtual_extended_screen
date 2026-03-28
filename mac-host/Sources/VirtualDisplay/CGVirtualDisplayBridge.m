@@ -8,6 +8,57 @@
 
 static NSString *const kErrorDomain = @"com.resc.virtualdisplay";
 
+// Night Shift detection via CBBlueLightClient (CoreBrightness private framework)
+float RESCGetNightShiftStrength(void) {
+    static BOOL frameworkLoaded = NO;
+    if (!frameworkLoaded) {
+        NSBundle *bundle = [NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/CoreBrightness.framework"];
+        [bundle load];
+        frameworkLoaded = YES;
+    }
+
+    Class cls = NSClassFromString(@"CBBlueLightClient");
+    if (!cls) return 0;
+
+    id client = [[cls alloc] init];
+    SEL sel = NSSelectorFromString(@"getBlueLightStatus:");
+    if (![client respondsToSelector:sel]) return 0;
+
+    // Allocate oversized buffer for the status struct
+    uint8_t statusBuf[128] = {0};
+
+    // Use NSInvocation for safe method dispatch
+    NSMethodSignature *sig = [client methodSignatureForSelector:sel];
+    if (!sig) return 0;
+
+    NSInvocation *inv = [NSInvocation invocationWithMethodSignature:sig];
+    [inv setSelector:sel];
+    void *ptr = statusBuf;
+    [inv setArgument:&ptr atIndex:2];
+    [inv invokeWithTarget:client];
+
+    BOOL success = NO;
+    [inv getReturnValue:&success];
+    if (!success) return 0;
+
+    // Parse: try known struct layouts
+    // Check int32 at offset 0 (enabled flag)
+    int32_t enabled = *(int32_t *)&statusBuf[0];
+
+    // Try float at offsets 4, 8, 12 for strength
+    for (int off = 4; off <= 12; off += 4) {
+        float val = *(float *)&statusBuf[off];
+        if (val > 0.001f && val <= 1.0f) {
+            if (enabled != 0) return val;
+        }
+    }
+
+    // Enabled but couldn't find valid strength float
+    if (enabled != 0) return 0.5f;
+
+    return 0;
+}
+
 @interface CGVirtualDisplayBridge ()
 @property (nonatomic, strong) id virtualDisplay;  // CGVirtualDisplay instance
 @property (nonatomic, assign) CGDirectDisplayID cachedDisplayID;

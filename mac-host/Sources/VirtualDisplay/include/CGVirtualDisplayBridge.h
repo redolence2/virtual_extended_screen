@@ -6,6 +6,10 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// Returns macOS Night Shift warm strength: 0.0 = off, >0.0 = on.
+/// Uses CBBlueLightClient via safe ObjC NSInvocation.
+float RESCGetNightShiftStrength(void);
+
 /// Opaque wrapper around CGVirtualDisplay (private API).
 /// Provides safe create/destroy lifecycle with configurable resolution.
 @interface CGVirtualDisplayBridge : NSObject
