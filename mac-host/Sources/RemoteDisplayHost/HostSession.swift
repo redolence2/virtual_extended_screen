@@ -195,22 +195,30 @@ final class HostSession {
     }
 
     /// Send DisplaySettings (warm_strength) to client via control channel.
+    /// Builds protobuf bytes inline — avoids calling private helpers from main queue.
     func sendDisplaySettings(warmStrength: Float) {
-        // Hand-rolled protobuf: Envelope { session_id, protocol_version, display_settings { warm_strength } }
-        var inner = Data()
-        // DisplaySettings.warm_strength (field 1, wire type 5 = fixed32/float)
-        // Tag = (1 << 3) | 5 = 13
-        inner.append(13)
-        var strength = warmStrength
-        inner.append(Data(bytes: &strength, count: 4))
+        var data = Data()
 
-        var envelope = Data()
-        appendProtoUInt64(&envelope, field: 1, value: sessionID)
-        appendProtoUInt32(&envelope, field: 2, value: UInt32(ProtocolConstants.protocolVersion))
-        // display_settings is field 32, wire type 2 (length-delimited)
-        appendProtoBytes(&envelope, field: 32, value: inner)
+        // session_id: field 1, varint. Tag = 8
+        data.append(0x08)
+        var sid = sessionID
+        while sid > 0x7F { data.append(UInt8(sid & 0x7F) | 0x80); sid >>= 7 }
+        data.append(UInt8(sid))
 
-        controlChannel.send(data: envelope)
+        // protocol_version: field 2, varint. Tag = 16
+        data.append(0x10)
+        data.append(UInt8(ProtocolConstants.protocolVersion))
+
+        // display_settings: field 32, length-delimited
+        // Tag = (32 << 3) | 2 = 258 → varint [0x82, 0x02]
+        data.append(0x82); data.append(0x02)
+        data.append(0x05) // inner length = 5
+        data.append(0x0D) // warm_strength: field 1, wire type 5 (fixed32). Tag = 13
+        var s = warmStrength
+        withUnsafeBytes(of: &s) { data.append(contentsOf: $0) }
+
+        controlChannel.send(data: data)
+        print("[RESC] Night Shift → client (warm=\(warmStrength))")
     }
 
     func stop() {
