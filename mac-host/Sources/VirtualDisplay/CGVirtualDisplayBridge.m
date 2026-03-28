@@ -42,22 +42,14 @@ float RESCGetNightShiftStrength(void) {
     [inv getReturnValue:&success];
     if (!success) return 0;
 
-    // Parse: try known struct layouts
-    // Check int32 at offset 0 (enabled flag)
-    int32_t enabled = *(int32_t *)&statusBuf[0];
-
-    // Try float at offsets 4, 8, 12 for strength
-    for (int off = 4; off <= 12; off += 4) {
-        float val = *(float *)&statusBuf[off];
-        if (val > 0.001f && val <= 1.0f) {
-            if (enabled != 0) return val;
-        }
-    }
-
-    // Enabled but couldn't find valid strength float
-    if (enabled != 0) return 0.5f;
-
-    return 0;
+    // Struct layout (macOS 15 Sequoia):
+    //   byte 0: enabled in settings (1 if Night Shift configured)
+    //   byte 1: currently active (1 = ON, 0 = OFF)  <-- this is the toggle
+    //   byte 2: schedule mode
+    //   bytes 8+: schedule hours
+    // Strength is not exposed in this struct; default to 0.5 when active.
+    uint8_t active = statusBuf[1];
+    return active ? 0.5f : 0.0f;
 }
 
 @interface CGVirtualDisplayBridge ()
