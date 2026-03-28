@@ -1,26 +1,49 @@
 import Foundation
-import CoreGraphics
+import ObjectiveC
 
-/// Monitors macOS Night Shift by reading the display gamma table.
-/// When Night Shift is active, the blue channel gamma is reduced.
-/// Polls every 2 seconds and calls onChange when strength changes.
+/// Monitors macOS Night Shift via CBBlueLightClient (CoreBrightness private framework).
+/// Uses both notification callback and polling for reliability.
 final class NightShiftMonitor {
 
     private var timer: DispatchSourceTimer?
     private var lastStrength: Float = -1
+    private var client: NSObject?
 
-    /// Called when Night Shift strength changes. 0.0 = off, up to ~1.0 = max warm.
+    /// Called when Night Shift strength changes. 0.0 = off, up to 1.0 = max warm.
     var onChange: ((Float) -> Void)?
 
+    init() {
+        // Load CoreBrightness framework
+        if let bundle = Bundle(path: "/System/Library/PrivateFrameworks/CoreBrightness.framework") {
+            bundle.load()
+        }
+        // Create CBBlueLightClient
+        if let cls = NSClassFromString("CBBlueLightClient") as? NSObject.Type {
+            client = cls.init()
+            print("[RESC] CBBlueLightClient created")
+        } else {
+            print("[RESC] CBBlueLightClient not available")
+        }
+    }
+
     func start() {
+        guard client != nil else {
+            print("[RESC] Night Shift monitoring unavailable")
+            return
+        }
+
+        // Set notification callback for real-time updates
+        setupNotificationCallback()
+
+        // Also poll every 2s as fallback
         let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
-        timer.schedule(deadline: .now(), repeating: 2.0)
+        timer.schedule(deadline: .now() + 1.0, repeating: 2.0)
         timer.setEventHandler { [weak self] in
             self?.poll()
         }
         timer.resume()
         self.timer = timer
-        print("[RESC] Night Shift monitor started (gamma-based, polling every 2s)")
+        print("[RESC] Night Shift monitor started")
     }
 
     func stop() {
@@ -28,38 +51,73 @@ final class NightShiftMonitor {
         timer = nil
     }
 
-    /// Detect Night Shift by comparing red vs blue gamma.
-    /// Returns 0.0 when off, up to ~0.7 at maximum Night Shift.
-    func currentStrength() -> Float {
-        var redTable = [CGGammaValue](repeating: 0, count: 256)
-        var greenTable = [CGGammaValue](repeating: 0, count: 256)
-        var blueTable = [CGGammaValue](repeating: 0, count: 256)
-        var sampleCount: UInt32 = 0
-
-        let err = CGGetDisplayTransferByTable(
-            CGMainDisplayID(), 256,
-            &redTable, &greenTable, &blueTable,
-            &sampleCount
-        )
-        guard err == .success, sampleCount > 0 else { return 0 }
-
-        let idx = Int(sampleCount) - 1
-        let redHigh = redTable[idx]
-        let blueHigh = blueTable[idx]
-
-        // Night Shift reduces blue relative to red.
-        // Normal: red ≈ blue ≈ 1.0. Night Shift: blue < red.
-        if redHigh > 0.01 && blueHigh < redHigh - 0.02 {
-            let strength = Float(1.0 - Double(blueHigh) / Double(redHigh))
-            return max(0, min(1, strength))
+    private func setupNotificationCallback() {
+        guard let client = client else { return }
+        let sel = NSSelectorFromString("setStatusNotificationBlock:")
+        guard client.responds(to: sel) else {
+            print("[RESC] CBBlueLightClient doesn't respond to setStatusNotificationBlock:")
+            return
         }
+        let block: @convention(block) (AnyObject?) -> Void = { [weak self] _ in
+            self?.poll()
+        }
+        client.perform(sel, with: block)
+        print("[RESC] Night Shift notification callback registered")
+    }
+
+    /// Read current Night Shift strength via getBlueLightStatus:
+    func currentStrength() -> Float {
+        guard let client = client else { return 0 }
+        let sel = NSSelectorFromString("getBlueLightStatus:")
+        guard client.responds(to: sel) else { return 0 }
+
+        // Allocate buffer for status struct (oversized for safety)
+        var buf = [UInt8](repeating: 0, count: 128)
+        let success: Bool = buf.withUnsafeMutableBufferPointer { ptr in
+            // Call [client getBlueLightStatus:ptr]
+            let imp = unsafeBitCast(
+                client.method(for: sel),
+                to: (@convention(c) (AnyObject, Selector, UnsafeMutableRawPointer) -> Bool).self
+            )
+            return imp(client, sel, ptr.baseAddress!)
+        }
+
+        guard success else { return 0 }
+
+        // Parse status struct — try multiple known layouts
+        // Layout A (macOS 14+): enabled at byte 0 (i32), active at byte 4 (i32), strength at byte 8 (f32)
+        // Layout B (macOS 13):  enabled at byte 0 (bool), strength at byte 4 (f32)
+        let enabled_i32 = buf.withUnsafeBufferPointer { p in
+            p.baseAddress!.withMemoryRebound(to: Int32.self, capacity: 1) { $0.pointee }
+        }
+
+        if enabled_i32 == 0 {
+            // Check if maybe it's active at offset 4
+            let active_i32: Int32 = buf.withUnsafeBufferPointer { p in
+                (p.baseAddress! + 4).withMemoryRebound(to: Int32.self, capacity: 1) { $0.pointee }
+            }
+            if active_i32 == 0 { return 0 }
+        }
+
+        // Try reading strength at offsets 4, 8, 12 (check which one is a valid float 0.0-1.0)
+        for offset in [4, 8, 12] {
+            let val: Float = buf.withUnsafeBufferPointer { p in
+                (p.baseAddress! + offset).withMemoryRebound(to: Float.self, capacity: 1) { $0.pointee }
+            }
+            if val > 0.0 && val <= 1.0 {
+                return val
+            }
+        }
+
+        // Enabled but couldn't find strength — assume moderate
+        if enabled_i32 != 0 { return 0.5 }
+
         return 0
     }
 
     private func poll() {
         let strength = currentStrength()
-        // Only notify on meaningful change (> 1% difference)
-        if abs(strength - lastStrength) > 0.01 {
+        if abs(strength - lastStrength) > 0.01 || (lastStrength < 0) {
             lastStrength = strength
             if strength > 0 {
                 print("[RESC] Night Shift: ON (strength \(String(format: "%.0f%%", strength * 100)))")
