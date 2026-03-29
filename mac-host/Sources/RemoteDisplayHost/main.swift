@@ -115,9 +115,15 @@ var encoderConfig = VideoEncoder.Config(
     keyframeIntervalSeconds: 0.5,
     codec: useHEVC ? .hevc : .h264
 )
-encoderConfig.bitrateBps = VideoEncoder.Config.defaultBitrate(
-    width: Int32(width), height: Int32(height), codec: encoderConfig.codec
-)
+encoderConfig.bitrateBps = {
+    if let idx = args.firstIndex(of: "--bitrate"), idx + 1 < args.count,
+       let mbps = UInt32(args[idx + 1]) {
+        return mbps * 1_000_000
+    }
+    return VideoEncoder.Config.defaultBitrate(
+        width: Int32(width), height: Int32(height), codec: encoderConfig.codec
+    )
+}()
 print("[RESC] Codec: \(encoderConfig.codec), bitrate: \(encoderConfig.bitrateBps / 1_000_000)Mbps")
 
 let encoder = VideoEncoder(config: encoderConfig) { annexBData, isKeyframe, pts, encodeDurationMs in
