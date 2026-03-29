@@ -29,8 +29,8 @@ final class VideoEncoder {
         static func defaultBitrate(width: Int32, height: Int32, codec: Codec) -> UInt32 {
             let is4K = width >= 3840 || height >= 2160
             switch codec {
-            case .h264: return is4K ? 100_000_000 : 30_000_000
-            case .hevc: return is4K ? 80_000_000 : 25_000_000
+            case .h264: return is4K ? 50_000_000 : 20_000_000
+            case .hevc: return is4K ? 40_000_000 : 20_000_000
             }
         }
     }
