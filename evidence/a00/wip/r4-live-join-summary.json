@@ -1,16 +1,16 @@
 {
-  "client_frames": 50,
-  "host_frames": 61,
+  "client_frames": 63,
+  "host_frames": 68,
   "identity_ambiguities": 0,
-  "joined": 50,
+  "joined": 63,
   "offset_stats": {
-    "median_delay_us": 11929,
-    "min_delay_us": 11109,
-    "sample_count": 3
+    "median_delay_us": 9993.5,
+    "min_delay_us": 7449,
+    "sample_count": 4
   },
   "pass": true,
-  "presents": 44,
+  "presents": 52,
   "rejected": {
-    "never_received": 11
+    "never_received": 5
   }
 }
