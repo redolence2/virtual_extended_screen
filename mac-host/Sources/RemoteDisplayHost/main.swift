@@ -3,6 +3,7 @@ import CoreGraphics
 import CoreMedia
 import CoreVideo
 import VirtualDisplayBridge
+import RescCore
 
 // Remote Extended Screen — Mac Host
 // Phase 1: Virtual Display + Decoupled Capture Pipeline
@@ -11,28 +12,19 @@ import VirtualDisplayBridge
 
 print("[RESC] Remote Extended Screen Host starting...")
 
-// Kill any stale host processes from previous runs (prevents -3805 capture errors)
-do {
-    let selfPID = ProcessInfo.processInfo.processIdentifier
-    let task = Process()
-    task.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-    task.arguments = ["-f", "remote-display-host"]
-    let pipe = Pipe()
-    task.standardOutput = pipe
-    try task.run()
-    task.waitUntilExit()
-    let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-    for line in output.split(separator: "\n") {
-        if let pid = Int32(line.trimmingCharacters(in: .whitespaces)), pid != selfPID {
-            print("[RESC] Killing stale host process (PID \(pid))")
-            kill(pid, SIGTERM)
-            usleep(200_000) // 200ms for graceful shutdown
-            kill(pid, SIGKILL) // force if still alive
-        }
-    }
-    // Give ScreenCaptureKit time to clean up after killing stale processes
-    usleep(1_000_000) // 1 second
+// Diagnostics bootstrap + per-profile instance lock (IMPLEMENTATION_PLAN_V11.md §3, §11).
+// Replaces the old pgrep/kill "stale process" sweep: per §3, a second instance
+// must exit cleanly on a held lock — nothing is ever killed.
+_ = RescLog.shared
+EnvironmentRecord.emit()
+guard InstanceLock.acquire(profileId: "moyunfei-desk-1") else {
+    print("RESC host: another instance holds the profile lock — exiting")
+    exit(20) // 20 = INSTANCE_LOCK_HELD in the v3 FatalCode enum (proto/control_v3.proto)
 }
+
+// `--doctor` mode (IMPLEMENTATION_PLAN_V11.md §11.4): probe-only run, never
+// starts real streaming. Exits here — nothing below this point executes.
+if CommandLine.arguments.contains("--doctor") { exit(HostDoctor.run()) }
 
 ProtocolConstants.logAndVerify()
 print("[RESC] macOS build: \(CGVirtualDisplayBridge.osBuildVersion())")

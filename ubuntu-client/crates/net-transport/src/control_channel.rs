@@ -153,6 +153,22 @@ impl ControlChannel {
         self.send(&envelope).await
     }
 
+    /// Send a v1 `ClockPing` (A0.0 trace-mode clock sync,
+    /// IMPLEMENTATION_PLAN_V11.md §10). `t1_mono_us` is the caller's own
+    /// send-time mono clock (`diagnostics::mono_us()`) — this method only
+    /// puts it on the wire; callers own the `ClockSync`/trace bookkeeping.
+    pub async fn send_clock_ping(&mut self, t1_mono_us: u64, seq: u32) -> Result<()> {
+        let envelope = resc_control::Envelope {
+            session_id: self.session_id,
+            protocol_version: protocol::constants::PROTOCOL_VERSION as u32,
+            payload: Some(resc_control::envelope::Payload::ClockPing(resc_control::ClockPing {
+                t1_mono_us,
+                seq,
+            })),
+        };
+        self.send(&envelope).await
+    }
+
     /// Send RequestIDR to host (asks for keyframe).
     pub async fn send_request_idr(&mut self, stream_id: u32, config_id: u32, reason: i32) -> Result<()> {
         let envelope = resc_control::Envelope {

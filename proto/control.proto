@@ -43,7 +43,24 @@ message Envelope {
 
     // Lifecycle (50–59)
     StopStreaming stop_streaming = 50;
+
+    // A0.0 additive trace-mode clock sync (60–69 reserved for v3 numbers;
+    // 65/66 intentionally match resc.v3 so the semantics carry over at T1).
+    // Wire-compatible addition; legacy peers ignore unknown fields.
+    ClockPing clock_ping = 65;
+    ClockPong clock_pong = 66;
   }
+}
+
+// Four-timestamp trace-mode clock sync (A0.0). t1 is the requester's
+// monotonic µs; t2/t3 are the responder's receive/send monotonic µs.
+// The requester records t4 locally. Diagnostics only — never flow control.
+message ClockPing { uint64 t1_mono_us = 1; uint32 seq = 2; }
+message ClockPong {
+  uint64 t1_mono_us = 1;
+  uint64 t2_mono_us = 2;
+  uint64 t3_mono_us = 3;
+  uint32 seq = 4;
 }
 
 // ----------------------

@@ -1,0 +1,28 @@
+{
+  "_comment": "FatalCode -> failure class, frozen from proto/control_v3.proto (plan v11 §4). Machine-tested in Swift and Rust (v11 gate: 'classification passes in both languages'). deterministic|transient|terminal; code 0 is valid only as ProfileResult.reject_code-when-accepted and is NEVER a legal FatalReport.code (review-10 correction).",
+  "classes": {
+    "0": "unspecified",
+    "1": "deterministic",
+    "2": "deterministic",
+    "3": "deterministic",
+    "4": "deterministic",
+    "5": "deterministic",
+    "6": "deterministic",
+    "7": "deterministic",
+    "8": "deterministic",
+    "9": "deterministic",
+    "10": "transient",
+    "11": "transient",
+    "12": "transient",
+    "13": "transient",
+    "14": "transient",
+    "15": "transient",
+    "16": "transient",
+    "17": "transient",
+    "18": "transient",
+    "19": "terminal",
+    "20": "terminal",
+    "21": "deterministic",
+    "22": "transient"
+  }
+}

@@ -1,4 +1,5 @@
 import Foundation
+import RescCore
 
 /// Adaptive bitrate controller based on receiver Stats.
 /// Reduces bitrate on loss/drops, probes up when stable.

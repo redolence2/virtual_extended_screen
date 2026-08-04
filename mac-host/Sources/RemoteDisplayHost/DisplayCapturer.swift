@@ -22,6 +22,9 @@ final class DisplayCapturer: NSObject {
     private var lastFPSLogTime: CFAbsoluteTime = 0
     private var framesSinceLastLog: UInt64 = 0
 
+    // A0 trace mode only (RESC_TRACE=1) — see RescTrace.swift.
+    private var traceCaptureSeq: UInt64 = 0
+
     // MARK: - Init
 
     init(displayID: CGDirectDisplayID, width: Int, height: Int, frameSlot: LatestFrameSlot) {
@@ -124,6 +127,15 @@ extension DisplayCapturer: SCStreamOutput {
 
         // Store in slot — this is lock-free and returns immediately
         frameSlot.store(pixelBuffer)
+
+        // A0 trace mode only (RESC_TRACE=1): join capture-side metadata for
+        // RescTrace.frameSent. No-op (and no continuousNowUs() call) when
+        // tracing is disabled.
+        if RescTrace.enabled {
+            traceCaptureSeq &+= 1
+            RescTrace.shared.captureMeta(captureSeq: traceCaptureSeq, contentCaptureTsUs: RescClockBridge.continuousNowUs())
+        }
+
         totalFrames += 1
         framesSinceLastLog += 1
 

@@ -111,6 +111,12 @@ final class VideoSender {
                 totalPacketsSent += 1
             }
         }
+
+        // A0 trace mode only (RESC_TRACE=1) — see RescTrace.swift.
+        if RescTrace.enabled {
+            RescTrace.shared.frameSent(frameID: currentFrameID, bytes: data.count, isKeyframe: isKeyframe,
+                                        encodeOutTsUs: RescClockBridge.continuousNowUs())
+        }
     }
 
     var stats: (packets: UInt64, bytes: UInt64) {

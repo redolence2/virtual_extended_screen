@@ -1,0 +1,285 @@
+# Implementation Plan V7 Review — Conditional Go
+
+Reviewed document: `IMPLEMENTATION_PLAN_V7.md`  
+Review basis: V6 review, current Swift/Rust/protobuf implementation, and independent protocol, simplicity, and architecture audits  
+Deployment assumption: one user, one fixed Mac–Ubuntu pair, updated together  
+Verdict: **keep the V7 architecture; publish a short V7.1 errata before T1**
+
+## Executive verdict
+
+V7 is the first plan in this series whose scope matches the actual product:
+
+- one concrete deployment profile
+- one control TCP connection and one separate video TCP connection
+- no video UDP in the final system
+- no capability negotiation, resume, multi-device compatibility, or adaptive recovery ladder
+- fixed, bounded stop-and-wait flow control
+- full reconnect on failure
+- reliable discrete input
+- persistent diagnostics and post-upgrade doctor tests
+
+This is the right architecture. Do **not** restore V6’s negotiation, video generations, byte-credit ledger, adaptive caps, or interim UDP-video recovery.
+
+V7 is nevertheless not ready for its statement that “no further paper iteration is required.” A few wire and lifecycle rules contradict each other, and several watchdogs do not cover the failure they claim to cover.
+
+The correct phase boundary is:
+
+| Scope | Decision |
+|---|---|
+| A0.0 logging, doctors, clock/trace work, codegen infrastructure, decoder experiments | **Go now** |
+| Final protocol-v3 schema generation | **After the V7.1 corrections below** |
+| A0 measurement | **Go after A0.0 trace/clock evidence** |
+| T1 implementation | **Hold until V7.1 and the stated empirical gates pass** |
+| T2–T4 direction | **Approved** |
+
+No additional architectural redesign is warranted.
+
+## V6 review requirements that V7 resolves
+
+V7 correctly:
+
+- Centralizes the actual `1080×1920@60`, HEVC, fixed-IPv4 deployment into `PersonalProfile`.
+- Removes codec/mode/transport negotiation and lockstep backward compatibility.
+- Removes video generations and the adaptive oversize/bitrate ladder.
+- Deletes the throwaway interim UDP-video recovery design.
+- Replaces byte credit with a small fixed outstanding-frame window.
+- Makes a cap breach fatal and evidence-rich.
+- Uses session-local frame ordinals and deletes the unsound “proven skip” rule.
+- Fixes the restart-counter loophole in principle.
+- Moves buttons and scroll onto reliable control.
+- Makes `releaseAll()` a lifecycle obligation.
+- Requires generated Swift/Rust protobuf and typed dispatch.
+- Adds persistent structured logs, native API results, doctor commands, and dependency pinning.
+- Makes V7 the intended single source of current behavior rather than another overlay on V4–V6.
+
+Those decisions should remain.
+
+## Mandatory V7.1 corrections before T1
+
+### 1. Freeze one possible connection and profile handshake
+
+Section 2 currently says both that the client listens on both TCP ports and that the host listens on control. The current and desired ownership should be stated once:
+
+- Mac host listens on control port `9870`.
+- Ubuntu client connects to control.
+- Ubuntu client owns the video listener on port `9871`.
+- Mac host connects to video only after the profile handshake and video-ready acknowledgement.
+
+References:
+
+- `IMPLEMENTATION_PLAN_V7.md:42-50`
+- `mac-host/Sources/RemoteDisplayHost/ControlChannel.swift:26-54`
+- `ubuntu-client/crates/net-transport/src/control_channel.rs:14-23`
+
+The first-message rule is also impossible as written: both sides supposedly send `ProfileAnnounce` first, while only the host can allocate the authoritative `session_run_id`.
+
+Use one exact order:
+
+1. Ubuntu connects to the Mac control listener.
+2. Mac validates the expected peer IP and generates a nonzero random run ID.
+3. Mac sends `HostProfileAnnounce` in an Envelope carrying that run ID.
+4. Ubuntu validates protocol, profile hash, build rule, and optional authentication.
+5. Ubuntu binds the fixed video listener and sends `ProfileAck`/`VideoReady` in an Envelope echoing the run ID.
+6. Mac connects to video and completes `VideoHello`/`Ack`.
+7. Only then are capture transmission and input injection enabled.
+
+Use the Envelope run ID as the control-channel authority. V7’s rule that every payload’s run ID equals the Envelope is impossible because `ButtonEvent`, `ScrollEvent`, clock messages, retained `KeyEvent`, and `DisplaySettings` have no such field. Remove redundant run-ID fields from ordinary payloads and validate only `Envelope.session_run_id == activeRun` after the bootstrap.
+
+Because video port `9871` is fixed, `VideoReady.listen_port` is unnecessary. If retained, it must equal `9871`.
+
+### 2. Define the profile and build identity exactly
+
+“Canonical serialized profile” needs exact bytes, field order, integer encoding, string encoding, and inclusion/exclusion rules. Add one golden profile fixture consumed by Swift and Rust tests.
+
+Recommended rule:
+
+- Keep a canonical checked-in profile artifact or generated byte fixture.
+- Hash those exact bytes with SHA-256.
+- Use the first eight hash bytes **verbatim** everywhere.
+- Encode `profile_hash` in `VideoHello` as `profile_hash[8]`, not as an ambiguous little-endian `u64`.
+
+V7 cannot promise to log “differing fields” when it exchanges only an eight-byte hash. On mismatch, log the local full profile plus the remote hash/build; the detailed remote difference is unknowable unless the sanitized remote profile is also exchanged.
+
+The normal build rule also needs to be explicit:
+
+- differing commits are fatal
+- clean builds are required for normal operation
+- dirty builds require an explicit development override and are prominently logged
+- `--safe-mode`, H.264/software operation, or peer-address override are separate named profiles with separate hashes
+
+A host-only safe-mode switch must never send H.264 under the HEVC profile hash.
+
+### 3. Make the control schema complete and protobuf-compatible
+
+V7 claims to be the single normative contract but still leaves:
+
+- `StatsSummary` with no fields
+- the retained `KeyEvent` and `DisplaySettings` bodies outside the document
+- the cursor’s 29-byte body as “existing”
+- `FatalReport.detail_json` as an unversioned nested schema
+
+The maintainable solution is to make generated `proto/control.proto` plus one exact binary-layout specification and golden fixtures the normative wire sources. V7 should name those files explicitly.
+
+Delete `StatsSummary` from the wire unless a concrete consumer exists; the aggregate already belongs in local JSONL logs. Keep `FatalReport` small and typed: stable code, component, native domain/code, and a bounded summary. Detailed evidence remains in the local correlated log.
+
+Freeze a control-frame maximum before allocation—for example 64 KiB—and set smaller per-field limits for strings and fatal summaries. The current code permits up to 1,000,000 bytes:
+
+- `mac-host/Sources/RemoteDisplayHost/ControlChannel.swift:126-132`
+- `ubuntu-client/crates/net-transport/src/control_channel.rs:35-47`
+
+Generated protobuf normally ignores unknown fields. Do not add a raw protobuf scanner solely to enforce V7’s “any unknown field is fatal” sentence. Exact protocol version, commit/profile matching, and requiring exactly one recognized payload are sufficient for this lockstep deployment. Remove the stronger rule that the generated libraries cannot reliably enforce.
+
+Also freeze:
+
+- `ButtonEvent.button`: only left `0`, right `1`, and middle `2` for this profile; reject other values before injection.
+- Complete cursor body offsets and endianness.
+- `headerLen == 32`; opaque forward extensions add no value when version/build mismatch is already fatal.
+
+The button range matters because the current fallback force-unwraps arbitrary `CGMouseButton` values:
+
+- `mac-host/Sources/RemoteDisplayHost/EventInjector.swift:177-182`
+
+### 4. Complete lifecycle ownership, deadlines, and retry classification
+
+The full-reconnect lifecycle is sound, but it needs operational ownership:
+
+- Mac control listener and Ubuntu video listener are process-owned and remain open across transient sessions.
+- Teardown closes accepted/session connections, resets UDP session state, and disposes session objects; it need not race to rebind fixed listeners.
+- Ubuntu alone initiates the next control connection after backoff.
+- Teardown is idempotent; simultaneous EOF/error/fatal events schedule one reconnect.
+
+Add fixed deadlines for:
+
+- control connect/accept
+- profile announce/acknowledgement
+- video ready
+- video connect
+- `VideoHello`/`Ack`
+- encoder callback
+- first verified random-access frame
+- outstanding-frame ACK
+
+Without these deadlines, a state can hang forever without consuming the restart budget.
+
+Separate deterministic failures from transient failures:
+
+- Profile/build mismatch, invalid version, malformed framing, invalid profile constant, cap violation, and unsupported required encoder property go directly to `Failed`.
+- Transient socket/decoder failures may enter `Backoff` and consume the restart budget.
+
+Replace “five per rolling 60 seconds, decays after 30 seconds” with an exact rule. A simple implementation is:
+
+- keep a deque of transient restart timestamps
+- reject when five timestamps fall within the previous 60 seconds
+- keep a separate total capped at eight per process
+- optionally clear the burst deque after 30 seconds of uninterrupted streaming
+
+State whether clearing overrides or merely supplements the rolling-window rule.
+
+Set `TCP_NODELAY` on both ends of the control connection so frame ACKs, button/key edges, and scroll messages do not incur Nagle/delayed-ACK latency. Use one serialized control writer.
+
+### 5. Correct the watchdog model
+
+V7 correctly sends `FrameAck` after packet acceptance and drain to `Again`. Keep that rule.
+
+Do **not** move the ACK to “after output”: some decoders require more than one accepted packet before their first output, so ACK-after-output combined with a one-frame window can deadlock during decoder startup.
+
+The error is V7’s claim that the host ACK-age watchdog detects “decoder accepts but never emits.” A decoder may:
+
+1. accept the packet
+2. drain to `Again`
+3. emit no frame
+4. cause the client to send the ACK
+
+The host then clears the outstanding frame, so its ACK watchdog cannot see the missing output.
+
+Add a separate client output watchdog:
+
+- track accepted ordinal and whether its output was emitted
+- derive the permitted decoder lag in A0.0
+- fail if accepted-minus-emitted exceeds the fixed measured bound or if the oldest unresolved output exceeds its deadline
+- never present an unknown/duplicate ordinal
+
+Also add:
+
+- an encoder-submit-to-callback watchdog
+- a first-random-access-output watchdog
+- a video-handshake watchdog
+
+If A0 selects `flow_window_frames = 2`, specify that ACKs are in order and must equal the oldest outstanding ordinal. The sender may not free an arbitrary later ordinal.
+
+The A0 window trial must run on the real wired pair with the selected decoder. Loopback may supplement it but cannot make the final decision.
+
+### 6. Tighten the fixed wire and memory statements
+
+The frame-header arithmetic is correct: 32 bytes.
+
+Small corrections:
+
+- Limit `frameOrdinal` to `1...i64::MAX` because FFmpeg PTS is signed.
+- Define either `max_au_bytes` or `max_record_bytes`; V7 currently derives a cap from AU sizes but compares header plus payload against it.
+- Perform checked, widened `headerLen + payloadLen` arithmetic before any allocation.
+- State that `flow_window_frames × max_record_bytes` bounds **encoded transport records**, not total process memory.
+- Separately bound the two retained raw capture buffers, encoder-in-flight state, decoder frames, and render slot.
+- Carry the full `session_run_id:u64` in UDP packets. Four extra bytes are negligible and avoid claiming full-run fencing while transmitting only the low 32 bits.
+
+V7 says “no periodic IDRs” while configuring both keyframe limits to 60 seconds at 60 Hz. That configuration means an IDR approximately every 60 seconds. Either retain it and describe it honestly or use truly disabling limits.
+
+### 7. Fix input liveness without breaking legitimate holds
+
+The ten-second “no input traffic while pressed” watchdog can release a legitimate long key hold or static mouse-down.
+
+Add a reliable `ReleaseInput` control message for local ungrab/release. The host calls `releaseAll()` immediately on receipt.
+
+For partition detection while input is held, use an application heartbeat/control liveness timer rather than absence of new input events. Mouse movement must not keep a broken reliable button/key path falsely alive.
+
+On process shutdown, a signal handler should schedule release on a safe thread or set a shutdown flag; it must not directly perform complex CoreGraphics work from an async signal context.
+
+### 8. Finish the diagnostic operational bounds
+
+Section 9 is a major improvement. Add:
+
+- concrete log rotation and retention, such as five 10 MiB files
+- file permissions `0600`
+- synchronous/bounded flush for fatal events
+- stable event/fatal code enums
+- versioned doctor-report schema and documented exit codes
+- redaction of PSKs, proofs, and frame contents
+- `CoreBrightness`/Night Shift class, selector, and returned-value checks, since Night Shift remains a stated feature
+- logging for every timeout and retry decision
+
+Make detailed cross-machine clock resampling an A0/diagnose mode unless normal operation actually consumes it.
+
+To make dependency pinning effective, remove the current ignore rules for both lockfiles:
+
+- `.gitignore:20`
+- `.gitignore:27`
+
+Replace the current `pgrep` plus unconditional process killing with a per-profile instance lock. The current host and client can terminate matching processes, including with `SIGKILL`:
+
+- `mac-host/Sources/RemoteDisplayHost/main.swift:14-35`
+- `ubuntu-client/src/main.rs:63-81`
+
+That behavior is unnecessary once lifecycle ownership and diagnostics are explicit.
+
+## Recommended V7.1 checklist
+
+- [ ] Correct control/video listener ownership and handshake order.
+- [ ] Use Envelope-only run IDs after bootstrap.
+- [ ] Freeze canonical profile bytes, hash bytes, commit/dirty rules, and safe-mode profiles.
+- [ ] Complete or explicitly designate the normative protobuf/binary schemas.
+- [ ] Delete the placeholder `StatsSummary`.
+- [ ] Bound control frames and fatal-report fields.
+- [ ] Require exact 32-byte frame headers and checked record lengths.
+- [ ] Add all connection, encoder, RA, ACK, and decoder-output deadlines.
+- [ ] Define transient versus deterministic failure handling and exact retry accounting.
+- [ ] Add `ReleaseInput` plus heartbeat-based pressed-input safety.
+- [ ] Freeze button values and carry the full UDP run ID.
+- [ ] Add diagnostic retention, permissions, stable codes, Night Shift probes, and lockfile tracking.
+
+## Final recommendation
+
+**V7 is conditionally approved.**
+
+Proceed with the non-wire-dependent parts of A0.0 immediately. Publish the compact V7.1 corrections above before freezing/generating the final protocol-v3 schema. After A0 measures the cap, bitrate, decoder lag, and required fixed window on the actual pair, proceed with T1.
+
+The remaining work is contract cleanup, not architecture work.

@@ -1,0 +1,83 @@
+import Foundation
+import CryptoKit
+
+/// Canonical PersonalProfile handling (plan v11 §2, CONTRACT_ERRATA.md proof 3).
+///
+/// Canonical form: UTF-8 JSON, keys sorted lexicographically, no whitespace,
+/// base-10 integers, NFC strings (all current values are ASCII, so NFC is
+/// trivially satisfied). `profile_hash` = first 8 bytes of SHA-256 over the
+/// exact canonical bytes, used verbatim as opaque bytes.
+///
+/// Stage-1 note (ERR-02): the placeholder backend id `TBD-A00` is accepted
+/// ONLY by the canonicalization fixture and A0.0 measurement tooling; a
+/// normal handshake or final-profile doctor must reject it.
+public enum CanonicalProfile {
+
+    public static let profileId = "moyunfei-desk-1"
+    public static let placeholderBackend = "TBD-A00"
+
+    /// The two closed decoder-backend configuration ids (ERR-02);
+    /// complete option sets frozen in docs/WIRE.md §Backend.
+    public static let backendCuvid = "cuvid-lowdelay"
+    public static let backendSw1 = "sw1-lowdelay"
+
+    public enum ProfileError: Error, CustomStringConvertible {
+        case parse(String)
+        case notCanonical
+        case placeholderBackend
+        case unknownBackend(String)
+
+        public var description: String {
+            switch self {
+            case .parse(let detail): return "profile parse: \(detail)"
+            case .notCanonical: return "profile bytes are not in canonical form"
+            case .placeholderBackend:
+                return "decoder_backend is the TBD-A00 placeholder — rejected outside A0.0 tooling (ERR-02)"
+            case .unknownBackend(let backend): return "unknown decoder_backend: \(backend)"
+            }
+        }
+    }
+
+    /// Re-serialize a parsed JSON document into canonical bytes: minified
+    /// with lexicographically sorted keys. JSONSerialization without
+    /// .prettyPrinted emits no whitespace; .sortedKeys sorts recursively.
+    public static func canonicalize(_ object: Any) throws -> Data {
+        try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+    }
+
+    /// First 8 bytes of SHA-256 over exactly `bytes` (no trailing newline —
+    /// errata proof 3).
+    public static func hash8(_ bytes: Data) -> Data {
+        Data(SHA256.hash(data: bytes).prefix(8))
+    }
+
+    public static func isPlaceholderBackend(_ profile: [String: Any]) -> Bool {
+        (profile["decoder_backend"] as? String) == placeholderBackend
+    }
+
+    /// Validate a runtime (non-fixture) profile document: canonical-bytes
+    /// round-trip, known backend id.
+    @discardableResult
+    public static func validateRuntimeProfile(_ bytes: Data) throws -> [String: Any] {
+        let parsed: Any
+        do {
+            parsed = try JSONSerialization.jsonObject(with: bytes)
+        } catch {
+            throw ProfileError.parse("\(error)")
+        }
+        guard let object = parsed as? [String: Any] else {
+            throw ProfileError.parse("top level is not an object")
+        }
+        guard try canonicalize(object) == bytes else {
+            throw ProfileError.notCanonical
+        }
+        if isPlaceholderBackend(object) {
+            throw ProfileError.placeholderBackend
+        }
+        switch object["decoder_backend"] as? String {
+        case backendCuvid?, backendSw1?: break
+        case let other: throw ProfileError.unknownBackend(other ?? "<missing>")
+        }
+        return object
+    }
+}

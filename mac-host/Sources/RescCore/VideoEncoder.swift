@@ -5,28 +5,43 @@ import CoreVideo
 
 /// VideoToolbox hardware encoder supporting H.264 and HEVC.
 /// Consumes CVPixelBuffers from LatestFrameSlot, outputs Annex B NAL units.
-final class VideoEncoder {
+///
+/// Lives in RescCore (moved from RemoteDisplayHost) so both the host
+/// executable and the standalone HarnessSender executable (A0 measurement
+/// rig) can link it without HarnessSender depending on the host's
+/// ScreenCaptureKit/CGVirtualDisplay-heavy executable target.
+public final class VideoEncoder {
 
     // MARK: - Codec Selection
 
-    enum Codec: UInt8, CustomStringConvertible {
+    public enum Codec: UInt8, CustomStringConvertible {
         case h264 = 0
         case hevc = 1
-        var description: String { self == .h264 ? "H.264" : "HEVC" }
+        public var description: String { self == .h264 ? "H.264" : "HEVC" }
     }
 
     // MARK: - Configuration
 
-    struct Config {
-        var width: Int32
-        var height: Int32
-        var fps: Double = 60.0
-        var bitrateBps: UInt32 = 20_000_000
-        var keyframeIntervalSeconds: Double = 1.0
-        var codec: Codec = .h264
+    public struct Config {
+        public var width: Int32
+        public var height: Int32
+        public var fps: Double = 60.0
+        public var bitrateBps: UInt32 = 20_000_000
+        public var keyframeIntervalSeconds: Double = 1.0
+        public var codec: Codec = .h264
+
+        public init(width: Int32, height: Int32, fps: Double = 60.0, bitrateBps: UInt32 = 20_000_000,
+                    keyframeIntervalSeconds: Double = 1.0, codec: Codec = .h264) {
+            self.width = width
+            self.height = height
+            self.fps = fps
+            self.bitrateBps = bitrateBps
+            self.keyframeIntervalSeconds = keyframeIntervalSeconds
+            self.codec = codec
+        }
 
         /// Computes appropriate bitrate based on resolution and codec.
-        static func defaultBitrate(width: Int32, height: Int32, codec: Codec) -> UInt32 {
+        public static func defaultBitrate(width: Int32, height: Int32, codec: Codec) -> UInt32 {
             let is4K = width >= 3840 || height >= 2160
             switch codec {
             case .h264: return is4K ? 50_000_000 : 20_000_000
@@ -35,7 +50,7 @@ final class VideoEncoder {
         }
     }
 
-    typealias OutputCallback = (Data, Bool, CMTime, Double) -> Void
+    public typealias OutputCallback = (Data, Bool, CMTime, Double) -> Void
 
     // MARK: - Properties
 
@@ -47,7 +62,7 @@ final class VideoEncoder {
     private var totalEncodeTimeMs: Double = 0
     private var pendingForceKeyframe = false
 
-    init(config: Config, outputCallback: @escaping OutputCallback) {
+    public init(config: Config, outputCallback: @escaping OutputCallback) {
         self.config = config
         self.outputCallback = outputCallback
     }
@@ -56,7 +71,7 @@ final class VideoEncoder {
 
     // MARK: - Start / Stop
 
-    func start() throws {
+    public func start() throws {
         let codecType: CMVideoCodecType
         let profileLevel: CFString
 
@@ -137,7 +152,7 @@ final class VideoEncoder {
         print("[RESC] Encoder started: \(config.codec) \(config.width)x\(config.height), \(bitrateStr)")
     }
 
-    func stop() {
+    public func stop() {
         if let session = session {
             VTCompressionSessionCompleteFrames(session, untilPresentationTimeStamp: .invalid)
             VTCompressionSessionInvalidate(session)
@@ -151,7 +166,7 @@ final class VideoEncoder {
 
     // MARK: - Encode
 
-    func encode(pixelBuffer: CVPixelBuffer, presentationTime: CMTime) {
+    public func encode(pixelBuffer: CVPixelBuffer, presentationTime: CMTime) {
         guard let session = session else { return }
 
         let encodeStart = CFAbsoluteTimeGetCurrent()
@@ -203,22 +218,28 @@ final class VideoEncoder {
         }
     }
 
-    func forceKeyframe() { pendingForceKeyframe = true }
+    public func forceKeyframe() { pendingForceKeyframe = true }
 
-    func updateBitrate(_ newBitrateBps: UInt32) {
+    public func updateBitrate(_ newBitrateBps: UInt32) {
         guard let session = session else { return }
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AverageBitRate,
                              value: newBitrateBps as CFNumber)
     }
 
-    var stats: (frames: UInt64, keyframes: UInt64, avgEncodeMs: Double) {
+    public var stats: (frames: UInt64, keyframes: UInt64, avgEncodeMs: Double) {
         let avg = frameCount > 0 ? totalEncodeTimeMs / Double(frameCount) : 0
         return (frameCount, keyframeCount, avg)
     }
 
-    enum EncoderError: Error, CustomStringConvertible {
+    /// Doctor-mode accessor (IMPLEMENTATION_PLAN_V11.md §11.4): exposes the
+    /// underlying session so HostDoctor can VTSessionCopyProperty a
+    /// requested-vs-observed read-back after start(). Not used by normal
+    /// streaming code paths.
+    public var vtSession: VTCompressionSession? { session }
+
+    public enum EncoderError: Error, CustomStringConvertible {
         case sessionCreationFailed(OSStatus)
-        var description: String {
+        public var description: String {
             switch self {
             case .sessionCreationFailed(let s): return "VTCompressionSession creation failed: \(s)"
             }

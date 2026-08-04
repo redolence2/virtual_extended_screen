@@ -3,14 +3,18 @@ import CoreMedia
 import VideoToolbox
 
 /// Extracts NAL units from VideoToolbox output and converts AVCC/HVCC → Annex B.
-enum NALUPackager {
+///
+/// Lives in RescCore (moved from RemoteDisplayHost alongside VideoEncoder,
+/// which is its only caller) so the standalone HarnessSender executable can
+/// link the encoder without depending on the host executable target.
+public enum NALUPackager {
 
-    static let startCode: [UInt8] = [0x00, 0x00, 0x00, 0x01]
+    public static let startCode: [UInt8] = [0x00, 0x00, 0x00, 0x01]
 
     // MARK: - H.264
 
     /// Extract H.264 SPS/PPS parameter sets from format description.
-    static func extractH264ParameterSets(from fmt: CMFormatDescription) -> Data? {
+    public static func extractH264ParameterSets(from fmt: CMFormatDescription) -> Data? {
         var data = Data()
         var count: Int = 0
         CMVideoFormatDescriptionGetH264ParameterSetAtIndex(
@@ -34,14 +38,14 @@ enum NALUPackager {
     }
 
     /// Convert H.264 AVCC sample buffer → Annex B.
-    static func convertH264ToAnnexB(sampleBuffer: CMSampleBuffer) -> (Data, Bool)? {
+    public static func convertH264ToAnnexB(sampleBuffer: CMSampleBuffer) -> (Data, Bool)? {
         return convertToAnnexB(sampleBuffer: sampleBuffer, extractParams: extractH264ParameterSets)
     }
 
     // MARK: - HEVC
 
     /// Extract HEVC VPS/SPS/PPS parameter sets from format description.
-    static func extractHEVCParameterSets(from fmt: CMFormatDescription) -> Data? {
+    public static func extractHEVCParameterSets(from fmt: CMFormatDescription) -> Data? {
         var data = Data()
         var count: Int = 0
         let s = CMVideoFormatDescriptionGetHEVCParameterSetAtIndex(
@@ -66,7 +70,7 @@ enum NALUPackager {
     }
 
     /// Convert HEVC HVCC sample buffer → Annex B.
-    static func convertHEVCToAnnexB(sampleBuffer: CMSampleBuffer) -> (Data, Bool)? {
+    public static func convertHEVCToAnnexB(sampleBuffer: CMSampleBuffer) -> (Data, Bool)? {
         return convertToAnnexB(sampleBuffer: sampleBuffer, extractParams: extractHEVCParameterSets)
     }
 

@@ -1,0 +1,115 @@
+// RESC protocol v3 — the fixed personal-profile contract.
+// Normative source: IMPLEMENTATION_PLAN_V11.md §4 + CONTRACT_ERRATA.md.
+// This file is the Stage-1 frozen schema. It coexists with the legacy v1
+// control.proto until T1 deletes the v1 wire; do not modify without a dated
+// CONTRACT_ERRATA.md entry.
+
+syntax = "proto3";
+
+package resc.v3;
+
+message Envelope {
+  uint64 session_run_id  = 1;
+  uint32 protocol_version = 2;   // runtime value MUST equal 3
+
+  oneof payload {
+    DisplaySettings     display_settings      = 32;
+    KeyEvent            key_event             = 40;
+    HostProfileAnnounce host_profile_announce = 60;
+    ProfileResult       profile_result        = 61;
+    FrameAck            frame_ack             = 62;
+    ButtonEvent         button_event          = 63;
+    ScrollEvent         scroll_event          = 64;
+    ClockPing           clock_ping            = 65;
+    ClockPong           clock_pong            = 66;
+    FatalReport         fatal_report          = 68;
+    ReleaseInput        release_input         = 69;
+    Heartbeat           heartbeat             = 70;
+  }
+  reserved 67;                    // removed StatsSummary slot
+}
+
+message DisplaySettings { float warm_strength = 1; }
+
+message KeyEvent {
+  uint32 hid_usage = 1;
+  bool   is_down = 2;
+  uint32 modifiers = 3;
+}
+
+message HostProfileAnnounce {
+  bytes  profile_canonical = 1;   // <= 4096 B
+  bytes  profile_hash = 2;        // exactly 8 B
+  string build_commit = 3;        // full lowercase git object id
+  bool   build_dirty = 4;
+  reserved 5;                     // removed psk_proof
+}
+
+message ProfileResult {
+  bool      accepted = 1;
+  bytes     profile_canonical = 2;  // client's canonical bytes, always present
+  bytes     profile_hash = 3;       // exactly 8 B
+  string    build_commit = 4;
+  bool      build_dirty = 5;
+  FatalCode reject_code = 6;        // FATAL_UNSPECIFIED iff accepted
+  bool      video_listener_ready = 7; // true iff accepted
+}
+
+message FrameAck    { uint64 frame_ordinal = 1; }
+
+message ButtonEvent {
+  uint32 button = 1;               // MUST be 0 left, 1 right, 2 middle
+  bool   is_down = 2;
+  sint32 x_px = 3;
+  sint32 y_px = 4;
+  uint32 modifiers = 5;
+}
+
+message ScrollEvent { sint32 dx = 1; sint32 dy = 2; }
+
+message ClockPing   { uint64 t1_mono_us = 1; uint32 seq = 2; }
+
+message ClockPong {
+  uint64 t1_mono_us = 1;
+  uint64 t2_mono_us = 2;
+  uint64 t3_mono_us = 3;
+  uint32 seq = 4;
+}
+
+message FatalReport {
+  FatalCode code = 1;              // MUST be a known nonzero value
+  string component = 2;
+  string native_domain = 3;
+  sint64 native_code = 4;
+  string summary = 5;              // <= 2048 B
+}
+
+message ReleaseInput { }
+
+message Heartbeat    { uint64 t_mono_us = 1; }  // diagnostics; liveness uses receipt time
+
+enum FatalCode {
+  FATAL_UNSPECIFIED        = 0;
+  PROFILE_MISMATCH         = 1;   // deterministic
+  BUILD_MISMATCH           = 2;   // deterministic
+  VERSION_MISMATCH         = 3;   // deterministic
+  MALFORMED_FRAMING        = 4;   // deterministic
+  RECORD_CAP_VIOLATION     = 5;   // deterministic
+  ENCODER_PROPERTY         = 6;   // deterministic
+  PROFILE_INVALID          = 7;   // deterministic
+  PROTOCOL_VIOLATION       = 8;   // deterministic
+  REQUIRED_NATIVE_API      = 9;   // deterministic
+  SOCKET_FAILURE           = 10;  // transient
+  DECODE_FATAL             = 11;  // transient
+  WATCHDOG_ACK_AGE         = 12;  // transient
+  WATCHDOG_OUTPUT          = 13;  // transient
+  WATCHDOG_HANDSHAKE       = 14;  // transient
+  WATCHDOG_ENCODER         = 15;  // transient
+  WATCHDOG_HEARTBEAT       = 16;  // transient
+  IDENTITY_FAILURE         = 17;  // transient
+  RA_VERIFICATION          = 18;  // transient (one re-force, then session-fatal)
+  RETRY_BUDGET_EXHAUSTED   = 19;  // terminal
+  INSTANCE_LOCK_HELD       = 20;  // terminal
+  PERMISSION_DENIED        = 21;  // deterministic
+  WATCHDOG_FIRST_RA        = 22;  // transient
+}

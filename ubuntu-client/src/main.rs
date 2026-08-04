@@ -1,3 +1,5 @@
+mod doctor;
+
 use anyhow::Result;
 use clap::Parser;
 use jitter_buffer::AssembledFrame;
@@ -7,6 +9,15 @@ use std::sync::mpsc;
 use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+
+/// Default `--sample` path: `$HOME/resc/sample_1080x1920.h265`. A function
+/// (not a string literal) because clap's `default_value_t` evaluates it at
+/// parse time, so `$HOME` is read from this process's actual environment
+/// rather than baked in at compile time.
+fn default_sample_path() -> String {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    format!("{home}/resc/sample_1080x1920.h265")
+}
 
 #[derive(Parser, Debug)]
 #[command(name = "remote-display-client", about = "RESC Ubuntu client")]
@@ -42,6 +53,21 @@ struct Args {
     /// Headless mode (no SDL2 rendering, just receive + decode)
     #[arg(long)]
     headless: bool,
+
+    /// Run the client doctor (IMPLEMENTATION_PLAN_V11.md §11.4) and exit —
+    /// probes environment/decoder/SDL without starting real streaming.
+    #[arg(long)]
+    doctor: bool,
+
+    /// Decoder backend candidate for `--doctor`'s backend_open/decode_sample
+    /// checks (docs/WIRE.md §7). One explicit candidate, no fallback
+    /// (CONTRACT_ERRATA.md ERR-02).
+    #[arg(long, default_value = "sw1-lowdelay")]
+    doctor_backend: String,
+
+    /// Bundled HEVC AU sample used by `--doctor`'s decode_sample check.
+    #[arg(long, default_value_t = default_sample_path())]
+    sample: String,
 }
 
 // Re-export from net-transport (single source of truth for shared stats)
@@ -60,27 +86,23 @@ async fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     protocol::constants::log_and_verify();
 
-    // Kill any stale client processes from previous runs
-    let self_pid = std::process::id();
-    if let Ok(output) = std::process::Command::new("pgrep")
-        .args(["-f", "remote-display-client"])
-        .output()
-    {
-        if let Ok(pids) = String::from_utf8(output.stdout) {
-            for line in pids.lines() {
-                if let Ok(pid) = line.trim().parse::<u32>() {
-                    if pid != self_pid {
-                        log::info!("Killing stale client process (PID {})", pid);
-                        let _ = std::process::Command::new("kill").args([&pid.to_string()]).output();
-                        std::thread::sleep(Duration::from_millis(200));
-                        let _ = std::process::Command::new("kill").args(["-9", &pid.to_string()]).output();
-                    }
-                }
-            }
-        }
+    let log = diagnostics::RescLog::global();
+    diagnostics::environment::emit(log);
+    if !diagnostics::instance_lock::acquire("moyunfei-desk-1") {
+        eprintln!("RESC client: another instance holds the profile lock — exiting");
+        std::process::exit(20); // 20 = INSTANCE_LOCK_HELD (v3 FatalCode)
     }
 
     let args = Args::parse();
+
+    // `--doctor` mode (IMPLEMENTATION_PLAN_V11.md §11.4): probe-only run,
+    // never starts real streaming. Exits here — nothing below this point
+    // executes. Mirrors mac-host's main.swift ordering (env emit + instance
+    // lock acquired first, then the doctor branch).
+    if args.doctor {
+        let exit_code = doctor::run(&args.doctor_backend, std::path::Path::new(&args.sample));
+        std::process::exit(exit_code);
+    }
 
     // 1. Discover host
     let (host_addr, control_port) = if let Some(ref host) = args.host {
@@ -202,16 +224,37 @@ async fn main() -> Result<()> {
         let mut prev_f_drop = 0u64;
         let mut stats_interval = tokio::time::interval(Duration::from_millis(100));
 
+        // A0.0 trace-mode clock sync (IMPLEMENTATION_PLAN_V11.md §10),
+        // additive and only active when RESC_TRACE=1 — see crates/diagnostics
+        // trace.rs/clocksync.rs. `clock_ping_interval` always ticks; the send
+        // itself and all pong handling are guarded by `trace.enabled()`.
+        let trace = diagnostics::trace::ClientTrace::global();
+        let mut clock_sync = diagnostics::clocksync::ClockSync::new();
+        let mut clock_ping_interval = tokio::time::interval(Duration::from_secs(10));
+        let mut clock_ping_seq: u32 = 0;
+
         loop {
             tokio::select! {
-                // Receive messages from host (DisplaySettings for Night Shift)
+                // Receive messages from host (DisplaySettings for Night Shift;
+                // ClockPong for A0.0 trace-mode clock sync)
                 msg = control.recv() => {
                     match msg {
                         Ok(envelope) => {
-                            if let Some(protocol::resc_control::envelope::Payload::DisplaySettings(ds)) = envelope.payload {
-                                let bits = ds.warm_strength.to_bits();
-                                warm_strength_writer.store(bits, Ordering::Relaxed);
-                                log::info!("Night Shift: warm_strength={:.0}%", ds.warm_strength * 100.0);
+                            match envelope.payload {
+                                Some(protocol::resc_control::envelope::Payload::DisplaySettings(ds)) => {
+                                    let bits = ds.warm_strength.to_bits();
+                                    warm_strength_writer.store(bits, Ordering::Relaxed);
+                                    log::info!("Night Shift: warm_strength={:.0}%", ds.warm_strength * 100.0);
+                                }
+                                Some(protocol::resc_control::envelope::Payload::ClockPong(pong)) if trace.enabled() => {
+                                    let t4 = diagnostics::mono_us();
+                                    if let Some(sample) = clock_sync.on_pong(
+                                        pong.t1_mono_us, pong.t2_mono_us, pong.t3_mono_us, t4, pong.seq
+                                    ) {
+                                        trace.clock(sample.offset_us, sample.delay_us, sample.uncertainty_us, sample.seq);
+                                    }
+                                }
+                                _ => {}
                             }
                         }
                         Err(e) => {
@@ -225,6 +268,16 @@ async fn main() -> Result<()> {
                     if let Some(reason) = reason {
                         if let Err(e) = control.send_request_idr(idr_stream_id, idr_config_id, reason).await {
                             log::warn!("IDR request send failed: {}", e);
+                        }
+                    }
+                }
+                // A0.0 trace-mode ClockPing, every 10s (RESC_TRACE=1 only)
+                _ = clock_ping_interval.tick() => {
+                    if trace.enabled() {
+                        clock_ping_seq = clock_ping_seq.wrapping_add(1);
+                        let t1 = diagnostics::mono_us();
+                        if let Err(e) = control.send_clock_ping(t1, clock_ping_seq).await {
+                            log::warn!("ClockPing send failed: {}", e);
                         }
                     }
                 }
@@ -335,6 +388,9 @@ async fn main() -> Result<()> {
             let mut decode_total_us = 0u64;
             let mut has_frame = false;
             let mut new_video_frame; // set per loop iteration
+            // A0.0 trace-mode per-frame log (RESC_TRACE=1 only; see
+            // crates/diagnostics/src/trace.rs). Cheap no-op otherwise.
+            let trace = diagnostics::trace::ClientTrace::global();
 
             loop {
                 new_video_frame = false;
@@ -348,10 +404,15 @@ async fn main() -> Result<()> {
                 // Collect ALL available frames from queue, DECODE all (maintains
                 // HEVC reference chain), but only RENDER the last good one.
                 let mut frames_to_decode: Vec<AssembledFrame> = Vec::new();
+                // Parallel per-frame arrival timestamps for ClientTrace.frame's
+                // ts_recv_us (A0.0 trace mode only).
+                let mut recv_ts_us: Vec<u64> = Vec::new();
                 match frame_rx.recv_timeout(Duration::from_millis(1)) {
                     Ok(frame) => {
+                        if trace.enabled() { recv_ts_us.push(diagnostics::mono_us()); }
                         frames_to_decode.push(frame);
                         while let Ok(more) = frame_rx.try_recv() {
+                            if trace.enabled() { recv_ts_us.push(diagnostics::mono_us()); }
                             frames_to_decode.push(more);
                         }
                     }
@@ -388,6 +449,7 @@ async fn main() -> Result<()> {
                                 let decode_us = decode_start.elapsed().as_micros() as u64;
                                 decode_total_us += decode_us;
 
+                                let mut presented = false;
                                 for decoded in &decoded_frames {
                                     if decoded.planes[0].is_empty() { continue; }
                                     frame_count += 1;
@@ -397,6 +459,7 @@ async fn main() -> Result<()> {
                                     if is_last {
                                         new_video_frame = true;
                                         if let Some(ref mut r) = renderer_opt {
+                                            presented = true;
                                             let _ = r.update_frame(decoded);
                                         }
                                     }
@@ -407,6 +470,15 @@ async fn main() -> Result<()> {
                                             decoded.width, decoded.height, decode_us as f64 / 1000.0
                                         );
                                     }
+                                }
+
+                                if trace.enabled() {
+                                    trace.frame(serde_json::json!({
+                                        "frame_id": assembled.frame_id,
+                                        "ts_recv_us": recv_ts_us.get(i).copied().unwrap_or(0),
+                                        "ts_decode_done_us": diagnostics::mono_us(),
+                                        "presented": presented,
+                                    }));
                                 }
                             }
                             Err(e) => {

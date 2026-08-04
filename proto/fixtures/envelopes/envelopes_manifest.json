@@ -1,0 +1,26 @@
+{
+  "_comment": "Expected decoded values for envelope round-trip fixtures. Every envelope: session_run_id = 72623859790382856 (0x0102030405060708), protocol_version = 3.",
+  "files": {
+    "envelope_clock_ping.bin": {
+      "payload": "clock_ping",
+      "seq": 7,
+      "t1_mono_us": 123456789
+    },
+    "envelope_fatal_report.bin": {
+      "code": 8,
+      "component": "test",
+      "payload": "fatal_report",
+      "summary": "unit"
+    },
+    "envelope_frame_ack.bin": {
+      "frame_ordinal": 42,
+      "payload": "frame_ack"
+    },
+    "envelope_heartbeat.bin": {
+      "payload": "heartbeat",
+      "t_mono_us": 1722400000000000
+    }
+  },
+  "protocol_version": 3,
+  "session_run_id": 72623859790382856
+}

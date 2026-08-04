@@ -1,0 +1,18 @@
+{
+  "_comment": "ERR-04 scroll-injection reference cases (docs/WIRE.md §6). Function contract, identical in Swift and Rust: scroll_transform(dx, dy, rotated) -> (out_dx, out_dy). Order: (1) if rotated, axis swap (dx', dy') = (-dy, dx); (2) multiply each component by the 10-pixel quantum in widened arithmetic; (3) saturate to i32. Result feeds a CoreGraphics pixel-unit scroll event directly — no point conversion.",
+  "quantum": 10,
+  "cases": [
+    { "name": "plain_positive",      "dx": 1,           "dy": 2,           "rotated": false, "out_dx": 10,          "out_dy": 20 },
+    { "name": "plain_negative",      "dx": -3,          "dy": -1,          "rotated": false, "out_dx": -30,         "out_dy": -10 },
+    { "name": "zero",                "dx": 0,           "dy": 0,           "rotated": false, "out_dx": 0,           "out_dy": 0 },
+    { "name": "rotated_basic",       "dx": 1,           "dy": 2,           "rotated": true,  "out_dx": -20,         "out_dy": 10 },
+    { "name": "rotated_negative",    "dx": -3,          "dy": 4,           "rotated": true,  "out_dx": -40,         "out_dy": -30 },
+    { "name": "rotated_zero_dy",     "dx": 5,           "dy": 0,           "rotated": true,  "out_dx": 0,           "out_dy": 50 },
+    { "name": "large_no_saturate",   "dx": 214748364,   "dy": -214748364,  "rotated": false, "out_dx": 2147483640,  "out_dy": -2147483640 },
+    { "name": "saturate_positive",   "dx": 214748365,   "dy": 0,           "rotated": false, "out_dx": 2147483647,  "out_dy": 0 },
+    { "name": "saturate_negative",   "dx": -214748365,  "dy": 0,           "rotated": false, "out_dx": -2147483648, "out_dy": 0 },
+    { "name": "saturate_int_min",    "dx": -2147483648, "dy": 0,           "rotated": false, "out_dx": -2147483648, "out_dy": 0 },
+    { "name": "rotated_saturate",    "dx": 0,           "dy": -2147483648, "rotated": true,  "out_dx": 2147483647,  "out_dy": 0 },
+    { "name": "rotated_int_min_dx",  "dx": -2147483648, "dy": 1,           "rotated": true,  "out_dx": -10,         "out_dy": -2147483648 }
+  ]
+}

@@ -3,6 +3,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     prost_build::compile_protos(
         &[
             proto_dir.join("control.proto"),
+            proto_dir.join("control_v3.proto"),
             proto_dir.join("cursor.proto"),
             proto_dir.join("input.proto"),
         ],

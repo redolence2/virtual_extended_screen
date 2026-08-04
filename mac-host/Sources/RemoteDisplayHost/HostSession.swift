@@ -1,5 +1,6 @@
 import Foundation
 import SwiftProtobuf
+import RescProto
 
 /// Manages the host-side session: control channel, mode negotiation, video sending.
 /// Implements the Idle → Negotiating → Streaming state progression.
@@ -74,12 +75,61 @@ final class HostSession {
     // MARK: - Message Handling
 
     private func handleMessage(_ data: Data) {
+        // A0.0 clock-ping intercept (plan v11 §10, §12): capture t2 as close
+        // to entry as possible — before any decode work — so the responder
+        // timestamp reflects receipt, not parsing latency. Wrapped in try?:
+        // any decode failure (including legitimate legacy v1 payloads that
+        // happen not to parse as this exact schema) falls straight through
+        // to the unchanged legacy dispatch below.
+        let t2 = RescClockBridge.continuousNowUs()
+        if let envelope = try? Resc_Control_Envelope(serializedBytes: data), let payload = envelope.payload {
+            switch payload {
+            case .clockPing(let ping):
+                // Intercept completely — do not fall through, so the legacy
+                // 0xFA byte-scan in handleStreamingMessage never sees clock
+                // traffic.
+                handleClockPing(ping, sessionID: envelope.sessionID, t2: t2)
+                return
+            case .clockPong:
+                // Host is responder-only; an inbound pong is unexpected but
+                // harmless. Ignore.
+                return
+            default:
+                break // not clock traffic — fall through to the legacy path
+            }
+        }
+
         if sm.state == .negotiating && awaitingStreamingReady {
             handleStreamingReady(data)
         } else if sm.state == .negotiating {
             handleModeRequest(data)
         } else {
             handleStreamingMessage(data)
+        }
+    }
+
+    /// Answers a `ClockPing` with a `ClockPong` on the control channel
+    /// (IMPLEMENTATION_PLAN_V11.md §10: four-timestamp trace-mode clock
+    /// sync). `t1` is echoed from the ping; `t2` was captured at
+    /// `handleMessage` entry; `t3` is captured here, immediately before
+    /// serializing and sending the reply.
+    private func handleClockPing(_ ping: Resc_Control_ClockPing, sessionID: UInt64, t2: UInt64) {
+        var pong = Resc_Control_ClockPong()
+        pong.t1MonoUs = ping.t1MonoUs
+        pong.t2MonoUs = t2
+        pong.seq = ping.seq
+        pong.t3MonoUs = RescClockBridge.continuousNowUs()
+
+        var outEnvelope = Resc_Control_Envelope()
+        outEnvelope.sessionID = sessionID
+        outEnvelope.protocolVersion = UInt32(ProtocolConstants.protocolVersion)
+        outEnvelope.payload = .clockPong(pong)
+
+        guard let serialized = try? outEnvelope.serializedData() else { return }
+        controlChannel.send(data: serialized)
+
+        if RescTrace.enabled {
+            RescTrace.shared.clockSample(seq: pong.seq, t1: pong.t1MonoUs, t2: pong.t2MonoUs, t3: pong.t3MonoUs)
         }
     }
 

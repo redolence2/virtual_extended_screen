@@ -11,6 +11,17 @@ pub mod resc_input {
     include!(concat!(env!("OUT_DIR"), "/resc.input.rs"));
 }
 
+/// Protocol v3 (IMPLEMENTATION_PLAN_V11.md §4 + CONTRACT_ERRATA.md).
+/// Stage-1 frozen; coexists with v1 until T1 deletes the v1 wire.
+pub mod resc_v3 {
+    include!(concat!(env!("OUT_DIR"), "/resc.v3.rs"));
+}
+
+/// Protocol v3 fixed-binary wire parsers, comparators, scroll transform, and
+/// Annex-B NAL verification (docs/WIRE.md §2-§6; IMPLEMENTATION_PLAN_V11.md
+/// §4-§6; CONTRACT_ERRATA.md ERR-04/ERR-05).
+pub mod v3wire;
+
 /// Protocol constants (v1). Must match Swift ProtocolConstants exactly.
 pub mod constants {
     pub const PROTOCOL_VERSION: u8 = 1;

@@ -8,6 +8,9 @@ tools/bin/
 tools/include/
 tools/lib/
 
+# === Python ===
+__pycache__/
+
 # === OS / Editor ===
 .DS_Store
 *.swp
@@ -17,15 +20,14 @@ tools/lib/
 .idea/
 
 # === Swift ===
-Package.resolved
+# Package.resolved is committed (dependency pinning — plan v11 §11.6)
 *.xcodeproj/
 *.xcworkspace/
 xcuserdata/
 DerivedData/
 
 # === Rust ===
-Cargo.lock
-# Keep Cargo.lock for the top-level workspace if desired, but ignore in subcrates
+# Cargo.lock is committed (dependency pinning — plan v11 §11.6)
 
 # === Generated protobuf code (committed separately) ===
 # We commit generated code, so don't ignore it
