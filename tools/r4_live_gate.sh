@@ -104,7 +104,13 @@ echo "== start client (box, RESC_TRACE=1, DISPLAY=:0) =="
 # captured to a file instead of discarded, so this same backgrounded launch
 # now also yields the client's real pid for SIGTERM-by-pid below.
 CLIENT_PID_FILE="$(mktemp -t r4-client-pid)"
-ssh "$BOX" 'cd ~/resc/remote_extended_screen/ubuntu-client && \
+# The `cd` MUST be its own statement, never `cd ... && nohup ... &`: bash
+# backgrounds a compound and-list as a SUBSHELL, so `$!` is the wrapper's
+# pid, not the client's — SIGTERM then kills the wrapper and orphans the
+# nohup'd client, which never runs its shutdown/footer sequence (the C7
+# second live-gate failure, 2026-08-05; reproduced in isolation: with
+# `cd &&` the pids differ, as separate statements they match).
+ssh "$BOX" 'cd ~/resc/remote_extended_screen/ubuntu-client
   nohup env RESC_TRACE=1 RESC_LOG_DIR=/tmp/resc-r4-trace DISPLAY=:0 \
     LD_LIBRARY_PATH=$HOME/ffmpeg7/lib \
     ./target/release/remote-display-client -H 192.168.50.125 \
