@@ -669,12 +669,18 @@ async fn main() -> Result<()> {
                             ) {
                                 Ok(decoded_frames) => {
                                     for decoded in &decoded_frames {
-                                        if decoded.planes[0].is_empty() { continue; }
+                                        // Identity FIRST, render-skip second (C7 gate
+                                        // finding 3, 2026-08-05): a suppressed emission
+                                        // (empty planes — the legacy gray/corrupt filter)
+                                        // still consumed its receipt; skipping before the
+                                        // resolve stranded 29 entries as phantom
+                                        // pending_identities and aborted the footer.
                                         frame_count += 1;
                                         ledger_resolve(
                                             &mut ledger, trace, &mut identity_failures,
                                             assembled.frame_id, decoded.recovered_frame_id,
                                         );
+                                        if decoded.planes[0].is_empty() { continue; }
                                     }
                                 }
                                 Err(e) => log::warn!("Shutdown drain decode error: {}", e),
@@ -685,12 +691,14 @@ async fn main() -> Result<()> {
                         match decoder.flush() {
                             Ok(tail_frames) => {
                                 for decoded in &tail_frames {
-                                    if decoded.planes[0].is_empty() { continue; }
+                                    // Identity first, render-skip second — see the
+                                    // drain loop above (C7 gate finding 3).
                                     frame_count += 1;
                                     ledger_resolve(
                                         &mut ledger, trace, &mut identity_failures,
                                         last_submitted_frame_id, decoded.recovered_frame_id,
                                     );
+                                    if decoded.planes[0].is_empty() { continue; }
                                 }
                             }
                             Err(e) => log::warn!("Decoder flush failed: {}", e),
@@ -758,8 +766,18 @@ async fn main() -> Result<()> {
                                 decode_total_us += decode_us;
 
                                 for decoded in &decoded_frames {
-                                    if decoded.planes[0].is_empty() { continue; }
+                                    // Identity FIRST, render-skip second (C7 gate
+                                    // finding 3, 2026-08-05): a suppressed emission
+                                    // (empty planes — the legacy gray/corrupt filter)
+                                    // still consumed its receipt-ledger entry; the old
+                                    // order stranded every suppressed frame's identity
+                                    // as phantom pending_identities.
                                     frame_count += 1;
+                                    ledger_resolve(
+                                        &mut ledger, trace, &mut identity_failures,
+                                        assembled.frame_id, decoded.recovered_frame_id,
+                                    );
+                                    if decoded.planes[0].is_empty() { continue; }
                                     has_frame = true;
 
                                     // Only render the LAST frame in the batch (latest content).
@@ -795,16 +813,11 @@ async fn main() -> Result<()> {
                                         );
                                     }
 
-                                    // A00_COMPLETION_REPORT_AMENDED_review.md finding 1
-                                    // (schema corrected): one record per EMITTED decoded
-                                    // frame, each resolving its OWN identity from the
-                                    // receipt ledger — never the current decode() call's
-                                    // input id, carried through separately as
-                                    // decode_trigger_frame_id.
-                                    ledger_resolve(
-                                        &mut ledger, trace, &mut identity_failures,
-                                        assembled.frame_id, decoded.recovered_frame_id,
-                                    );
+                                    // (ledger_resolve for this frame ran at the TOP of
+                                    // this loop body, before the suppressed-frame skip —
+                                    // one record per EMITTED frame, resolving its OWN
+                                    // identity, with decode_trigger_frame_id carried
+                                    // separately.)
                                 }
                             }
                             Err(e) => {
