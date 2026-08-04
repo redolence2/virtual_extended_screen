@@ -20,6 +20,17 @@ import RescCore
 /// mode is narrow — it only fails if the OS build string genuinely cannot
 /// be read (`sysctlbyname` itself fails) — every other check here is a
 /// native-API probe and maps a failure to 3.
+///
+/// A00_REMEDIATION_PLAN.md §5 R3a ("fail-closed host doctor"): every
+/// load-bearing check now participates in the exit code (including the new
+/// (d2) per-property VTSessionSetProperty statuses and (d3)
+/// PrepareToEncodeFrames status VideoEncoder.swift now checks, and the new
+/// (e) NV12 pixel-format requirement), the encoder config uses the
+/// profile-true ~60s safety keyframe interval, `doctor_complete` gets a
+/// synchronous flush before every return path, and `RESC_DOCTOR_INJECT=
+/// <check-id>` lets each predicate be proven independently fail-able. Only
+/// (g) corebrightness_nightshift stays recorded-but-never-exit-affecting —
+/// unchanged, documented design.
 enum HostDoctor {
 
     private static let component = "doctor"
@@ -30,6 +41,11 @@ enum HostDoctor {
     private static let profileHeight: Int32 = 1920
     private static let profileFps: Double = 60.0
     private static let profileBitrateBps: UInt32 = 20_000_000
+    // Profile-true ~60s safety keyframe interval (A00_REMEDIATION_PLAN.md §5
+    // R3a: "MaxKeyFrameInterval 3600 / MaxKeyFrameIntervalDuration 60").
+    // VideoEncoder.swift's formula is Int32(fps * keyframeIntervalSeconds),
+    // so 60.0 * 60.0 = 3600 frames, matching the duration exactly.
+    private static let profileKeyframeIntervalSeconds: Double = 60.0
 
     private static let exitPass: Int32 = 0
     private static let exitEnvironment: Int32 = 2
@@ -43,6 +59,21 @@ enum HostDoctor {
     // text rather than restructuring VirtualDisplayManager.swift to plumb a
     // numeric code through (out of scope: reuse, do not restructure).
     private static let virtualDisplayErrorDomain = "com.resc.virtualdisplay"
+
+    /// `RESC_DOCTOR_INJECT=<check-id>` (A00_REMEDIATION_PLAN.md §5 R3a
+    /// failure-injection test seam): forces exactly one named check to
+    /// report failure through its normal reporting path — same JSON shape,
+    /// same nativeCheck/RescLog logging, same exit-code contribution a
+    /// genuine failure would produce — proving each predicate can actually
+    /// fail rather than being vacuously always-true. check-ids: api,
+    /// display, encoder_create, readback, encode, nv12, ra, prepare
+    /// (`prepare` is implemented as a seam in VideoEncoder.Config
+    /// instead — see its doc comment — because, unlike the other seven,
+    /// this doctor has no externally observable signal to override after a
+    /// successful start()). Doctor-mode only; never read by the real host
+    /// or HarnessSender. Every injected entry is marked `"injected": true`
+    /// so evidence never looks like an unexplained genuine failure.
+    private static let injectedCheck = ProcessInfo.processInfo.environment["RESC_DOCTOR_INJECT"]
 
     // MARK: - Entry point
 
@@ -73,7 +104,10 @@ enum HostDoctor {
         // g. corebrightness_nightshift — never contributes to exitCode.
         checks.append(nightShiftCheck())
 
-        // h. write the report
+        // h. write the report — the doctor's final act on every return path
+        // (this is the only path through run(): every check above records
+        // its own outcome and continues, none of them early-return out of
+        // run() itself), including the synchronous doctor_complete flush.
         writeReport(checks: checks, exitCode: exitCode)
 
         return exitCode
@@ -126,14 +160,19 @@ enum HostDoctor {
     // MARK: - b. cgvirtualdisplay_api
 
     private static func cgVirtualDisplayApiCheck() -> (entry: [String: Any], exitContribution: Int32) {
-        let available = CGVirtualDisplayBridge.isAPIAvailable()
+        let reallyAvailable = CGVirtualDisplayBridge.isAPIAvailable()
+        let injected = injectedCheck == "api"
+        let available = injected ? false : reallyAvailable
         nativeCheck(component, "CGVirtualDisplayBridge.isAPIAvailable", ok: available,
                     detail: "NSClassFromString(CGVirtualDisplay) lookup")
 
         var entry: [String: Any] = ["name": "cgvirtualdisplay_api", "ok": available]
+        if injected { entry["injected"] = true }
         if !available {
             entry["native_domain"] = virtualDisplayErrorDomain
-            entry["detail"] = "CGVirtualDisplay class not found — private API unavailable on this OS"
+            entry["detail"] = injected
+                ? "RESC_DOCTOR_INJECT=api: forced failure (real check: \(reallyAvailable))"
+                : "CGVirtualDisplay class not found — private API unavailable on this OS"
         }
         return (entry, available ? exitPass : exitNative)
     }
@@ -147,6 +186,25 @@ enum HostDoctor {
             let handle = try manager.create(width: Int(profileWidth), height: Int(profileHeight), refreshRate: Int(profileFps))
             nativeCheck(component, "VirtualDisplayManager.create", ok: true, detail: "profile display created",
                         extra: ["display_id": handle.lastKnownDisplayID])
+
+            if injectedCheck == "display" {
+                // Failure injection: report failure through the exact same
+                // shape a genuine create() failure would (native_domain +
+                // detail + exitNative), even though the real create()
+                // above succeeded — clean up the real display first.
+                manager.destroy()
+                nativeCheck(component, "VirtualDisplayManager.destroy", ok: true,
+                            detail: "profile display destroyed (injected-failure cleanup)")
+                let entry: [String: Any] = [
+                    "name": "virtual_display_create", "ok": false,
+                    "requested": requested,
+                    "native_domain": virtualDisplayErrorDomain,
+                    "detail": "RESC_DOCTOR_INJECT=display: forced failure (real create+destroy succeeded)",
+                    "injected": true,
+                ]
+                return (entry, exitNative)
+            }
+
             manager.destroy()
             nativeCheck(component, "VirtualDisplayManager.destroy", ok: true, detail: "profile display destroyed")
 
@@ -176,19 +234,28 @@ enum HostDoctor {
 
         var config = VideoEncoder.Config(width: profileWidth, height: profileHeight, fps: profileFps, codec: .hevc)
         config.bitrateBps = profileBitrateBps
-        // keyframeIntervalSeconds intentionally left at VideoEncoder.Config's
-        // own default (1.0) — the spec forbids changing VideoEncoder.swift's
-        // behavior beyond the vtSession accessor.
+        // Profile-true settings (A00_REMEDIATION_PLAN.md §5 R3a): the
+        // former default (1.0s) has been replaced with the personal
+        // profile's ~60s safety keyframe interval — both properties are
+        // read back below (MaxKeyFrameInterval, MaxKeyFrameIntervalDuration).
+        config.keyframeIntervalSeconds = profileKeyframeIntervalSeconds
+        // (d3) PrepareToEncodeFrames failure-injection seam — see
+        // VideoEncoder.Config.forcePrepareFailure's doc comment for why
+        // this is the one check-id implemented inside VideoEncoder rather
+        // than by overriding a value here.
+        config.forcePrepareFailure = injectedCheck == "prepare"
         let requestedSummary: [String: Any] = [
             "codec": "HEVC", "width": profileWidth, "height": profileHeight,
             "fps": profileFps, "bitrate_bps": profileBitrateBps,
+            "max_keyframe_interval": Int32(profileFps * profileKeyframeIntervalSeconds),
+            "max_keyframe_interval_duration_s": profileKeyframeIntervalSeconds,
         ]
 
         var capturedAU: Data?
         var capturedIsKeyframe = false
         let outputSemaphore = DispatchSemaphore(value: 0)
 
-        let encoder = VideoEncoder(config: config) { annexBData, isKeyframe, _, _ in
+        let encoder = VideoEncoder(config: config) { annexBData, isKeyframe, _, _, _ in
             capturedAU = annexBData
             capturedIsKeyframe = isKeyframe
             outputSemaphore.signal()
@@ -197,6 +264,11 @@ enum HostDoctor {
         do {
             try encoder.start()
         } catch {
+            // (d2)/(d3): every VTSessionSetProperty status and the
+            // PrepareToEncodeFrames status (VideoEncoder.swift, R3a / F5)
+            // surface here automatically — EncoderError's description names
+            // the exact key/status (propertySetFailed) or status
+            // (prepareFailed) that failed, recorded verbatim in "detail".
             nativeCheck(component, "VideoEncoder.start", ok: false, detail: "\(error)")
             entries.append(["name": "encoder_create", "ok": false, "requested": requestedSummary, "detail": "\(error)"])
             entries.append(["name": "encode_bundled_frame", "ok": false, "detail": "skipped: encoder_create failed"])
@@ -218,20 +290,53 @@ enum HostDoctor {
             return (entries, exitNative)
         }
 
+        // Failure injection: encoder_create — simulate the session having
+        // failed to come up at all, even though the real start() above
+        // succeeded, exercising the exact same skip-e-and-f/exitNative
+        // shape the two genuine-failure branches above use.
+        if injectedCheck == "encoder_create" {
+            let detail = "RESC_DOCTOR_INJECT=encoder_create: forced failure (real start() succeeded)"
+            nativeCheck(component, "VideoEncoder.start", ok: false, detail: detail)
+            entries.append(["name": "encoder_create", "ok": false, "requested": requestedSummary,
+                             "detail": detail, "injected": true])
+            entries.append(["name": "encode_bundled_frame", "ok": false, "detail": "skipped: encoder_create failed"])
+            entries.append(["name": "ra_verification", "ok": false, "detail": "skipped: encoder_create failed"])
+            encoder.stop()
+            return (entries, exitNative)
+        }
+
         // Required property read-back: requested-vs-observed for every
-        // load-bearing property (v11 §6, §11.3).
+        // load-bearing property (v11 §6, §11.3), including the two new
+        // keyframe-interval properties (R3a: profile-true ~60s interval).
         let realTime = propertyReadBack(vt, key: kVTCompressionPropertyKey_RealTime, requestedBool: true, name: "RealTime")
         let allowReorder = propertyReadBack(vt, key: kVTCompressionPropertyKey_AllowFrameReordering,
                                              requestedBool: false, name: "AllowFrameReordering")
-        let bitrate = propertyReadBack(vt, key: kVTCompressionPropertyKey_AverageBitRate,
+        var bitrate = propertyReadBack(vt, key: kVTCompressionPropertyKey_AverageBitRate,
                                         requestedUInt32: profileBitrateBps, name: "AverageBitRate")
         let profileLevel = propertyReadBack(vt, key: kVTCompressionPropertyKey_ProfileLevel,
                                              requestedString: kVTProfileLevel_HEVC_Main_AutoLevel as String, name: "ProfileLevel")
+        let maxKeyframeInterval = propertyReadBack(vt, key: kVTCompressionPropertyKey_MaxKeyFrameInterval,
+                                                    requestedInt32: Int32(profileFps * profileKeyframeIntervalSeconds),
+                                                    name: "MaxKeyFrameInterval")
+        let maxKeyframeIntervalDuration = propertyReadBack(vt, key: kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration,
+                                                             requestedDouble: profileKeyframeIntervalSeconds,
+                                                             name: "MaxKeyFrameIntervalDuration")
+
+        // Failure injection: readback — force one otherwise-real match to
+        // false, independent of encoder_create's early-abort path above (a
+        // genuine property mismatch does not, by itself, mean the session
+        // is unusable, so encode_bundled_frame/ra_verification still run).
+        if injectedCheck == "readback" {
+            bitrate["match"] = false
+            bitrate["injected"] = true
+        }
 
         let allMatched = (realTime["match"] as? Bool ?? false)
             && (allowReorder["match"] as? Bool ?? false)
             && (bitrate["match"] as? Bool ?? false)
             && (profileLevel["match"] as? Bool ?? false)
+            && (maxKeyframeInterval["match"] as? Bool ?? false)
+            && (maxKeyframeIntervalDuration["match"] as? Bool ?? false)
 
         entries.append([
             "name": "encoder_create", "ok": allMatched,
@@ -239,6 +344,8 @@ enum HostDoctor {
             "properties": [
                 "RealTime": realTime, "AllowFrameReordering": allowReorder,
                 "AverageBitRate": bitrate, "ProfileLevel": profileLevel,
+                "MaxKeyFrameInterval": maxKeyframeInterval,
+                "MaxKeyFrameIntervalDuration": maxKeyframeIntervalDuration,
             ],
         ])
         if !allMatched { exitContribution = exitNative }
@@ -251,22 +358,45 @@ enum HostDoctor {
             return (entries, exitNative)
         }
 
+        // NV12 pixel-format requirement (R3a): the frame submitted for
+        // encode must actually be NV12 (kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)
+        // — the check fails if construction fell back to another format.
+        // makeBundledPixelBuffer() always requests exactly this format and
+        // CVPixelBufferCreate does not silently substitute another one on
+        // success, so under normal operation this is a defensive,
+        // fail-closed assertion rather than a currently-reachable native
+        // failure mode; RESC_DOCTOR_INJECT=nv12 forces it false to prove
+        // the assertion itself actually gates the exit code.
+        let actualPixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer)
+        var isNV12 = actualPixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+        if injectedCheck == "nv12" { isNV12 = false }
+
         encoder.forceKeyframe()
         let encodeSubmitUs = RescClock.monoUs()
         encoder.encode(pixelBuffer: pixelBuffer, presentationTime: CMTime(value: 0, timescale: Int32(profileFps)))
         let waitResult = outputSemaphore.wait(timeout: .now() + 2.0)
         let waitedMs = Double(RescClock.monoUs() - encodeSubmitUs) / 1000.0
 
-        let encodeOk = waitResult == .success && capturedAU != nil && !(capturedAU?.isEmpty ?? true)
+        var encodeSucceeded = waitResult == .success && capturedAU != nil && !(capturedAU?.isEmpty ?? true)
+        if injectedCheck == "encode" { encodeSucceeded = false }
+        // Overall (e) verdict now requires both a confirmed encode AND the
+        // NV12 requirement above (R3a).
+        let encodeOk = encodeSucceeded && isNV12
+
         nativeCheck(component, "VideoEncoder.encode(bundled)", ok: encodeOk,
                     detail: waitResult == .timedOut ? "output callback did not fire within 2s" : "encode + callback observed",
-                    extra: ["bytes": capturedAU?.count ?? 0, "is_keyframe": capturedIsKeyframe, "wait_ms": waitedMs])
-        entries.append([
+                    extra: ["bytes": capturedAU?.count ?? 0, "is_keyframe": capturedIsKeyframe, "wait_ms": waitedMs,
+                            "pixel_format_nv12": isNV12])
+        var encodeEntry: [String: Any] = [
             "name": "encode_bundled_frame", "ok": encodeOk,
             "timed_out": waitResult == .timedOut,
             "bytes": capturedAU?.count ?? 0,
             "is_keyframe": capturedIsKeyframe,
-        ])
+            "pixel_format": actualPixelFormat,
+            "pixel_format_nv12": isNV12,
+        ]
+        if injectedCheck == "encode" || injectedCheck == "nv12" { encodeEntry["injected"] = true }
+        entries.append(encodeEntry)
         if !encodeOk { exitContribution = exitNative }
 
         // f. ra_verification — NAL-scan logic lives in RescCore
@@ -274,17 +404,19 @@ enum HostDoctor {
         // synthetic sequences too; behavior/JSON fields here are unchanged.
         if let au = capturedAU, encodeOk {
             let summary = scanAnnexB(au)
-            let raOk: Bool
+            var raOk: Bool
             switch validateSessionFirst(summary) {
             case .success: raOk = true
             case .failure: raOk = false
             }
+            if injectedCheck == "ra" { raOk = false }
 
-            let raFields: [String: Any] = [
+            var raFields: [String: Any] = [
                 "ok": raOk, "nal_types_found": summary.types,
                 "has_vps": summary.hasVPS, "has_sps": summary.hasSPS, "has_pps": summary.hasPPS,
                 "has_idr": summary.hasIDR, "has_cra_instead_of_idr": summary.hasCRA && !summary.hasIDR,
             ]
+            if injectedCheck == "ra" { raFields["injected"] = true }
             RescLog.shared.event("ra_verification", component: component, fields: raFields)
 
             var entry = raFields
@@ -346,6 +478,30 @@ enum HostDoctor {
                                     extra: ["requested": requestedString, "observed": observed ?? "nil"])
         let matched = statusOk && observed == requestedString
         return ["requested": requestedString, "observed": observed ?? NSNull(), "match": matched]
+    }
+
+    /// Int32-valued VTSessionCopyProperty read-back (MaxKeyFrameInterval —
+    /// R3a profile-true keyframe interval).
+    private static func propertyReadBack(_ session: VTCompressionSession, key: CFString,
+                                          requestedInt32: Int32, name: String) -> [String: Any] {
+        let (status, value) = copyProperty(session, key: key)
+        let observed = (value as? NSNumber)?.int32Value
+        let statusOk = nativeCheck(component, "VTSessionCopyProperty(\(name))", status: status,
+                                    extra: ["requested": requestedInt32, "observed": observed as Any? ?? NSNull()])
+        let matched = statusOk && observed == requestedInt32
+        return ["requested": requestedInt32, "observed": observed as Any? ?? NSNull(), "match": matched]
+    }
+
+    /// Double-valued VTSessionCopyProperty read-back (MaxKeyFrameIntervalDuration
+    /// — R3a profile-true keyframe interval).
+    private static func propertyReadBack(_ session: VTCompressionSession, key: CFString,
+                                          requestedDouble: Double, name: String) -> [String: Any] {
+        let (status, value) = copyProperty(session, key: key)
+        let observed = (value as? NSNumber)?.doubleValue
+        let statusOk = nativeCheck(component, "VTSessionCopyProperty(\(name))", status: status,
+                                    extra: ["requested": requestedDouble, "observed": observed as Any? ?? NSNull()])
+        let matched = statusOk && observed == requestedDouble
+        return ["requested": requestedDouble, "observed": observed as Any? ?? NSNull(), "match": matched]
     }
 
     /// Builds the one bundled NV12 frame encoded for `encode_bundled_frame`
@@ -438,14 +594,31 @@ enum HostDoctor {
             do {
                 try compactData.write(to: reportPath, options: .atomic)
                 try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: reportPath.path)
+                // Synchronous durability (A00_REMEDIATION_PLAN.md §5 R3a):
+                // fsync the report file before returning. The .atomic write
+                // above writes-then-renames a temp file over the
+                // destination, which can still leave the new file's bytes
+                // sitting in the page cache rather than on stable storage.
+                if let fh = FileHandle(forWritingAtPath: reportPath.path) {
+                    fh.synchronizeFile()
+                    fh.closeFile()
+                }
             } catch {
                 print("[RESC] doctor: failed to write \(reportPath.path): \(error)")
             }
         }
 
+        // Synchronous evidence flush (A00_REMEDIATION_PLAN.md §5 R3a): this
+        // is the doctor's final act, on every return path (see run()).
+        // event() alone is buffered (flushed every 32 records or 1s), which
+        // is the known bug this closes — doctor_complete previously raced
+        // the process's exit() and could be lost if the process exited
+        // before the next periodic flush. flushNow() blocks until RescLog's
+        // queue has written and synchronized the file.
         RescLog.shared.event("doctor_complete", component: component, fields: [
             "exit_code": exitCode,
             "checks_summary": checks.map { ["name": $0["name"] as? String ?? "?", "ok": $0["ok"] as? Bool ?? false] },
         ])
+        RescLog.shared.flushNow()
     }
 }

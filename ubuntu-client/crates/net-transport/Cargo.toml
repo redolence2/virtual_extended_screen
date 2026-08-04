@@ -6,6 +6,10 @@ edition = "2021"
 [dependencies]
 protocol = { path = "../protocol" }
 jitter-buffer = { path = "../jitter-buffer" }
+# A00_REMEDIATION_PLAN.md §4 item 6: the assembly-completion receive stamp
+# (diagnostics::mono_us()) is taken here, before the frame reaches the
+# drop-capable sync_channel in video_receiver.rs.
+diagnostics = { path = "../diagnostics" }
 prost = "0.13"
 tokio = { version = "1", features = ["net", "io-util", "sync", "time", "macros"] }
 mdns-sd = "0.11"

@@ -1,0 +1,3648 @@
+{
+  "framing": [
+    {
+      "name": "len_0",
+      "prefix_hex": "00000000",
+      "verdict": "accept"
+    },
+    {
+      "name": "len_1",
+      "prefix_hex": "01000000",
+      "verdict": "accept"
+    },
+    {
+      "name": "len_65535",
+      "prefix_hex": "ffff0000",
+      "verdict": "accept"
+    },
+    {
+      "name": "len_65536",
+      "prefix_hex": "00000100",
+      "verdict": "accept"
+    },
+    {
+      "name": "len_65537",
+      "prefix_hex": "01000100",
+      "verdict": "MALFORMED_FRAMING"
+    },
+    {
+      "name": "len_4294967295",
+      "prefix_hex": "ffffffff",
+      "verdict": "MALFORMED_FRAMING"
+    }
+  ],
+  "state": [
+    {
+      "name": "host_bootstrap_display_settings",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_display_settings",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_display_settings",
+      "role": "host",
+      "phase": "announced",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_display_settings",
+      "role": "client",
+      "phase": "announced",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_display_settings",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_display_settings",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_display_settings",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_display_settings",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_display_settings",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_display_settings",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "host_active_display_settings",
+      "role": "host",
+      "phase": "active",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_display_settings",
+      "role": "client",
+      "phase": "active",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_key_event",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_key_event",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_key_event",
+      "role": "host",
+      "phase": "announced",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_key_event",
+      "role": "client",
+      "phase": "announced",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_key_event",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_key_event",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_key_event",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_key_event",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_key_event",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_key_event",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_key_event",
+      "role": "host",
+      "phase": "active",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_key_event",
+      "role": "client",
+      "phase": "active",
+      "payload": "key_event",
+      "fields": {
+        "hid_usage": 4,
+        "is_down": true,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_host_profile_announce",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_host_profile_announce",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:announced:learn"
+    },
+    {
+      "name": "host_announced_host_profile_announce",
+      "role": "host",
+      "phase": "announced",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_host_profile_announce",
+      "role": "client",
+      "phase": "announced",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_host_profile_announce",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_host_profile_announce",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_host_profile_announce",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_host_profile_announce",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_host_profile_announce",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_host_profile_announce",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_host_profile_announce",
+      "role": "host",
+      "phase": "active",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_host_profile_announce",
+      "role": "client",
+      "phase": "active",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_profile_result",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_profile_result",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_profile_result",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "client_announced_profile_result",
+      "role": "client",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_profile_result",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_profile_result",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_profile_result",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_profile_result",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_profile_result",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_profile_result",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_profile_result",
+      "role": "host",
+      "phase": "active",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_profile_result",
+      "role": "client",
+      "phase": "active",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_frame_ack",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_frame_ack",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_frame_ack",
+      "role": "host",
+      "phase": "announced",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_frame_ack",
+      "role": "client",
+      "phase": "announced",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_frame_ack",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_frame_ack",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_frame_ack",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_frame_ack",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_frame_ack",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "client_video_ack_accepted_frame_ack",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_frame_ack",
+      "role": "host",
+      "phase": "active",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_frame_ack",
+      "role": "client",
+      "phase": "active",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_button_event",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_button_event",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_button_event",
+      "role": "host",
+      "phase": "announced",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_button_event",
+      "role": "client",
+      "phase": "announced",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_button_event",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_button_event",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_button_event",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_button_event",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_button_event",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_button_event",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_button_event",
+      "role": "host",
+      "phase": "active",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_button_event",
+      "role": "client",
+      "phase": "active",
+      "payload": "button_event",
+      "fields": {
+        "button": 0,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_scroll_event",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_scroll_event",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_scroll_event",
+      "role": "host",
+      "phase": "announced",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_scroll_event",
+      "role": "client",
+      "phase": "announced",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_scroll_event",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_scroll_event",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_scroll_event",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_scroll_event",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_scroll_event",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_scroll_event",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_scroll_event",
+      "role": "host",
+      "phase": "active",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_scroll_event",
+      "role": "client",
+      "phase": "active",
+      "payload": "scroll_event",
+      "fields": {
+        "dx": 1,
+        "dy": -1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_clock_ping",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_clock_ping",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_clock_ping",
+      "role": "host",
+      "phase": "announced",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_clock_ping",
+      "role": "client",
+      "phase": "announced",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_clock_ping",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "client_profile_accepted_clock_ping",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "host_profile_rejected_clock_ping",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_clock_ping",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_clock_ping",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "client_video_ack_accepted_clock_ping",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "host_active_clock_ping",
+      "role": "host",
+      "phase": "active",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_clock_ping",
+      "role": "client",
+      "phase": "active",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_clock_pong",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_clock_pong",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_clock_pong",
+      "role": "host",
+      "phase": "announced",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_clock_pong",
+      "role": "client",
+      "phase": "announced",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_clock_pong",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "client_profile_accepted_clock_pong",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "host_profile_rejected_clock_pong",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_clock_pong",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_clock_pong",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "client_video_ack_accepted_clock_pong",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "host_active_clock_pong",
+      "role": "host",
+      "phase": "active",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_clock_pong",
+      "role": "client",
+      "phase": "active",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_fatal_report",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_fatal_report",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:bootstrap:learn"
+    },
+    {
+      "name": "host_announced_fatal_report",
+      "role": "host",
+      "phase": "announced",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:announced"
+    },
+    {
+      "name": "client_announced_fatal_report",
+      "role": "client",
+      "phase": "announced",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:announced"
+    },
+    {
+      "name": "host_profile_accepted_fatal_report",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "client_profile_accepted_fatal_report",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "host_profile_rejected_fatal_report",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_rejected"
+    },
+    {
+      "name": "client_profile_rejected_fatal_report",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_rejected"
+    },
+    {
+      "name": "host_video_ack_accepted_fatal_report",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "client_video_ack_accepted_fatal_report",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "host_active_fatal_report",
+      "role": "host",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_fatal_report",
+      "role": "client",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_release_input",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_release_input",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_release_input",
+      "role": "host",
+      "phase": "announced",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_release_input",
+      "role": "client",
+      "phase": "announced",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_release_input",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_release_input",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_release_input",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_release_input",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_release_input",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_release_input",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_release_input",
+      "role": "host",
+      "phase": "active",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_release_input",
+      "role": "client",
+      "phase": "active",
+      "payload": "release_input",
+      "fields": {},
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_heartbeat",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_heartbeat",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_heartbeat",
+      "role": "host",
+      "phase": "announced",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_heartbeat",
+      "role": "client",
+      "phase": "announced",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_heartbeat",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_heartbeat",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_heartbeat",
+      "role": "host",
+      "phase": "profile_rejected",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_heartbeat",
+      "role": "client",
+      "phase": "profile_rejected",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_heartbeat",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_heartbeat",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_active_heartbeat",
+      "role": "host",
+      "phase": "active",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_heartbeat",
+      "role": "client",
+      "phase": "active",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_bad_version",
+      "role": "host",
+      "phase": "active",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 2,
+      "verdict": "VERSION_MISMATCH"
+    },
+    {
+      "name": "special_run_id_mismatch",
+      "role": "host",
+      "phase": "active",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 153,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_build_commit_39_chars",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_build_commit_41_chars",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_build_commit_uppercase",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "build_dirty": false
+      },
+      "expected_run_id": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_build_commit_40_lowercase",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:announced:learn"
+    },
+    {
+      "name": "special_component_257_bytes",
+      "role": "host",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "RECORD_CAP_VIOLATION"
+    },
+    {
+      "name": "special_summary_2049_bytes",
+      "role": "host",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "RECORD_CAP_VIOLATION"
+    },
+    {
+      "name": "special_summary_2048_bytes",
+      "role": "host",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_profile_canonical_4097_bytes",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "RECORD_CAP_VIOLATION"
+    },
+    {
+      "name": "special_profile_hash_7_bytes",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "01010101010101",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "RECORD_CAP_VIOLATION"
+    },
+    {
+      "name": "special_profile_hash_9_bytes",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "010101010101010101",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "RECORD_CAP_VIOLATION"
+    },
+    {
+      "name": "special_button_out_of_range",
+      "role": "host",
+      "phase": "active",
+      "payload": "button_event",
+      "fields": {
+        "button": 3,
+        "is_down": true,
+        "x_px": 1,
+        "y_px": 1,
+        "modifiers": 0
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_warm_strength_over_one",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 1.5
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_warm_strength_nan",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": "NaN"
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_profile_result_accepted_with_reject_code",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 8,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_profile_result_rejected_with_listener_ready",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": false,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 8,
+        "video_listener_ready": true
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_cap_before_direction_oversized_announce_at_host",
+      "role": "host",
+      "phase": "active",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "RECORD_CAP_VIOLATION"
+    },
+    {
+      "name": "special_profile_result_rejected_transition_a",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": false,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 8,
+        "video_listener_ready": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_rejected"
+    },
+    {
+      "name": "special_profile_result_rejected_transition_b",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": false,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 1,
+        "video_listener_ready": false
+      },
+      "expected_run_id": 72623859790382856,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_rejected"
+    }
+  ],
+  "raw": [
+    {
+      "name": "unknown_only_oneof_absent_payload",
+      "file": "dispatch/unknown_only_oneof.bin",
+      "role": "host",
+      "phase": "active",
+      "expected_run_id": 72623859790382856,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "empty_envelope_host_active_some_run_id",
+      "file": "dispatch/empty_envelope.bin",
+      "role": "host",
+      "phase": "active",
+      "expected_run_id": 72623859790382856,
+      "verdict": "VERSION_MISMATCH"
+    },
+    {
+      "name": "empty_envelope_client_bootstrap_null_run_id",
+      "file": "dispatch/empty_envelope.bin",
+      "role": "client",
+      "phase": "bootstrap",
+      "expected_run_id": null,
+      "verdict": "VERSION_MISMATCH"
+    }
+  ],
+  "outbound": [
+    {
+      "name": "host_bootstrap_host_profile_announce",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "host_profile_announce",
+      "verdict": "accept:announced"
+    },
+    {
+      "name": "client_bootstrap_host_profile_announce",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_host_profile_announce",
+      "role": "host",
+      "phase": "announced",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_host_profile_announce",
+      "role": "client",
+      "phase": "announced",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_host_profile_announce",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_host_profile_announce",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_host_profile_announce",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_host_profile_announce",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_host_profile_announce",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_host_profile_announce",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_host_profile_announce",
+      "role": "host",
+      "phase": "active",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_host_profile_announce",
+      "role": "client",
+      "phase": "active",
+      "kind": "host_profile_announce",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_profile_result_accepted",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_profile_result_accepted",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_profile_result_accepted",
+      "role": "host",
+      "phase": "announced",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_profile_result_accepted",
+      "role": "client",
+      "phase": "announced",
+      "kind": "profile_result_accepted",
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "host_profile_accepted_profile_result_accepted",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_profile_result_accepted",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_profile_result_accepted",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_profile_result_accepted",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_profile_result_accepted",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_profile_result_accepted",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_profile_result_accepted",
+      "role": "host",
+      "phase": "active",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_profile_result_accepted",
+      "role": "client",
+      "phase": "active",
+      "kind": "profile_result_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_profile_result_rejected",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_profile_result_rejected",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_profile_result_rejected",
+      "role": "host",
+      "phase": "announced",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_profile_result_rejected",
+      "role": "client",
+      "phase": "announced",
+      "kind": "profile_result_rejected",
+      "verdict": "accept:profile_rejected"
+    },
+    {
+      "name": "host_profile_accepted_profile_result_rejected",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_profile_result_rejected",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_profile_result_rejected",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_profile_result_rejected",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_profile_result_rejected",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_profile_result_rejected",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_profile_result_rejected",
+      "role": "host",
+      "phase": "active",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_profile_result_rejected",
+      "role": "client",
+      "phase": "active",
+      "kind": "profile_result_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_frame_ack",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_frame_ack",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_frame_ack",
+      "role": "host",
+      "phase": "announced",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_frame_ack",
+      "role": "client",
+      "phase": "announced",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_frame_ack",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_frame_ack",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_frame_ack",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_frame_ack",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_frame_ack",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_frame_ack",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "frame_ack",
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "host_active_frame_ack",
+      "role": "host",
+      "phase": "active",
+      "kind": "frame_ack",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_frame_ack",
+      "role": "client",
+      "phase": "active",
+      "kind": "frame_ack",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_key_event",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_key_event",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_key_event",
+      "role": "host",
+      "phase": "announced",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_key_event",
+      "role": "client",
+      "phase": "announced",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_key_event",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_key_event",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_key_event",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_key_event",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_key_event",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_key_event",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_key_event",
+      "role": "host",
+      "phase": "active",
+      "kind": "key_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_key_event",
+      "role": "client",
+      "phase": "active",
+      "kind": "key_event",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_button_event",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_button_event",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_button_event",
+      "role": "host",
+      "phase": "announced",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_button_event",
+      "role": "client",
+      "phase": "announced",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_button_event",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_button_event",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_button_event",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_button_event",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_button_event",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_button_event",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_button_event",
+      "role": "host",
+      "phase": "active",
+      "kind": "button_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_button_event",
+      "role": "client",
+      "phase": "active",
+      "kind": "button_event",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_scroll_event",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_scroll_event",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_scroll_event",
+      "role": "host",
+      "phase": "announced",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_scroll_event",
+      "role": "client",
+      "phase": "announced",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_scroll_event",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_scroll_event",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_scroll_event",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_scroll_event",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_scroll_event",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_scroll_event",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_scroll_event",
+      "role": "host",
+      "phase": "active",
+      "kind": "scroll_event",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_scroll_event",
+      "role": "client",
+      "phase": "active",
+      "kind": "scroll_event",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_release_input",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_release_input",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_release_input",
+      "role": "host",
+      "phase": "announced",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_release_input",
+      "role": "client",
+      "phase": "announced",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_release_input",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_release_input",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_release_input",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_release_input",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_release_input",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_video_ack_accepted_release_input",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_release_input",
+      "role": "host",
+      "phase": "active",
+      "kind": "release_input",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_active_release_input",
+      "role": "client",
+      "phase": "active",
+      "kind": "release_input",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_heartbeat",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "heartbeat",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_heartbeat",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "heartbeat",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_heartbeat",
+      "role": "host",
+      "phase": "announced",
+      "kind": "heartbeat",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_heartbeat",
+      "role": "client",
+      "phase": "announced",
+      "kind": "heartbeat",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_heartbeat",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "heartbeat",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_heartbeat",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "heartbeat",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_heartbeat",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "heartbeat",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_heartbeat",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "heartbeat",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_heartbeat",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "heartbeat",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_video_ack_accepted_heartbeat",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "heartbeat",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_heartbeat",
+      "role": "host",
+      "phase": "active",
+      "kind": "heartbeat",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_heartbeat",
+      "role": "client",
+      "phase": "active",
+      "kind": "heartbeat",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_clock_ping",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "clock_ping",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_clock_ping",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "clock_ping",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_clock_ping",
+      "role": "host",
+      "phase": "announced",
+      "kind": "clock_ping",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_clock_ping",
+      "role": "client",
+      "phase": "announced",
+      "kind": "clock_ping",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_clock_ping",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "clock_ping",
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "client_profile_accepted_clock_ping",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "clock_ping",
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "host_profile_rejected_clock_ping",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "clock_ping",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_clock_ping",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "clock_ping",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_clock_ping",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "clock_ping",
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "client_video_ack_accepted_clock_ping",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "clock_ping",
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "host_active_clock_ping",
+      "role": "host",
+      "phase": "active",
+      "kind": "clock_ping",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_clock_ping",
+      "role": "client",
+      "phase": "active",
+      "kind": "clock_ping",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_clock_pong",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "clock_pong",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_clock_pong",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "clock_pong",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_clock_pong",
+      "role": "host",
+      "phase": "announced",
+      "kind": "clock_pong",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_clock_pong",
+      "role": "client",
+      "phase": "announced",
+      "kind": "clock_pong",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_clock_pong",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "clock_pong",
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "client_profile_accepted_clock_pong",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "clock_pong",
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "host_profile_rejected_clock_pong",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "clock_pong",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_clock_pong",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "clock_pong",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_clock_pong",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "clock_pong",
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "client_video_ack_accepted_clock_pong",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "clock_pong",
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "host_active_clock_pong",
+      "role": "host",
+      "phase": "active",
+      "kind": "clock_pong",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_clock_pong",
+      "role": "client",
+      "phase": "active",
+      "kind": "clock_pong",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "host_bootstrap_display_settings",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_bootstrap_display_settings",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_display_settings",
+      "role": "host",
+      "phase": "announced",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_announced_display_settings",
+      "role": "client",
+      "phase": "announced",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_accepted_display_settings",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_accepted_display_settings",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_profile_rejected_display_settings",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "client_profile_rejected_display_settings",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_video_ack_accepted_display_settings",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "display_settings",
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "client_video_ack_accepted_display_settings",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_active_display_settings",
+      "role": "host",
+      "phase": "active",
+      "kind": "display_settings",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_display_settings",
+      "role": "client",
+      "phase": "active",
+      "kind": "display_settings",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_bootstrap_fatal_report",
+      "role": "host",
+      "phase": "bootstrap",
+      "kind": "fatal_report",
+      "verdict": "accept:bootstrap"
+    },
+    {
+      "name": "client_bootstrap_fatal_report",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "fatal_report",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "host_announced_fatal_report",
+      "role": "host",
+      "phase": "announced",
+      "kind": "fatal_report",
+      "verdict": "accept:announced"
+    },
+    {
+      "name": "client_announced_fatal_report",
+      "role": "client",
+      "phase": "announced",
+      "kind": "fatal_report",
+      "verdict": "accept:announced"
+    },
+    {
+      "name": "host_profile_accepted_fatal_report",
+      "role": "host",
+      "phase": "profile_accepted",
+      "kind": "fatal_report",
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "client_profile_accepted_fatal_report",
+      "role": "client",
+      "phase": "profile_accepted",
+      "kind": "fatal_report",
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "host_profile_rejected_fatal_report",
+      "role": "host",
+      "phase": "profile_rejected",
+      "kind": "fatal_report",
+      "verdict": "accept:profile_rejected"
+    },
+    {
+      "name": "client_profile_rejected_fatal_report",
+      "role": "client",
+      "phase": "profile_rejected",
+      "kind": "fatal_report",
+      "verdict": "accept:profile_rejected"
+    },
+    {
+      "name": "host_video_ack_accepted_fatal_report",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "kind": "fatal_report",
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "client_video_ack_accepted_fatal_report",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "kind": "fatal_report",
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "host_active_fatal_report",
+      "role": "host",
+      "phase": "active",
+      "kind": "fatal_report",
+      "verdict": "accept:active"
+    },
+    {
+      "name": "client_active_fatal_report",
+      "role": "client",
+      "phase": "active",
+      "kind": "fatal_report",
+      "verdict": "accept:active"
+    }
+  ],
+  "video_ack": [
+    {
+      "name": "video_ack_bootstrap",
+      "phase": "bootstrap",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "video_ack_announced",
+      "phase": "announced",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "video_ack_profile_accepted",
+      "phase": "profile_accepted",
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "video_ack_profile_rejected",
+      "phase": "profile_rejected",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "video_ack_video_ack_accepted",
+      "phase": "video_ack_accepted",
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "video_ack_active",
+      "phase": "active",
+      "verdict": "PROTOCOL_VIOLATION"
+    }
+  ]
+}

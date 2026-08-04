@@ -29,6 +29,17 @@ public final class VideoEncoder {
         public var bitrateBps: UInt32 = 20_000_000
         public var keyframeIntervalSeconds: Double = 1.0
         public var codec: Codec = .h264
+        /// Failure-injection test seam (A00_REMEDIATION_PLAN.md §5 R3a):
+        /// when true, `start()` treats `VTCompressionSessionPrepareToEncodeFrames`
+        /// as if it failed — with an unmistakably synthetic `OSStatus` — even
+        /// though the real call still runs first. Exists because Prepare's
+        /// status, unlike every other property this method sets, is
+        /// generated and consumed entirely inside `start()`: Doctor.swift
+        /// has no externally observable success/fail signal it could
+        /// override after the fact the way it does for its own local checks
+        /// (`RESC_DOCTOR_INJECT=prepare`). Always `false` outside doctor
+        /// mode; never set by the real host or HarnessSender.
+        public var forcePrepareFailure: Bool = false
 
         public init(width: Int32, height: Int32, fps: Double = 60.0, bitrateBps: UInt32 = 20_000_000,
                     keyframeIntervalSeconds: Double = 1.0, codec: Codec = .h264) {
@@ -50,7 +61,12 @@ public final class VideoEncoder {
         }
     }
 
-    public typealias OutputCallback = (Data, Bool, CMTime, Double) -> Void
+    /// `Data, isKeyframe, presentationTime, encodeDurationMs, identity` — the
+    /// last parameter is the capture identity submitted alongside this frame
+    /// (`encode(identity:)`), recovered exactly for this exact submit
+    /// (A00_REMEDIATION_PLAN.md §4 items 4–5). `nil` for callers with no
+    /// capture identity to carry (e.g. HarnessSender's synthetic source).
+    public typealias OutputCallback = (Data, Bool, CMTime, Double, FrameIdentity?) -> Void
 
     // MARK: - Properties
 
@@ -106,44 +122,73 @@ public final class VideoEncoder {
             throw EncoderError.sessionCreationFailed(status)
         }
 
+        // Every VTSessionSetProperty call below is checked
+        // (A00_REMEDIATION_PLAN.md §5 R3a / F5 — pulled forward from its
+        // former T1 slot): on failure the session is invalidated before
+        // throwing so no half-configured session ever leaks past this
+        // method. `key as String` gives the exact property name (these
+        // constants' underlying CFString values are the bare property
+        // names, e.g. "AverageBitRate") for EncoderError.propertySetFailed.
+        func setProperty(_ key: CFString, _ value: CFTypeRef) throws {
+            let status = VTSessionSetProperty(session, key: key, value: value)
+            guard status == noErr else {
+                VTCompressionSessionInvalidate(session)
+                throw EncoderError.propertySetFailed(key: key as String, status: status)
+            }
+        }
+
         // Low-latency streaming settings (shared for both codecs)
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_RealTime, value: kCFBooleanTrue)
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_ProfileLevel, value: profileLevel)
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AverageBitRate,
-                             value: config.bitrateBps as CFNumber)
+        try setProperty(kVTCompressionPropertyKey_RealTime, kCFBooleanTrue)
+        try setProperty(kVTCompressionPropertyKey_ProfileLevel, profileLevel)
+        try setProperty(kVTCompressionPropertyKey_AverageBitRate, config.bitrateBps as CFNumber)
 
         // Keyframe interval
         let keyframeInterval = Int32(config.fps * config.keyframeIntervalSeconds)
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxKeyFrameInterval,
-                             value: keyframeInterval as CFNumber)
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration,
-                             value: config.keyframeIntervalSeconds as CFNumber)
+        try setProperty(kVTCompressionPropertyKey_MaxKeyFrameInterval, keyframeInterval as CFNumber)
+        try setProperty(kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, config.keyframeIntervalSeconds as CFNumber)
 
         // Data rate limits
         let bytesPerSec = Double(config.bitrateBps) / 8.0
         let limits: [Double] = [bytesPerSec * 2.0, 0.1]
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_DataRateLimits,
-                             value: limits as CFArray)
+        try setProperty(kVTCompressionPropertyKey_DataRateLimits, limits as CFArray)
 
         // No B-frames (reduces latency)
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AllowFrameReordering,
-                             value: kCFBooleanFalse)
+        try setProperty(kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse)
 
         // CABAC for H.264
         if config.codec == .h264 {
-            VTSessionSetProperty(session, key: kVTCompressionPropertyKey_H264EntropyMode,
-                                 value: kVTH264EntropyMode_CABAC)
+            try setProperty(kVTCompressionPropertyKey_H264EntropyMode, kVTH264EntropyMode_CABAC)
         }
 
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_ExpectedFrameRate,
-                             value: config.fps as CFNumber)
+        try setProperty(kVTCompressionPropertyKey_ExpectedFrameRate, config.fps as CFNumber)
 
         if #available(macOS 14.0, *) {
-            VTSessionSetProperty(session, key: kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
-                                 value: kCFBooleanFalse)
+            // Deliberate exception (A00_REMEDIATION_PLAN.md §5 R3a): this is
+            // a macOS 14+ speed/quality hint, not load-bearing for the
+            // encode path itself, so it is the one property allowed to
+            // WARN-and-continue instead of aborting session setup on
+            // failure. The exact status is named so the warning stays
+            // diagnostic rather than silent.
+            let speedStatus = VTSessionSetProperty(session, key: kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
+                                                    value: kCFBooleanFalse)
+            if speedStatus != noErr {
+                print("[RESC] WARNING: VTSessionSetProperty(PrioritizeEncodingSpeedOverQuality) failed: status=\(speedStatus) — continuing (optional quality hint, not load-bearing)")
+            }
         }
 
-        VTCompressionSessionPrepareToEncodeFrames(session)
+        var prepareStatus = VTCompressionSessionPrepareToEncodeFrames(session)
+        if config.forcePrepareFailure {
+            // Doctor-mode failure-injection seam — see Config.forcePrepareFailure's
+            // doc comment. The real call above still ran; only the status
+            // this method reacts to is overridden, with an unmistakably
+            // synthetic value so it is never confused with a genuine
+            // OSStatus in logs/evidence.
+            prepareStatus = -123_456_789
+        }
+        guard prepareStatus == noErr else {
+            VTCompressionSessionInvalidate(session)
+            throw EncoderError.prepareFailed(prepareStatus)
+        }
         self.session = session
 
         let bitrateStr = config.bitrateBps >= 1_000_000
@@ -166,7 +211,13 @@ public final class VideoEncoder {
 
     // MARK: - Encode
 
-    public func encode(pixelBuffer: CVPixelBuffer, presentationTime: CMTime) {
+    /// `identity`, when non-nil, is the exact capture identity of
+    /// `pixelBuffer` — captured here in the per-submit closure exactly like
+    /// `presentationTime`/`encodeStart` already are, so the asynchronous
+    /// output callback below recovers the identity belonging to this exact
+    /// submitted frame, not whatever the latest capture happens to be by the
+    /// time the callback fires (A00_REMEDIATION_PLAN.md §4 items 4–5).
+    public func encode(pixelBuffer: CVPixelBuffer, presentationTime: CMTime, identity: FrameIdentity? = nil) {
         guard let session = session else { return }
 
         let encodeStart = CFAbsoluteTimeGetCurrent()
@@ -210,7 +261,7 @@ public final class VideoEncoder {
                 print("[RESC] Encode: \(self.frameCount) frames, \(self.keyframeCount) KF, avg \(String(format: "%.1f", avgMs))ms [\(codec)]")
             }
 
-            self.outputCallback(annexBData, isKeyframe, presentationTime, encodeDuration)
+            self.outputCallback(annexBData, isKeyframe, presentationTime, encodeDuration, identity)
         }
 
         if status != noErr {
@@ -239,9 +290,18 @@ public final class VideoEncoder {
 
     public enum EncoderError: Error, CustomStringConvertible {
         case sessionCreationFailed(OSStatus)
+        /// A `VTSessionSetProperty` call failed (A00_REMEDIATION_PLAN.md §5
+        /// R3a / F5). `key` is the property's bare name (e.g.
+        /// "AverageBitRate"), read back from the CFString constant itself
+        /// so it can never drift from what was actually set.
+        case propertySetFailed(key: String, status: OSStatus)
+        /// `VTCompressionSessionPrepareToEncodeFrames` failed.
+        case prepareFailed(OSStatus)
         public var description: String {
             switch self {
             case .sessionCreationFailed(let s): return "VTCompressionSession creation failed: \(s)"
+            case .propertySetFailed(let key, let status): return "VTSessionSetProperty(\(key)) failed: \(status)"
+            case .prepareFailed(let status): return "VTCompressionSessionPrepareToEncodeFrames failed: \(status)"
             }
         }
     }

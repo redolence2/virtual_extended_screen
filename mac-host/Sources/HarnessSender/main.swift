@@ -179,6 +179,7 @@ final class HarnessPump: @unchecked Sendable {
     private var sentCount = 0
     private var pendingReplacedCount = 0
     private var ackOrderViolationCount = 0
+    private var writeErrorCount = 0
     private var rttSamplesMs: [Double] = []
     private var encodeSamplesMs: [Double] = []
     private var byteSamples: [Double] = []
@@ -226,16 +227,22 @@ final class HarnessPump: @unchecked Sendable {
     }
 
     /// Queue-confined (`lock` held by both callers above): assigns the next
-    /// ordinal, reserves its outstanding slot, builds and writes the wire
-    /// record, and — only once the write actually completes — stamps the
-    /// submit time RTT is measured from. encode_ms/bytes samples are taken
-    /// here too (both already known, independent of the ACK round trip).
+    /// ordinal, builds and writes the wire record, and — only once the
+    /// write is CONFIRMED complete (`writeFull` true) — reserves the
+    /// outstanding slot and counts the frame as sent. encode_ms/bytes
+    /// samples are taken unconditionally (both already known, independent
+    /// of whether the write below succeeds).
+    ///
+    /// F6 predicate hardening (A00_REMEDIATION_PLAN.md §5 R3a): previously
+    /// `sentCount` incremented before the write was even attempted, so a
+    /// failed/short write still counted as "sent" with no ACK ever able to
+    /// arrive for it. Any write failure now fail-stops the run (`stopped =
+    /// true`) instead of silently continuing — the same mechanism an
+    /// ACK-order violation already uses to end generation early.
     private func reserveAndSend(_ record: EncodedRecord) {
         let ordinal = nextOrdinal
         nextOrdinal += 1
         let flags: UInt8 = record.isKeyframe ? 0x01 : 0x00
-        outstanding[ordinal] = Outstanding(submitTimeUs: nil)
-        sentCount += 1
         encodeSamplesMs.append(record.encodeMs)
         let recordBytes = 32 + record.payload.count
         byteSamples.append(Double(recordBytes))
@@ -243,9 +250,12 @@ final class HarnessPump: @unchecked Sendable {
         let wireData = buildFrameRecord(ordinal: ordinal, flags: flags, captureSeq: record.captureSeq,
                                          contentCaptureTsUs: record.contentCaptureTsUs, payload: record.payload)
         if writeFull(socketFd, wireData) {
-            outstanding[ordinal]?.submitTimeUs = continuousNowUs()
+            outstanding[ordinal] = Outstanding(submitTimeUs: continuousNowUs())
+            sentCount += 1
         } else {
-            print("[HARNESS] socket write failed/short (ordinal=\(ordinal), \(recordBytes)B): errno=\(errno)")
+            writeErrorCount += 1
+            stopped = true
+            print("[HARNESS] socket write failed/short (ordinal=\(ordinal), \(recordBytes)B): errno=\(errno) — fail-and-STOP (F6)")
         }
     }
 
@@ -264,6 +274,7 @@ final class HarnessPump: @unchecked Sendable {
         let framesAcked: Int
         let pendingReplaced: Int
         let ackOrderViolation: Int
+        let writeErrors: Int
         let rttMs: [Double]
         let encodeMs: [Double]
         let bytes: [Double]
@@ -273,6 +284,7 @@ final class HarnessPump: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         return Snapshot(framesSent: sentCount, framesAcked: rttSamplesMs.count,
                          pendingReplaced: pendingReplacedCount, ackOrderViolation: ackOrderViolationCount,
+                         writeErrors: writeErrorCount,
                          rttMs: rttSamplesMs, encodeMs: encodeSamplesMs, bytes: byteSamples)
     }
 }
@@ -323,7 +335,12 @@ var captureMetaBySeq: [UInt32: UInt64] = [:]
 var encoderConfig = VideoEncoder.Config(width: profileWidth, height: profileHeight, fps: profileFps, codec: .hevc)
 encoderConfig.bitrateBps = bitrateBps
 
-let encoder = VideoEncoder(config: encoderConfig) { annexBData, isKeyframe, pts, encodeDurationMs in
+let encoder = VideoEncoder(config: encoderConfig) { annexBData, isKeyframe, pts, encodeDurationMs, _ in
+    // Identity ignored: this harness drives a synthetic bar-pattern source
+    // with no CapturedFrame behind it, so there is no capture identity to
+    // carry — captureSeq/contentCaptureTsUs below are this harness's own
+    // pre-existing correlation mechanism, unrelated to VideoEncoder's
+    // capture-identity parameter.
     let seq = UInt32(pts.value)
     captureMetaLock.lock()
     let capTs = captureMetaBySeq.removeValue(forKey: seq) ?? continuousNowUs()
@@ -469,7 +486,7 @@ while continuousNowUs() < runEndUs {
     encoder.encode(pixelBuffer: pb, presentationTime: pts)
 
     if pump.isStopped {
-        print("[HARNESS] Pump stopped (ACK order violation) — ending generation early")
+        print("[HARNESS] Pump stopped (ACK order violation or write error — F6 fail-stop) — ending generation early")
         break
     }
 
@@ -494,8 +511,18 @@ encoder.stop()
 // MARK: - Report
 
 let snap = pump.snapshot()
+let outstandingAtEnd = pump.outstandingCount
 let achievedFps = Double(snap.framesSent) / Double(seconds)
-let sustained60Hz = achievedFps >= 59.0
+// F6 predicate hardening (A00_REMEDIATION_PLAN.md §5 R3a): sustained_60hz is
+// no longer an achieved-fps threshold — it is the pure HarnessVerdict.evaluate
+// predicate (RescCore/HarnessVerdict.swift), true only if every confirmed-sent
+// frame was acked, nothing is left outstanding, the ACK reader saw zero
+// order violations, and no socket write ever failed. achieved_fps is still
+// reported below as an informational metric.
+let sustained60Hz = HarnessVerdict.evaluate(sent: snap.framesSent, acked: snap.framesAcked,
+                                             outstanding: outstandingAtEnd,
+                                             orderViolations: snap.ackOrderViolation,
+                                             writeErrors: snap.writeErrors)
 
 func percentiles(_ samples: [Double]) -> [String: Double] {
     guard !samples.isEmpty else { return ["p50": 0, "p95": 0, "max": 0] }
@@ -507,18 +534,22 @@ func percentiles(_ samples: [Double]) -> [String: Double] {
     return ["p50": at(0.50), "p95": at(0.95), "max": sorted.last ?? 0]
 }
 
-// Note: ack_order_violation (snap.ackOrderViolation) is tracked per the spec
-// (§ACK reader thread) but is not part of the harness_report_v1 field list
-// below; it is surfaced via the console prints above instead of widening the
-// JSON schema unilaterally.
+// ack_order_violation (snap.ackOrderViolation) was tracked internally but
+// omitted from harness_report_v1's field list (the A0.0 deviation №6 note:
+// the worker declined to widen the schema unilaterally). R3a's remediation
+// plan now explicitly authorizes the widening: bumped to harness_report_v2
+// with ack_order_violation, write_errors, and outstanding_at_end added below.
 let report: [String: Any] = [
-    "harness_report_v": 1,
+    "harness_report_v": 2,
     "window": window,
     "seconds": seconds,
     "frames_sent": snap.framesSent,
     "frames_acked": snap.framesAcked,
     "achieved_fps": achievedFps,
     "pending_replaced": snap.pendingReplaced,
+    "ack_order_violation": snap.ackOrderViolation,
+    "write_errors": snap.writeErrors,
+    "outstanding_at_end": outstandingAtEnd,
     "rtt_ms": percentiles(snap.rttMs),
     "encode_ms": percentiles(snap.encodeMs),
     "bytes": percentiles(snap.bytes),
@@ -543,6 +574,9 @@ if let path = jsonOutPath {
 
 print("[HARNESS] Done. frames_sent=\(snap.framesSent) frames_acked=\(snap.framesAcked) " +
       "pending_replaced=\(snap.pendingReplaced) ack_order_violation=\(snap.ackOrderViolation) " +
+      "write_errors=\(snap.writeErrors) outstanding_at_end=\(outstandingAtEnd) " +
       "achieved_fps=\(String(format: "%.1f", achievedFps)) sustained_60hz=\(sustained60Hz)")
 
-exit(0)
+// F6: nonzero process exit on ANY failed predicate — HarnessVerdict.evaluate
+// already ANDs all of them together, so its result alone gates the exit code.
+exit(sustained60Hz ? 0 : 1)

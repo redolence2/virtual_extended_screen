@@ -2,15 +2,22 @@ import Foundation
 import ScreenCaptureKit
 import CoreMedia
 import CoreVideo
+import RescCore
 
 /// Captures frames from a specific display using ScreenCaptureKit.
-/// Writes to a LatestFrameSlot for decoupled encoder consumption.
+/// Writes to a GenerationalFrameSlot for decoupled encoder consumption.
+/// Each capture run's SCStreamOutput (CaptureRunOutput below) is bound to
+/// its own generation token at creation — see CONTRACT_ERRATA.md
+/// "Implementation proofs required" › late capture callbacks.
 final class DisplayCapturer: NSObject {
 
     // MARK: - Properties
 
     private var stream: SCStream?
-    private let frameSlot: LatestFrameSlot
+    /// Retained for the run's lifetime — DisplayCapturer no longer conforms
+    /// to SCStreamOutput itself (see CaptureRunOutput below).
+    private var runOutput: CaptureRunOutput?
+    private let frameSlot: GenerationalFrameSlot<CVPixelBuffer>
     private let targetDisplayID: CGDirectDisplayID
     private let captureWidth: Int
     private let captureHeight: Int
@@ -22,12 +29,9 @@ final class DisplayCapturer: NSObject {
     private var lastFPSLogTime: CFAbsoluteTime = 0
     private var framesSinceLastLog: UInt64 = 0
 
-    // A0 trace mode only (RESC_TRACE=1) — see RescTrace.swift.
-    private var traceCaptureSeq: UInt64 = 0
-
     // MARK: - Init
 
-    init(displayID: CGDirectDisplayID, width: Int, height: Int, frameSlot: LatestFrameSlot) {
+    init(displayID: CGDirectDisplayID, width: Int, height: Int, frameSlot: GenerationalFrameSlot<CVPixelBuffer>) {
         self.targetDisplayID = displayID
         self.captureWidth = width
         self.captureHeight = height
@@ -68,10 +72,22 @@ final class DisplayCapturer: NSObject {
         config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
-        try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: captureQueue)
+
+        // §4 item 1 / CONTRACT_ERRATA.md late-capture-callbacks proof: mint
+        // this run's generation token BEFORE creating its SCStreamOutput,
+        // so the output can bind to it at creation. beginGeneration() also
+        // atomically invalidates any earlier run's token, so a callback
+        // still in flight from a just-torn-down stream (the -3805 restart
+        // path in the SCStreamDelegate extension below reuses this same
+        // DisplayCapturer instance) carries an old token and
+        // GenerationalFrameSlot.store rejects it.
+        let generation = frameSlot.beginGeneration()
+        let runOutput = CaptureRunOutput(generation: generation, frameSlot: frameSlot, parent: self)
+        try stream.addStreamOutput(runOutput, type: .screen, sampleHandlerQueue: captureQueue)
 
         try await stream.startCapture()
         self.stream = stream
+        self.runOutput = runOutput
         self.captureStartTime = CFAbsoluteTimeGetCurrent()
         self.lastFPSLogTime = captureStartTime
 
@@ -87,53 +103,34 @@ final class DisplayCapturer: NSObject {
             }
             self.stream = nil
         }
+        // Release this run's output binding and end its generation: any
+        // frame still sitting in the slot from this run is discarded
+        // (dropCount+1) and the token is invalidated, so a callback that
+        // still fires afterward (the just-retired CaptureRunOutput, still
+        // referenced by the now-dead SCStream) can only ever produce a
+        // .rejectedStale store.
+        self.runOutput = nil
+        frameSlot.endGeneration()
         print("[RESC] Capture stopped. Total frames: \(totalFrames), dropped: \(frameSlot.dropCount)")
     }
 
-    // MARK: - Errors
+    // MARK: - Stats (called by the active run's CaptureRunOutput)
 
-    enum CaptureError: Error, CustomStringConvertible {
-        case displayNotFound(CGDirectDisplayID)
-
-        var description: String {
-            switch self {
-            case .displayNotFound(let id): return "Display \(id) not found in SCShareableContent"
-            }
-        }
-    }
-}
-
-// MARK: - SCStreamOutput
-
-extension DisplayCapturer: SCStreamOutput {
-    func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard type == .screen else { return }
-
-        // Extract pixel buffer — MUST return immediately (no heavy work)
-        guard let pixelBuffer = sampleBuffer.imageBuffer else { return }
-
+    /// Aggregate stats spanning the whole `DisplayCapturer` lifetime
+    /// (including -3805 restarts) — same scope `totalFrames` always had;
+    /// just relocated here now that the SCStreamOutput callback itself
+    /// lives on `CaptureRunOutput` instead of on `DisplayCapturer`.
+    fileprivate func noteFrameCaptured(pixelFormat: OSType) {
         // Check for BGRA fallback (log once if unexpected format)
-        let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
         if totalFrames == 0 {
             let formatStr: String
-            switch format {
+            switch pixelFormat {
             case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange: formatStr = "NV12"
             case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange: formatStr = "NV12-full"
             case kCVPixelFormatType_32BGRA: formatStr = "BGRA (will convert on encoder thread)"
-            default: formatStr = String(format: "0x%08X", format)
+            default: formatStr = String(format: "0x%08X", pixelFormat)
             }
             print("[RESC] First frame pixel format: \(formatStr)")
-        }
-
-        // Store in slot — this is lock-free and returns immediately
-        frameSlot.store(pixelBuffer)
-
-        // A0 trace mode only (RESC_TRACE=1): join capture-side metadata for
-        // RescTrace.frameSent. No-op (and no continuousNowUs() call) when
-        // tracing is disabled.
-        if RescTrace.enabled {
-            traceCaptureSeq &+= 1
-            RescTrace.shared.captureMeta(captureSeq: traceCaptureSeq, contentCaptureTsUs: RescClockBridge.continuousNowUs())
         }
 
         totalFrames += 1
@@ -152,6 +149,18 @@ extension DisplayCapturer: SCStreamOutput {
             lastFPSLogTime = now
         }
     }
+
+    // MARK: - Errors
+
+    enum CaptureError: Error, CustomStringConvertible {
+        case displayNotFound(CGDirectDisplayID)
+
+        var description: String {
+            switch self {
+            case .displayNotFound(let id): return "Display \(id) not found in SCShareableContent"
+            }
+        }
+    }
 }
 
 // MARK: - SCStreamDelegate
@@ -160,7 +169,13 @@ extension DisplayCapturer: SCStreamDelegate {
     func stream(_ stream: SCStream, didStopWithError error: Error) {
         let errMsg = "\(error)"
         print("[RESC] Capture stream stopped with error: \(error)")
-        // Auto-restart on -3805 (interrupted connection from stale session)
+        // Auto-restart on -3805 (interrupted connection from stale session).
+        // Safe by construction (CONTRACT_ERRATA.md late-capture-callbacks
+        // proof): start() below mints a new generation and a fresh
+        // CaptureRunOutput before starting the new stream, so any callback
+        // still arriving from the old, torn-down stream carries the OLD
+        // generation and GenerationalFrameSlot.store rejects it instead of
+        // populating this new run's slot.
         if errMsg.contains("3805") {
             print("[RESC] Attempting capture restart in 2 seconds...")
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
@@ -174,6 +189,102 @@ extension DisplayCapturer: SCStreamDelegate {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - CaptureRunOutput (per-run SCStreamOutput)
+
+/// One instance per capture run, created in `start()` immediately after
+/// `frameSlot.beginGeneration()` and bound to that generation for its
+/// entire lifetime (A00_REMEDIATION_PLAN.md §4 item 1). `DisplayCapturer`
+/// no longer conforms to `SCStreamOutput` itself — every run gets its own
+/// output object so a callback surviving past its run's teardown still
+/// carries that run's (now stale) generation and cannot be mistaken for
+/// output from whichever run is current. See CONTRACT_ERRATA.md
+/// "Implementation proofs required" › late capture callbacks.
+private final class CaptureRunOutput: NSObject, SCStreamOutput {
+    private let generation: UInt64
+    private let frameSlot: GenerationalFrameSlot<CVPixelBuffer>
+    private weak var parent: DisplayCapturer?
+
+    /// Per-run capture sequence — starts at 0, first frame is 1.
+    private var captureSeq: UInt64 = 0
+    /// Per-run cached host-time↔continuous-time anchor, refreshed whenever
+    /// a fresh bracket succeeds; the last good one is kept otherwise (plan
+    /// §4's "Nil SCK sync clock" rule: never silently mix a fallback
+    /// sample with true SCK-PTS samples).
+    private var calibration: RescClockBridge.Calibration?
+    private var loggedStaleReject = false
+
+    /// Conservative uncertainty for the callback-time fallback path: one
+    /// 60Hz frame period. Labeled, not measured — plan §4's "Nil SCK sync
+    /// clock" rule requires a fallback sample to carry a larger,
+    /// conservative bound rather than pretend to PTS-level precision.
+    private static let fallbackUncertaintyUs: UInt64 = 16_667
+
+    init(generation: UInt64, frameSlot: GenerationalFrameSlot<CVPixelBuffer>, parent: DisplayCapturer) {
+        self.generation = generation
+        self.frameSlot = frameSlot
+        self.parent = parent
+    }
+
+    func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
+        guard type == .screen else { return }
+
+        // Extract pixel buffer — MUST return immediately (no heavy work)
+        guard let pixelBuffer = sampleBuffer.imageBuffer else { return }
+
+        captureSeq &+= 1
+        let seq = captureSeq
+
+        // Identity timestamp: prefer SCK's own presentation timestamp,
+        // bridged into the host continuous-monotonic domain; fall back to
+        // a labeled, conservatively-bounded callback-time read when SCK
+        // gives no usable PTS or no calibration has ever succeeded
+        // (A00_REMEDIATION_PLAN.md §4 item 1; CaptureTsSource).
+        if let freshCal = RescClockBridge.bracketedHostTimeCalibration() {
+            calibration = freshCal
+        }
+
+        let captureTsUs: UInt64
+        let tsSource: CaptureTsSource
+        let uncertaintyUs: UInt64
+
+        let pts = sampleBuffer.presentationTimeStamp
+        if CMTIME_IS_VALID(pts), pts != .zero, let cal = calibration {
+            // SCK's sample-buffer PTS is already expressed in the host
+            // (mach_absolute_time) domain on macOS, so no CMSyncConvertTime
+            // call is needed here — just read it as seconds and bridge
+            // through the cached calibration anchor.
+            let hostTimeUs = UInt64(CMTimeGetSeconds(pts) * 1_000_000)
+            captureTsUs = RescClockBridge.hostTimeToContinuousUs(hostTimeUs, calibration: cal)
+            tsSource = .sckPts
+            uncertaintyUs = cal.uncertaintyUs
+        } else {
+            captureTsUs = RescClockBridge.continuousNowUs()
+            tsSource = .callbackFallback
+            uncertaintyUs = Self.fallbackUncertaintyUs
+        }
+
+        let frame = CapturedFrame(
+            pixels: pixelBuffer, generation: generation, captureSeq: seq,
+            captureTsUs: captureTsUs, tsSource: tsSource, uncertaintyUs: uncertaintyUs
+        )
+
+        let outcome = frameSlot.store(frame)
+        switch outcome {
+        case .rejectedStale:
+            // Evidence of the late-callback path actually firing — see
+            // CONTRACT_ERRATA.md late-capture-callbacks proof. Rate-limited:
+            // this run's stream can keep delivering stale callbacks for a
+            // while after teardown and there is no value in a line per one.
+            if !loggedStaleReject {
+                loggedStaleReject = true
+                print("[RESC] Late capture callback rejected (stale generation \(generation)) — torn-down run's SCStreamOutput still firing")
+            }
+        case .stored, .storedReplacingDropped:
+            parent?.noteFrameCaptured(pixelFormat: CVPixelBufferGetPixelFormatType(pixelBuffer))
         }
     }
 }

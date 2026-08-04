@@ -13,6 +13,19 @@
 //! downcasts to [`BackendOpenError`] identifying which native call (or which
 //! invalid id) failed. There is no fallback between the two IDs, or to any
 //! third option, ever (`CONTRACT_ERRATA.md` ERR-02).
+//!
+//! [`loop_engine`] extracts the retain-drain-resubmit / EOF-tail-drain
+//! state machine behind the [`loop_engine::DecoderLoopBackend`] trait seam
+//! (`A00_REMEDIATION_PLAN.md` §3 D2 / §5 R6), so it is unit-testable
+//! against a scripted double and shared, unchanged, by both
+//! `decoder-experiment` and `harness-receiver`.
+
+pub mod loop_engine;
+
+pub use loop_engine::{
+    drain_fully, flush_tail, submit_with_retry, AttemptRecord, DecoderLoopBackend, FlushRecord,
+    FrameOutcome, SendOutcome, SubmitRecord,
+};
 
 use anyhow::Result;
 

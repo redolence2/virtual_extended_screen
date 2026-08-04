@@ -19,6 +19,12 @@ _ = RescLog.shared
 EnvironmentRecord.emit()
 guard InstanceLock.acquire(profileId: "moyunfei-desk-1") else {
     print("RESC host: another instance holds the profile lock — exiting")
+    // Exit-path flush (A00_REMEDIATION_PLAN.md §5 R3a): every deliberate
+    // exit gets a synchronous evidence record before the process actually
+    // exits. fatal() is synchronous end-to-end (queue.sync + an in-band
+    // flush()), so this record is durable before exit(20) runs below.
+    RescLog.shared.fatal(code: 20, component: "instance_lock", nativeDomain: nil, nativeCode: nil,
+                          summary: "another instance holds the profile lock (INSTANCE_LOCK_HELD)")
     exit(20) // 20 = INSTANCE_LOCK_HELD in the v3 FatalCode enum (proto/control_v3.proto)
 }
 
@@ -84,7 +90,7 @@ let framePacer = FramePacer()
 framePacer.start(displayID: displayHandle.lastKnownDisplayID, fps: Double(refreshRate))
 
 // Set up capture pipeline
-let frameSlot = LatestFrameSlot()
+let frameSlot = GenerationalFrameSlot<CVPixelBuffer>()
 let capturer = DisplayCapturer(
     displayID: displayHandle.lastKnownDisplayID,
     width: width, height: height, frameSlot: frameSlot
@@ -118,23 +124,34 @@ encoderConfig.bitrateBps = {
 }()
 print("[RESC] Codec: \(encoderConfig.codec), bitrate: \(encoderConfig.bitrateBps / 1_000_000)Mbps")
 
-let encoder = VideoEncoder(config: encoderConfig) { annexBData, isKeyframe, pts, encodeDurationMs in
+let encoder = VideoEncoder(config: encoderConfig) { annexBData, isKeyframe, pts, encodeDurationMs, identity in
+    // Encoder-output time, read at VT-callback entry — distinct from the
+    // send-time stamp VideoSender takes adjacent to the socket write
+    // (A00_REMEDIATION_PLAN.md §4 item 5: two separate events, two stamps).
+    let encodeOutTsUs = RescClockBridge.continuousNowUs()
     h264FileHandle?.write(annexBData)
     let timestampUs = UInt64(CMTimeGetSeconds(pts) * 1_000_000)
-    streamingState.sendFrame(data: annexBData, isKeyframe: isKeyframe, timestampUs: timestampUs)
+    streamingState.sendFrame(data: annexBData, isKeyframe: isKeyframe, timestampUs: timestampUs,
+                             identity: identity, encodeOutTsUs: encodeOutTsUs)
 }
 
 // Encoder thread
 let encoderThread = Thread {
     do { try encoder.start() } catch {
-        print("[RESC] ERROR: Encoder start failed: \(error)"); return
+        // A00_REMEDIATION_PLAN.md §5 R3a / F5: every VTSessionSetProperty
+        // and PrepareToEncodeFrames status is now checked (VideoEncoder.swift);
+        // surface a start() failure by exiting nonzero instead of leaving
+        // the process running with no encoder and no streaming.
+        print("[RESC] ERROR: Encoder start failed: \(error)"); exit(1)
     }
     var frameCount: UInt64 = 0
     while !Thread.current.isCancelled {
-        guard let pixelBuffer = frameSlot.waitAndTake() else { continue }
+        guard let captured = frameSlot.waitAndTake() else { continue }
         frameCount += 1
         let pts = CMTime(value: CMTimeValue(frameCount), timescale: Int32(refreshRate))
-        encoder.encode(pixelBuffer: pixelBuffer, presentationTime: pts)
+        // captured.identity rides the encoder submit-context through to the
+        // output callback (A00_REMEDIATION_PLAN.md §4 item 4).
+        encoder.encode(pixelBuffer: captured.pixels, presentationTime: pts, identity: captured.identity)
     }
     encoder.stop()
 }

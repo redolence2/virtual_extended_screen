@@ -92,6 +92,15 @@ pub struct AssembledFrame {
     pub width: u16,
     pub height: u16,
     pub data: Vec<u8>,
+    /// Client receive timestamp (A00_REMEDIATION_PLAN.md §4 item 6: "The
+    /// client timestamps receipt when the complete encoded frame is
+    /// assembled, before any drop-capable queue"). This crate has no
+    /// dependency on `diagnostics`, so [`FrameAssembler::process_chunk`]
+    /// fills in a `0` placeholder here — `net-transport`'s `VideoReceiver`
+    /// (which does depend on `diagnostics`) overwrites it with the real
+    /// `diagnostics::mono_us()` reading immediately upon receiving this
+    /// frame back, before it goes anywhere near the bounded `sync_channel`.
+    pub recv_ts_us: u64,
 }
 
 impl FrameAssembler {
@@ -201,6 +210,9 @@ impl FrameAssembler {
                 width: meta.width,
                 height: meta.height,
                 data: frame_data,
+                // Overwritten by VideoReceiver::run() right after this
+                // returns — see the field doc comment.
+                recv_ts_us: 0,
             });
         }
 

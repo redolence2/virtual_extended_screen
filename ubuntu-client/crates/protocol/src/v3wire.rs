@@ -12,8 +12,6 @@
 //! (or, for the frame header, a fixed-size `&[u8; 32]`) and returns a parsed
 //! record or a [`WireError`]. Callers own the socket/file I/O.
 
-use crate::resc_v3;
-
 // ===========================================================================
 // Wire error
 // ===========================================================================
@@ -493,6 +491,7 @@ pub fn keyframe_claim_matches(s: &NalSummary, claim: bool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::resc_v3;
 
     /// `proto/fixtures/<rel>` relative to this crate — same pattern as
     /// `diagnostics::profile`'s fixture tests.

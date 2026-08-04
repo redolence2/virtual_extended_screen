@@ -94,6 +94,21 @@ final class RescLog {
         }
     }
 
+    /// Synchronous flush (A00_REMEDIATION_PLAN.md §5 R3a): blocks the caller
+    /// until every record buffered so far is written and `synchronizeFile`d
+    /// on the logger's own serial queue — the same guarantee `fatal()`
+    /// already gives its own record, exposed here for callers (Doctor.swift)
+    /// that log via the normal buffered `event()` but still need a specific
+    /// record (`doctor_complete`) to be durable before the process exits.
+    /// `event()` alone is not enough: it is buffered (flushed every 32
+    /// records or 1s) and can lose a record if the process exits first —
+    /// the known bug this closes.
+    func flushNow() {
+        queue.sync {
+            self.flush()
+        }
+    }
+
     // MARK: - Record assembly (queue-confined)
 
     private func baseFields(tsMono: UInt64, tsWall: String, component: String) -> [String: Any] {

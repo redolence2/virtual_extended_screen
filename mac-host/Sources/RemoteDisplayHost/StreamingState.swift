@@ -1,4 +1,5 @@
 import Foundation
+import RescCore
 
 /// Thread-safe streaming state. All access is serialized on a dedicated queue.
 /// Eliminates data races on activeVideoSender, hasSentKeyframe, etc.
@@ -42,7 +43,8 @@ final class StreamingState: @unchecked Sendable {
     /// Called from encoder output callback. Thread-safe.
     /// Returns true if the frame was sent, false if skipped.
     @discardableResult
-    func sendFrame(data: Data, isKeyframe: Bool, timestampUs: UInt64) -> Bool {
+    func sendFrame(data: Data, isKeyframe: Bool, timestampUs: UInt64, identity: FrameIdentity?,
+                   encodeOutTsUs: UInt64) -> Bool {
         queue.sync {
             guard let sender = _sender, _isStreaming else { return false }
 
@@ -56,7 +58,8 @@ final class StreamingState: @unchecked Sendable {
                 }
             }
 
-            sender.sendFrame(data: data, isKeyframe: isKeyframe, timestampUs: timestampUs)
+            sender.sendFrame(data: data, isKeyframe: isKeyframe, timestampUs: timestampUs,
+                             identity: identity, encodeOutTsUs: encodeOutTsUs)
             return true
         }
     }

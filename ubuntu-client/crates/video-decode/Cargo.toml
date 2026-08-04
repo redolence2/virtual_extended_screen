@@ -6,5 +6,7 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 anyhow = "1"
-ffmpeg-next = "7"
-ffmpeg-sys-next = "7"
+# Exact-pinned until this legacy crate is deleted at T1 (review of the A0.0
+# response, F8: prose quarantine is not operational quarantine).
+ffmpeg-next = "=7.1.0"
+ffmpeg-sys-next = "=7.1.3"

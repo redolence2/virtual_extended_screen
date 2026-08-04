@@ -6,6 +6,13 @@ pub struct DecodedFrame {
     pub width: u32,
     pub height: u32,
     pub timestamp_us: u64,
+    /// This *exact emitted frame's* own recovered identity
+    /// (A00_REMEDIATION_PLAN.md §4 item 7: "every emitted decoded frame
+    /// recovers its own PTS; delayed and multi-output emissions never
+    /// inherit the current decode call's ID"). Read from the AVFrame's
+    /// `pts()`, falling back to `best_effort_timestamp()` (`timestamp()`)
+    /// when `pts` is unset; `None` when neither is available.
+    pub recovered_frame_id: Option<u64>,
     pub planes: [Vec<u8>; 3],  // Y, U, V
     pub strides: [usize; 3],
 }
@@ -190,12 +197,20 @@ impl VideoDecoder {
     }
 
     /// Decode an Annex B frame. Returns 0+ decoded frames.
-    pub fn decode(&mut self, data: &[u8], timestamp_us: u64, is_keyframe: bool) -> Result<Vec<DecodedFrame>> {
+    ///
+    /// `frame_id` is the wire `frameID` for this Annex B unit — set as the
+    /// submitted packet's PTS (A00_REMEDIATION_PLAN.md §4 item 7: "the
+    /// decoder packet PTS is set to frameID"). It is *not* the identity of
+    /// any particular emitted frame: with B-frames/reordering one `decode()`
+    /// call can emit 0, 1, or several frames, and each recovers its own PTS
+    /// independently in the loop below — never this call's `frame_id`.
+    pub fn decode(&mut self, data: &[u8], frame_id: u32, timestamp_us: u64, is_keyframe: bool) -> Result<Vec<DecodedFrame>> {
         if self.state == DecoderState::WaitingForIDR && !is_keyframe {
             return Ok(Vec::new());
         }
 
-        let packet = ffmpeg_next::Packet::copy(data);
+        let mut packet = ffmpeg_next::Packet::copy(data);
+        packet.set_pts(Some(frame_id as i64));
         if let Err(e) = self.decoder.send_packet(&packet) {
             self.enter_waiting_for_idr(IDRReason::DecodeError);
             return Err(anyhow::anyhow!("send_packet failed: {}", e));
@@ -276,8 +291,19 @@ impl VideoDecoder {
 
             self.frame_count += 1;
 
+            // A00_REMEDIATION_PLAN.md §4 item 7: recover THIS emission's own
+            // PTS — never the current decode() call's `frame_id` argument.
+            // Read from `decoded` (the raw receive_frame() emission), not
+            // `cpu_frame`: for CUVID, `cpu_frame` is a freshly allocated
+            // `sw_frame` populated by `av_hwframe_transfer_data`, which
+            // copies pixel data only — it does not carry `pts` across the
+            // transfer. `decoded` is re-populated fresh by `receive_frame`
+            // each loop iteration, so this is always the current emission's
+            // own identity, correct for delayed/multi-output emissions.
+            let recovered_frame_id = decoded.pts().or_else(|| decoded.timestamp()).map(|v| v as u64);
+
             // Extract YUV planes — handle both I420 (software) and NV12 (CUVID)
-            let frame = self.extract_yuv(&cpu_frame, timestamp_us);
+            let frame = self.extract_yuv(&cpu_frame, timestamp_us, recovered_frame_id);
             frames.push(frame);
         }
 
@@ -286,7 +312,7 @@ impl VideoDecoder {
 
     /// Extract YUV420P planes from decoded frame.
     /// Handles I420 (software) and NV12 (CUVID GPU→CPU transfer) formats.
-    fn extract_yuv(&self, frame: &ffmpeg_next::frame::Video, timestamp_us: u64) -> DecodedFrame {
+    fn extract_yuv(&self, frame: &ffmpeg_next::frame::Video, timestamp_us: u64, recovered_frame_id: Option<u64>) -> DecodedFrame {
         let w = frame.width() as usize;
         let h = frame.height() as usize;
         let pix_fmt = frame.format();
@@ -325,6 +351,7 @@ impl VideoDecoder {
             width: w as u32,
             height: h as u32,
             timestamp_us,
+            recovered_frame_id,
             planes: [y_data, u_data, v_data],
             strides: [y_stride, u_stride, v_stride],
         }

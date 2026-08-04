@@ -1,5 +1,5 @@
 import Foundation
-import os.lock
+import RescCore
 
 /// Per-frame JSONL trace writer for the A0/A0.0 measurement mode
 /// (IMPLEMENTATION_PLAN_V11.md §10, §12 A0.0). Entirely gated behind the
@@ -31,19 +31,6 @@ final class RescTrace {
     private var flushTimer: DispatchSourceTimer?
     private var pendingCount = 0
 
-    /// Latest-wins capture-side metadata, written by `DisplayCapturer`'s SCK
-    /// callback and joined into the next `frameSent` record. Because this is
-    /// a latest-wins slot rather than a per-frame queue, the joined values
-    /// can be one frame stale under drops (a new capture landing between two
-    /// sends overwrites the meta before it gets joined) — acceptable for A0
-    /// statistics, never used for anything load-bearing.
-    private struct CaptureMeta {
-        var captureSeq: UInt64
-        var contentCaptureTsUs: UInt64
-    }
-    private var latestCaptureMeta: CaptureMeta?
-    private let captureMetaLock = OSAllocatedUnfairLock()
-
     private init() {
         traceDir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Logs/RESC", isDirectory: true)
@@ -55,30 +42,39 @@ final class RescTrace {
 
     // MARK: - Public API
 
-    /// Stores the latest capture-side metadata (host continuous-monotonic
-    /// µs read at SCK callback time). No-op unless `enabled`.
-    func captureMeta(captureSeq: UInt64, contentCaptureTsUs: UInt64) {
+    /// Writes one `"frame"` record binding the wire `frameID` to the exact
+    /// capture identity of the frame that produced it. The join is exact,
+    /// not latest-wins: `identity` is the same value the encoder submit
+    /// carried through its per-submit context and recovered in its output
+    /// callback for this exact frame (A00_REMEDIATION_PLAN.md §4 items 4–5).
+    /// `identity` is `nil` only for callers with no capture identity to give
+    /// (e.g. HarnessSender's synthetic source) — the five identity fields
+    /// are written `null` in that case. No-op unless `enabled`.
+    func frameSent(frameID: UInt32, identity: FrameIdentity?, bytes: Int, isKeyframe: Bool,
+                   encodeOutTsUs: UInt64, sendTsUs: UInt64) {
         guard Self.enabled else { return }
-        captureMetaLock.withLock {
-            latestCaptureMeta = CaptureMeta(captureSeq: captureSeq, contentCaptureTsUs: contentCaptureTsUs)
-        }
-    }
-
-    /// Writes one `"frame"` record joining the latest capture metadata with
-    /// this frame's send-side data. No-op unless `enabled`.
-    func frameSent(frameID: UInt32, bytes: Int, isKeyframe: Bool, encodeOutTsUs: UInt64) {
-        guard Self.enabled else { return }
-        let meta = captureMetaLock.withLock { latestCaptureMeta }
         var record: [String: Any] = [
             "t": "frame",
             "frame_id": frameID,
             "encode_out_ts_us": encodeOutTsUs,
+            "send_ts_us": sendTsUs,
             "bytes": bytes,
             "kf": isKeyframe,
         ]
-        record["capture_seq"] = meta?.captureSeq ?? NSNull()
-        record["content_capture_ts_us"] = meta?.contentCaptureTsUs ?? NSNull()
+        record["generation"] = identity?.generation ?? NSNull()
+        record["capture_seq"] = identity?.captureSeq ?? NSNull()
+        record["capture_ts_us"] = identity?.captureTsUs ?? NSNull()
+        record["ts_source"] = identity.map { Self.tsSourceString($0.tsSource) } ?? NSNull()
+        record["uncertainty_us"] = identity?.uncertaintyUs ?? NSNull()
         enqueue(record)
+    }
+
+    /// `CaptureTsSource` → the frozen trace schema's `ts_source` string.
+    private static func tsSourceString(_ source: CaptureTsSource) -> String {
+        switch source {
+        case .sckPts: return "sck_pts"
+        case .callbackFallback: return "callback_fallback"
+        }
     }
 
     /// Writes one `"pong"` record each time the host answers a `ClockPing`

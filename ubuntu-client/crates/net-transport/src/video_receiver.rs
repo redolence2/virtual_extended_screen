@@ -183,11 +183,19 @@ impl VideoReceiver {
             }
 
             // Feed to assembler
-            if let Some(frame) = self.assembler.process_chunk(
+            if let Some(mut frame) = self.assembler.process_chunk(
                 &chunk.per_packet,
                 chunk.per_frame.as_ref(),
                 &chunk.payload,
             ) {
+                // A00_REMEDIATION_PLAN.md §4 item 6: "The client timestamps
+                // receipt when the complete encoded frame is assembled,
+                // before any drop-capable queue." This is that boundary —
+                // stamped the instant assembly completes, before the
+                // smart-drop try_send/pending logic below (the drop-capable
+                // queue) ever sees the frame.
+                frame.recv_ts_us = diagnostics::mono_us();
+
                 // Smart queue policy (Item 5 from review):
                 // Try non-blocking send first. If full, decide by frame type.
                 match frame_tx.try_send(frame) {

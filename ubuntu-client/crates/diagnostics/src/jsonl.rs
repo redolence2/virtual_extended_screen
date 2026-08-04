@@ -11,7 +11,7 @@
 
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};
-use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -249,12 +249,20 @@ fn numbered_path(base: &Path, n: u32) -> PathBuf {
     PathBuf::from(s)
 }
 
-/// Opens (creating if needed) `path` for append, forcing `0600` at creation via
-/// `OpenOptionsExt::mode` — every call site here always creates the file fresh (first
-/// ever open, or right after `rotate()` renamed the old one away), so this is
-/// sufficient; there's no path where we inherit an already-existing file's permissions.
+/// Opens (creating if needed) `path` for append, and reasserts `0600` on every open —
+/// not only at creation (A00_REMEDIATION_PLAN.md §5 R3a lock/log hygiene, same finding
+/// as `instance_lock::acquire_at`'s mirrored fix). `OpenOptionsExt::mode` is only
+/// honored by the kernel when `O_CREAT` actually creates the file: `rotate()`'s reopen
+/// *is* always fresh (it renames the old file away first), but `LogWriter::open`'s call
+/// site is not — `client.jsonl` persists across many process invocations between
+/// rotations, so most calls into `LogWriter::open` find it already existing, and a bare
+/// `.mode(0o600)` would silently keep whatever permissions that existing file already
+/// had. Reasserting unconditionally here is simpler than tracking which call site needs
+/// it, and is a no-op in the already-0600 case.
 fn open_0600(path: &Path) -> std::io::Result<File> {
-    OpenOptions::new().create(true).append(true).mode(0o600).open(path)
+    let file = OpenOptions::new().create(true).append(true).mode(0o600).open(path)?;
+    let _ = file.set_permissions(std::fs::Permissions::from_mode(0o600));
+    Ok(file)
 }
 
 /// Hand-formatted `YYYY-MM-DDTHH:MM:SS.mmmZ`, UTC, millisecond precision — avoids a
@@ -314,6 +322,35 @@ mod tests {
     fn rotation_shift_order_is_highest_first() {
         assert_eq!(shift_pairs(4), vec![(3, 4), (2, 3), (1, 2)]);
         assert_eq!(numbered_path(Path::new("/x/client.jsonl"), 1), PathBuf::from("/x/client.jsonl.1"));
+    }
+
+    /// A00_REMEDIATION_PLAN.md §5 R3a lock/log hygiene regression: `open_0600` must
+    /// reassert 0600 on a file that already existed with different permissions, not
+    /// only on one it just created — the exact bug `open_0600`'s old doc comment
+    /// wrongly claimed couldn't happen at `LogWriter::open`'s call site.
+    #[test]
+    fn open_0600_reasserts_permissions_on_a_pre_existing_file() {
+        let dir = std::env::temp_dir()
+            .join(format!("resc-diag-test-perms-{}-{}", std::process::id(), ts_mono_us()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("preexisting.jsonl");
+
+        // Simulate a file that predates this fix (or was created some other way):
+        // 0644, not 0600.
+        {
+            let f = OpenOptions::new().create(true).write(true).mode(0o644).open(&path).unwrap();
+            drop(f);
+        }
+        use std::os::unix::fs::PermissionsExt;
+        let before = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(before, 0o644, "test setup: file must start non-0600");
+
+        let opened = open_0600(&path).unwrap();
+        drop(opened);
+        let after = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(after, 0o600, "open_0600 must reassert 0600 on an already-existing file");
+
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

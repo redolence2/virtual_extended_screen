@@ -4,8 +4,8 @@
 |---|---|
 | **Date** | 2026-08-03 (§15 addendum same day; status corrected 2026-08-04) |
 | **STATUS CORRECTION (2026-08-04)** | Per `A00_IMPLEMENTATION_REPORT_review.md`: this is an **A0.0 progress/candidate report — the completion/freeze claim is withdrawn**. A0.0 is complete only after the review's blocking gates close (trace identity/clock path, clean decoder bounds + backend selection, the three errata behavioral proofs, fail-closed doctors/harness, clean-commit freeze). Dispositions and closure plan: `A00_IMPLEMENTATION_REPORT_response.md`. Known precision errata in this document (exact values, per the review): fixture-check = **126** assertions (not ~140); `fatal_code_classes.json` = **23** entries incl. code 0; **five** proto inputs; `Doctor.swift` = **451** lines post-refactor; ffmpeg pins were caret until corrected to `=7.1.0`/`=7.1.3` on 2026-08-04; "typed dispatch" exists as generated types + parsers + the clock intercept, while the live host otherwise remains on the legacy v1 path by design. |
-| **Scope** | Phase A0.0 of `IMPLEMENTATION_PLAN_V11.md` §12 as amended by `CONTRACT_ERRATA.md` (ERR-01…05 + three implementation proofs). Stage-1 structural freeze artifacts + all A0.0 tooling and experiments. |
-| **Base commit** | `12b87d1` (branch `main`); all work is **uncommitted** in the working tree (commit deliberately deferred to the user). |
+| **Scope** | Phase A0.0 of `IMPLEMENTATION_PLAN_V11.md` §12 as amended by `CONTRACT_ERRATA.md` (ERR-01…07 + three implementation proofs). Stage-1 **candidate** artifacts (freeze pending the remediation gates) + all A0.0 tooling and experiments. |
+| **Base commit** | `12b87d1` (branch `main`). The work this report describes was committed 2026-08-04 as candidate checkpoint `ce2d693`; remediation (`A00_REMEDIATION_PLAN.md` R1–R7) continues on top of it. |
 | **Machines** | Mac host `192.168.50.125` (Darwin 27.0 / build `26A5388g`, Apple Silicon, CommandLineTools only — **no Xcode, no XCTest**); Ubuntu client box `wan@192.168.50.47` (Linux 6.8.0-65, x86_64, RTX 4090 / driver 570.169, key-auth SSH from the Mac). |
 | **Authorship** | Orchestrated by Fable 5; implementation chunks by Sonnet workers (W1–W8), every diff reviewed by the orchestrator; foundations (proto schema, canonical bytes, codegen script, package wiring, RescCore profile module) written inline. |
 | **How to review** | Every claim below is reproducible via §14's runbook. Normative context: `IMPLEMENTATION_PLAN_V11.md`, `CONTRACT_ERRATA.md`, `docs/WIRE.md`. |
@@ -22,7 +22,7 @@ Incident disclosure: two early remote/background failures were briefly mis-read 
 
 ## 2. Protocol & code generation
 
-### 2.1 `proto/control_v3.proto` (new, frozen)
+### 2.1 `proto/control_v3.proto` (new; Stage-1 candidate — normative per ERR-06, freeze pending)
 Verbatim transcription of plan v11 §4: `resc.v3` package; `Envelope{session_run_id=1, protocol_version=2 (runtime ==3), oneof payload}` with fields 32/40/60–66/68–70, `reserved 67` (removed StatsSummary slot); messages `DisplaySettings`, `KeyEvent`, `HostProfileAnnounce` (`reserved 5` = removed psk), `ProfileResult`, `FrameAck`, `ButtonEvent`, `ScrollEvent`, `ClockPing`, `ClockPong`, `FatalReport`, `ReleaseInput`, `Heartbeat`; `FatalCode` enum values 0–22 with classification comments. Validates under `protoc 3.20.3` (the reviewer's own version) and pinned 27.3.
 
 ### 2.2 `proto/control.proto` (v1 — additive edit only)
@@ -89,7 +89,7 @@ Because this Mac has **no XCTest** (CommandLineTools only), the Swift fixture te
 - **`crates/net-transport/src/control_channel.rs`**: `send_clock_ping(&mut self, t1_mono_us, seq)` (same envelope style as `send_stats`).
 - **`src/main.rs`** (trace-gated, additive): 10 s ClockPing tokio interval; ClockPong arm in the existing control-recv `select!` (t4 = mono now → `ClockSync` → `ClientTrace.clock`); decode-render loop logs per-assembled-frame `{frame_id, ts_recv_us, ts_decode_done_us, presented}`.
 
-## 6. `docs/WIRE.md` + golden/malformed fixtures (Stage-1 structural freeze)
+## 6. `docs/WIRE.md` + golden/malformed fixtures (Stage-1 candidate; freeze pending)
 
 **`docs/WIRE.md`** (336 lines, 9 sections + front matter): global LE/magic/reserved/exact-UDP-length rules; control framing + 64 KiB pre-allocation cap + per-field caps + direction/state table; VideoHello (32 B)/Ack (16 B) offset tables with **status bytes 0–3**, OK-checklists, stale-dial run-tagging; **ERR-01 activation barrier verbatim**; frame-record table (32 B, ordinal domain, `contentCaptureTs_us` = host continuous-monotonic µs); UDP prefix/move/cursor tables (cursor body at absolute offsets 14–42) + comparator formula + cursor-timestamp-is-diagnostic rule (**no "reserved" in the UDP list — ERR-05**); input/cursor semantics (StreamSpace + inverse −90°, **ERR-04 scroll rule verbatim** with N=10, shapes 0–15, hidden (−1,−1), hotspot/scale constants, grab state machine); **§Backend** — the two closed rows fully specified (`cuvid-lowdelay`: `hevc_cuvid`, CUDA `av_hwdevice_ctx_create` defaults, `AV_CODEC_FLAG_LOW_DELAY` pre-open, `extra_hw_frames = 8`, NV12 post-`av_hwframe_transfer_data`, fallback forbidden; `sw1-lowdelay`: `hevc`, no hw, LOW_DELAY, `thread_count = 1`/no frame-threading, yuv420p, fallback forbidden) + `TBD-A00` scoping; ERR-03 statement; canonical-profile rules + pinned hash.
 
@@ -117,7 +117,7 @@ One TCP connection; parses the 32-B v3 frame header inline (magic `56 46`, `head
 
 ## 8. Doctors (plan §11.4/§11.5)
 
-### 8.1 Host — `Sources/RemoteDisplayHost/Doctor.swift` (480) + `--doctor` in `main.swift`
+### 8.1 Host — `Sources/RemoteDisplayHost/Doctor.swift` (451) + `--doctor` in `main.swift`
 `HostDoctor.run() -> Int32`, checks: (a) environment (OS/build/arch, `auth_mode: trusted_lan_none`); (b) `CGVirtualDisplayBridge.isAPIAvailable` (required → 3); (c) create+destroy the **profile display** 1080×1920@60; (d) create the **profile encoder** (HEVC, 20 Mbps) with `VTSessionCopyProperty` read-backs (RealTime/AllowFrameReordering/AverageBitRate/ProfileLevel; enabled by a one-line `vtSession` accessor added to `VideoEncoder` — the only change in that file); (e) encode one synthetic NV12 frame (semaphore, 2 s timeout); (f) **RA verification** — Annex-B split, HEVC NAL type `(b>>1)&0x3F`, require VPS 32 + SPS 33 + PPS 34 + IDR 19/20, CRA ⇒ fail; (g) CoreBrightness/Night Shift probe (class lookup + instantiate + strength read; non-required feature — recorded, never changes exit code); (h) report `doctor_report_v:1` → stdout + `~/Library/Logs/RESC/doctor_host.json` (0600). Exit map: 0 pass / 2 environment (`kern.osversion` read failure only) / 3 native-API.
 
 **Live run on this Mac (unlisted build `26A5388g`): exit 0, all checks ok** — `encode_bundled_frame {bytes:1019, is_keyframe:true}`, `ra_verification {nal_types_found:[20,32,33,34,39], has_vps/sps/pps/idr:true, has_cra:false}`, `corebrightness_nightshift {observed_strength:0.5}`. This is the doctor-over-allowlist policy (§11.5) functioning on an OS build the old allowlist does not contain.
@@ -165,7 +165,7 @@ pending_replaced = 6            sustained_60hz = TRUE (59.4 fps incl. startup)
 | Client doctor ×2 backends + ×2 negative | box | exit 0 / 0 / 3 / 3 (§8.2) |
 | Live harness smoke | Mac↔box LAN | sustained 60 Hz @ window 1 (§9.2) |
 | Contract test suite (§15): `cargo test -p protocol` | Mac and box | **49/49** (41 new v3wire + 8 pre-existing) |
-| Contract test suite (§15): `resc-fixture-check` | Mac | **~140 checks, all ok** (5 profile + 6 new groups) |
+| Contract test suite (§15): `resc-fixture-check` | Mac | **126 checks, all ok** (profile group + 6 wire groups; count as of this report — remediation adds more) |
 | Doctor re-run after RA-hoist refactor | Mac | exit 0; NAL set identical `[20,32,33,34,39]` — behavior-preserving |
 | Envelope fixtures idempotency + cross-encoder byte-equality | Mac | hand-encoded = prost = SwiftProtobuf, byte-identical |
 
@@ -173,7 +173,7 @@ pending_replaced = 6            sustained_60hz = TRUE (59.4 fps incl. startup)
 
 1. Swift protobuf module named `RescProto`, not `Protocol` (ObjC runtime collision); generated dir stays `Sources/Protocol`.
 2. Swift fixture tests are an executable (`resc-fixture-check`) — **no XCTest exists on this machine**; same assertions as the Rust tests.
-3. v3 physically lives at `proto/control_v3.proto` until T1 swaps it into `control.proto` (the running v1 wire must survive A0); Stage-1 "freeze control.proto" is satisfied by content, housed under the v3 filename — swap is a T1 entry item.
+3. v3 physically lives at `proto/control_v3.proto` until T1 swaps it into `control.proto` (the running v1 wire must survive A0); Stage-1 "freeze control.proto" is satisfied by content, housed under the v3 filename — swap is a T1 entry item. *(Since formalized as ERR-06.)*
 4. v1 proto gained ClockPing/Pong additively (numbers matching v3) — required for baseline trace/clock on the untouched wire.
 5. Harness ACK framing is rig-private (12-B `AK`), documented as ≠ the real `FrameAck`; harness sender/receiver implement the 32-B header inline by design (disposable tooling).
 6. `ack_order_violation` is tracked/printed but not in the frozen `harness_report_v1` JSON field list (worker declined to widen a specified schema unilaterally — correct call).
@@ -192,7 +192,7 @@ pending_replaced = 6            sustained_60hz = TRUE (59.4 fps incl. startup)
 3. **Backend selection open** (both pass ERR-03): decide at Stage-2 with A0 numbers. Orchestrator's inclination: `sw1-lowdelay` (lag bound 1 vs 2, no GPU round-trip, p50 3.6 ms is ample at this resolution) — **not yet decided**.
 4. `decoder_lag_bound`/`output_deadline_ms` need **clean-run** (stall-free) numbers for the profile; current experiment p95s include injected stalls.
 5. Legacy paths untouched by design until T1: v1 UDP video/jitter machinery, the 0xFA scan (now shielded from clock traffic only), `video-decode` crate, mDNS, `--client` flag.
-6. Everything is **uncommitted**; `RESC_BUILD_COMMIT`/dirty-tagging become meaningful post-commit.
+6. ~~Everything is **uncommitted**~~ *(resolved 2026-08-04: committed as candidate checkpoint `ce2d693`; the R7 clean checkpoint follows remediation)*; `RESC_BUILD_COMMIT`/dirty-tagging become meaningful post-commit.
 7. Stray empty legacy dirs under `mac-host/Sources/` (pre-existing, unwired) left as-is.
 
 ## 14. Cold-start verification runbook
@@ -226,7 +226,7 @@ python3 tools/gen_envelope_fixtures.py                # idempotent; regenerates 
 
 ## 15. Contract test suite (addendum — the six mandated case groups)
 
-Added after the initial report at the user's direction; closes §13.1. Shared truth fixtures created first (orchestrator-inline, so both languages test against identical bytes): **`proto/fixtures/fatal_code_classes.json`** (22-entry code→class table frozen from `control_v3.proto`); **`proto/fixtures/scroll_cases.json`** (12 ERR-04 cases incl. the `-INT_MIN`-under-rotation edge that forces fully-widened arithmetic); **`proto/fixtures/envelopes/*.bin` + `envelopes_manifest.json`** via new **`tools/gen_envelope_fixtures.py`** (4 hand-encoded v3 Envelopes — heartbeat, clock_ping, frame_ack, fatal_report — hex-audited, idempotent).
+Added after the initial report at the user's direction; closes §13.1. Shared truth fixtures created first (orchestrator-inline, so both languages test against identical bytes): **`proto/fixtures/fatal_code_classes.json`** (23-entry code→class table — 22 nonzero codes + code 0 `unspecified` — from `control_v3.proto`); **`proto/fixtures/scroll_cases.json`** (12 ERR-04 cases incl. the `-INT_MIN`-under-rotation edge that forces fully-widened arithmetic); **`proto/fixtures/envelopes/*.bin` + `envelopes_manifest.json`** via new **`tools/gen_envelope_fixtures.py`** (4 hand-encoded v3 Envelopes — heartbeat, clock_ping, frame_ack, fatal_report — hex-audited, idempotent).
 
 **Rust — `ubuntu-client/crates/protocol/src/v3wire.rs`** (1020 lines incl. inline tests; module exported from `lib.rs`; `serde_json` added as dev-dependency only):
 - `WireError{ProtocolViolation(&'static str), RecordCapViolation{total, cap}}`; `parse_video_hello`, `parse_video_hello_ack` (status strictly 0..=3 → `AckStatus`), `parse_frame_header(bytes, max_record_bytes)` (unknown flag bits, ordinal domain 1..=i64::MAX, widened checked length vs cap), `parse_move` (26 B exact), `parse_cursor` (43 B exact; shape 0..=15; scale finite>0; **no reserved check — ERR-05**).
@@ -238,6 +238,6 @@ Added after the initial report at the user's direction; closes §13.1. Shared tr
 
 **Swift — `mac-host/Sources/RescCore/`**: `WireRecords.swift` (259), `Comparators.swift` (23), `ScrollTransform.swift` (15), `FatalCodeClass.swift` (28), `RAVerification.swift` (83 — **hoisted from `Doctor.swift`**, which now delegates; a scoped `extension String: @retroactive Error` was required by the spec'd `Result<Void, String>` signature). `FixtureCheck/main.swift` extended 74 → 391 lines with sections (a)–(f) mirroring the Rust tests; `Package.swift`: FixtureCheck gains `RescProto` + SwiftProtobuf deps.
 
-**Verification:** Rust 49/49 on the Mac **and** on the box; Swift ~140/140 via `resc-fixture-check` (worker-run and orchestrator-rerun); host doctor re-run post-hoist: exit 0 with the identical NAL set (behavior-preserving proof); envelope re-encodes are **byte-identical across three encoders** (hand-python, prost, SwiftProtobuf).
+**Verification:** Rust 49/49 on the Mac **and** on the box; Swift 126/126 via `resc-fixture-check` (worker-run and orchestrator-rerun); host doctor re-run post-hoist: exit 0 with the identical NAL set (behavior-preserving proof); envelope re-encodes are **byte-identical across three encoders** (hand-python, prost, SwiftProtobuf).
 
 **Process note:** the Rust worker was terminated by a session usage limit immediately after writing the code and before its build step; the orchestrator completed verification (first build passed 49/49 unmodified), performed the spec-fidelity review, and ran the remote proof. All six groups therefore carry the full evidence chain despite the interruption.

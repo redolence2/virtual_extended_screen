@@ -3,6 +3,47 @@ import RescCore
 import RescProto
 import SwiftProtobuf
 
+// ===========================================================================
+// MARK: - (j) R3a: cross-process lock-contention child branch
+//
+// MUST run before any other work in this file (checked first, unconditionally,
+// per A00_REMEDIATION_PLAN.md §5 R3a). When RESC_LOCK_CONTENTION_CHILD=<path>
+// is set, this process is not running the fixture-check suite at all — it is
+// the disposable child the "(j) R3a two-process lock contention" check
+// further down spawns to prove flock(2) semantics hold across real process
+// boundaries. FixtureCheck is an executableTarget (Package.swift) and cannot
+// import RemoteDisplayHost's real InstanceLock type — Package.swift is out
+// of scope for this change, and RemoteDisplayHost is itself an
+// executableTarget (see Package.swift's existing "cannot be depended on" note
+// for HarnessSender, which duplicates RescClockBridge.continuousNowUs() for
+// the identical reason) — so `fixtureCheckAttemptScratchLock` below
+// duplicates InstanceLock.acquire(path:profileId:)'s exact algorithm (open,
+// reassert 0600, LOCK_EX|LOCK_NB flock). Exits 20 (INSTANCE_LOCK_HELD,
+// matching proto/control_v3.proto's FatalCode) if the lock is already held,
+// 0 if acquired. Nothing else in this file runs for this process either way.
+
+/// Duplicates InstanceLock.swift's acquire algorithm against an explicit
+/// path. Returns the held fd (left open — caller releases the lock by
+/// closing it) or nil if another process already holds it.
+func fixtureCheckAttemptScratchLock(path: String) -> Int32? {
+    let fd = open(path, O_CREAT | O_RDWR, 0o600)
+    guard fd >= 0 else { return nil }
+    // Lock hygiene (R3a): reassert 0600 on every open, not only at
+    // creation — open()'s mode argument is ignored by the kernel once the
+    // file already exists.
+    chmod(path, 0o600)
+    guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
+        close(fd)
+        return nil
+    }
+    return fd
+}
+
+if let contentionPath = ProcessInfo.processInfo.environment["RESC_LOCK_CONTENTION_CHILD"] {
+    exit(fixtureCheckAttemptScratchLock(path: contentionPath) != nil ? 0 : 20)
+}
+// ===========================================================================
+
 // Stage-1 fixture checks: canonicalization (plan v11 §12, CONTRACT_ERRATA.md
 // proof 3) plus the six contract-mandated wire test groups (docs/WIRE.md;
 // plan v11 §4/§5/§6; CONTRACT_ERRATA.md ERR-04/ERR-05) — golden/malformed
@@ -70,6 +111,34 @@ do {
     check("canonicalize sorts and minifies",
           try String(data: CanonicalProfile.canonicalize(sample), encoding: .utf8)
               == #"{"a":{"c":3,"d":4},"b":2}"#)
+
+    // -- ERR-07: ASCII-only keys and string values --
+    check("canonical fixture passes ASCII-only rule (ERR-07)",
+          CanonicalProfile.firstNonASCII(object) == nil)
+
+    check("firstNonASCII reports a non-ASCII nested value with its path",
+          CanonicalProfile.firstNonASCII(["a": ["b": ["é"]]]) == "non-ASCII string value at /a/b[0]")
+    check("firstNonASCII reports a non-ASCII key",
+          CanonicalProfile.firstNonASCII(["ké": 1]) == "non-ASCII key at /ké")
+
+    // Both encodings of the same non-ASCII profile_id (raw UTF-8 and
+    // é-escaped) must be rejected by the ASCII gate specifically —
+    // these fixtures carry a REAL backend id, so without ERR-07 nothing
+    // else in validateRuntimeProfile is guaranteed to reject them. The
+    // Rust twin asserts the identical verdict on the identical bytes.
+    for name in ["profile_nonascii_raw.json", "profile_nonascii_escaped.json"] {
+        let nonasciiBytes = try Data(contentsOf: fixturesDir.appendingPathComponent(name))
+        check("\(name) rejected by ASCII gate (ERR-07), violation at profile_id", {
+            do {
+                _ = try CanonicalProfile.validateRuntimeProfile(nonasciiBytes)
+                return false  // must not validate
+            } catch CanonicalProfile.ProfileError.asciiViolation(let detail) {
+                return detail.contains("profile_id")
+            } catch {
+                return false  // wrong error kind — the ASCII gate must fire first
+            }
+        }())
+    }
 } catch {
     print("FAIL reading fixture at \(fixtureURL.path): \(error)")
     failures += 1
@@ -383,6 +452,859 @@ check("keyframeClaimMatches: IDR present, claim=false -> mismatch", !keyframeCla
 let noIdrSummary = scanAnnexB(makeSyntheticAU([32, 33, 34]))
 check("keyframeClaimMatches: no IDR, claim=false -> match", keyframeClaimMatches(noIdrSummary, claim: false))
 check("keyframeClaimMatches: no IDR, claim=true -> mismatch", !keyframeClaimMatches(noIdrSummary, claim: true))
+
+// ===========================================================================
+// MARK: - (g) v3 dispatch (dispatch_cases.json) — remediation item R5
+//
+// Exercises V3Dispatch (Sources/RescCore/V3Dispatch.swift) over the same
+// oracle-generated cases the Rust twin (ubuntu-client/crates/protocol/src/
+// v3dispatch.rs) is graded against (proto/fixtures/dispatch_cases.json,
+// tools/gen_dispatch_fixtures.py). One "ok <name>" line per row.
+// ===========================================================================
+
+/// The four `FatalCode` names this fixture set's verdict vocabulary uses.
+func dispatchFatalCode(named name: String) -> Resc_V3_FatalCode {
+    switch name {
+    case "VERSION_MISMATCH": return .versionMismatch
+    case "PROTOCOL_VIOLATION": return .protocolViolation
+    case "RECORD_CAP_VIOLATION": return .recordCapViolation
+    case "MALFORMED_FRAMING": return .malformedFraming
+    default: fatalError("dispatch_cases.json: unknown FatalCode name \(name)")
+    }
+}
+
+func dispatchPhase(named name: String) -> V3Dispatch.Phase {
+    switch name {
+    case "bootstrap": return .bootstrap
+    case "announced": return .announced
+    case "profile_accepted": return .profileAccepted
+    case "profile_rejected": return .profileRejected
+    case "video_ack_accepted": return .videoAckAccepted
+    case "active": return .active
+    default: fatalError("dispatch_cases.json: unknown phase \(name)")
+    }
+}
+
+func dispatchRole(named name: String) -> V3Dispatch.Role {
+    switch name {
+    case "host": return .host
+    case "client": return .client
+    default: fatalError("dispatch_cases.json: unknown role \(name)")
+    }
+}
+
+enum DispatchVerdict {
+    case accept(next: V3Dispatch.Phase, learn: Bool)
+    case error(Resc_V3_FatalCode)
+}
+
+func dispatchVerdict(from s: String) -> DispatchVerdict {
+    if s.hasPrefix("accept:") {
+        let parts = s.dropFirst("accept:".count).split(separator: ":", omittingEmptySubsequences: false)
+        return .accept(next: dispatchPhase(named: String(parts[0])), learn: parts.count > 1 && parts[1] == "learn")
+    }
+    return .error(dispatchFatalCode(named: s))
+}
+
+/// Decodes a lowercase-hex string (even length) into raw bytes.
+func dispatchHexBytes(_ s: String) -> Data {
+    var data = Data(capacity: s.count / 2)
+    var idx = s.startIndex
+    while idx < s.endIndex {
+        let next = s.index(idx, offsetBy: 2)
+        guard let byte = UInt8(s[idx..<next], radix: 16) else {
+            fatalError("dispatch_cases.json: bad hex \(s)")
+        }
+        data.append(byte)
+        idx = next
+    }
+    return data
+}
+
+// -- typed field accessors over a JSONSerialization `fields` object --
+
+func dField(_ fields: [String: Any], _ key: String) -> UInt64 {
+    guard let v = fields[key] as? Int else { fatalError("dispatch_cases.json: field \(key) missing/not int") }
+    return UInt64(v)
+}
+func dFieldI(_ fields: [String: Any], _ key: String) -> Int64 {
+    guard let v = fields[key] as? Int else { fatalError("dispatch_cases.json: field \(key) missing/not int") }
+    return Int64(v)
+}
+func dFieldB(_ fields: [String: Any], _ key: String) -> Bool {
+    guard let v = fields[key] as? Bool else { fatalError("dispatch_cases.json: field \(key) missing/not bool") }
+    return v
+}
+func dFieldS(_ fields: [String: Any], _ key: String) -> String {
+    guard let v = fields[key] as? String else { fatalError("dispatch_cases.json: field \(key) missing/not string") }
+    return v
+}
+func dFieldHex(_ fields: [String: Any], _ key: String) -> Data {
+    dispatchHexBytes(dFieldS(fields, key))
+}
+/// `warm_strength` is a JSON number except for the one non-finite special
+/// case, which uses the sentinel string "NaN" (raw JSON has no NaN literal).
+func dFieldWarmStrength(_ fields: [String: Any]) -> Float {
+    if let s = fields["warm_strength"] as? String {
+        switch s {
+        case "NaN": return Float.nan
+        case "Infinity": return Float.infinity
+        case "-Infinity": return -Float.infinity
+        default: fatalError("dispatch_cases.json: unknown warm_strength sentinel \(s)")
+        }
+    }
+    if let d = fields["warm_strength"] as? Double { return Float(d) }
+    if let i = fields["warm_strength"] as? Int { return Float(i) }
+    fatalError("dispatch_cases.json: warm_strength missing/wrong type")
+}
+
+/// Builds the `Resc_V3_Envelope.OneOf_Payload` for one `payload` kind from
+/// its `fields` object. Minimal-valid field shapes and hex-string
+/// conventions per `tools/gen_dispatch_fixtures.py`'s doc comment header.
+func dispatchPayload(kind: String, fields: [String: Any]) -> Resc_V3_Envelope.OneOf_Payload {
+    switch kind {
+    case "display_settings":
+        var m = Resc_V3_DisplaySettings()
+        m.warmStrength = dFieldWarmStrength(fields)
+        return .displaySettings(m)
+    case "key_event":
+        var m = Resc_V3_KeyEvent()
+        m.hidUsage = UInt32(dField(fields, "hid_usage"))
+        m.isDown = dFieldB(fields, "is_down")
+        m.modifiers = UInt32(dField(fields, "modifiers"))
+        return .keyEvent(m)
+    case "host_profile_announce":
+        var m = Resc_V3_HostProfileAnnounce()
+        m.profileCanonical = dFieldHex(fields, "profile_canonical_hex")
+        m.profileHash = dFieldHex(fields, "profile_hash_hex")
+        m.buildCommit = dFieldS(fields, "build_commit")
+        m.buildDirty = dFieldB(fields, "build_dirty")
+        return .hostProfileAnnounce(m)
+    case "profile_result":
+        var m = Resc_V3_ProfileResult()
+        m.accepted = dFieldB(fields, "accepted")
+        m.profileCanonical = dFieldHex(fields, "profile_canonical_hex")
+        m.profileHash = dFieldHex(fields, "profile_hash_hex")
+        m.buildCommit = dFieldS(fields, "build_commit")
+        m.buildDirty = dFieldB(fields, "build_dirty")
+        let rejectCode = Int(dFieldI(fields, "reject_code"))
+        m.rejectCode = Resc_V3_FatalCode(rawValue: rejectCode) ?? .UNRECOGNIZED(rejectCode)
+        m.videoListenerReady = dFieldB(fields, "video_listener_ready")
+        return .profileResult(m)
+    case "frame_ack":
+        var m = Resc_V3_FrameAck()
+        m.frameOrdinal = dField(fields, "frame_ordinal")
+        return .frameAck(m)
+    case "button_event":
+        var m = Resc_V3_ButtonEvent()
+        m.button = UInt32(dField(fields, "button"))
+        m.isDown = dFieldB(fields, "is_down")
+        m.xPx = Int32(dFieldI(fields, "x_px"))
+        m.yPx = Int32(dFieldI(fields, "y_px"))
+        m.modifiers = UInt32(dField(fields, "modifiers"))
+        return .buttonEvent(m)
+    case "scroll_event":
+        var m = Resc_V3_ScrollEvent()
+        m.dx = Int32(dFieldI(fields, "dx"))
+        m.dy = Int32(dFieldI(fields, "dy"))
+        return .scrollEvent(m)
+    case "clock_ping":
+        var m = Resc_V3_ClockPing()
+        m.t1MonoUs = dField(fields, "t1_mono_us")
+        m.seq = UInt32(dField(fields, "seq"))
+        return .clockPing(m)
+    case "clock_pong":
+        var m = Resc_V3_ClockPong()
+        m.t1MonoUs = dField(fields, "t1_mono_us")
+        m.t2MonoUs = dField(fields, "t2_mono_us")
+        m.t3MonoUs = dField(fields, "t3_mono_us")
+        m.seq = UInt32(dField(fields, "seq"))
+        return .clockPong(m)
+    case "fatal_report":
+        var m = Resc_V3_FatalReport()
+        let code = Int(dFieldI(fields, "code"))
+        m.code = Resc_V3_FatalCode(rawValue: code) ?? .UNRECOGNIZED(code)
+        m.component = dFieldS(fields, "component")
+        m.nativeDomain = (fields["native_domain"] as? String) ?? ""
+        m.nativeCode = dFieldI(fields, "native_code")
+        m.summary = dFieldS(fields, "summary")
+        return .fatalReport(m)
+    case "release_input":
+        return .releaseInput(Resc_V3_ReleaseInput())
+    case "heartbeat":
+        var m = Resc_V3_Heartbeat()
+        m.tMonoUs = dField(fields, "t_mono_us")
+        return .heartbeat(m)
+    default:
+        fatalError("dispatch_cases.json: unknown payload kind \(kind)")
+    }
+}
+
+/// Shared assertion for one state/raw case: run `validateInbound` and
+/// compare its result against the row's `verdict` string. One check() call
+/// per row, matching this file's existing "one ok-line per row" style.
+func assertDispatchCase(
+    _ name: String,
+    role: V3Dispatch.Role,
+    phase: V3Dispatch.Phase,
+    env: Resc_V3_Envelope,
+    expectedRunId: UInt64?,
+    verdict: String
+) {
+    let result = V3Dispatch.validateInbound(role: role, phase: phase, env: env, expectedRunId: expectedRunId)
+    switch dispatchVerdict(from: verdict) {
+    case .accept(let next, let learn):
+        switch result {
+        case .success(let accepted):
+            let expectedLearned: UInt64? = learn ? env.sessionRunID : nil
+            check("dispatch[\(name)]: accept -> \(next), learnedRunId == \(String(describing: expectedLearned))",
+                  accepted.next == next && accepted.learnedRunId == expectedLearned)
+        case .failure(let e):
+            check("dispatch[\(name)]: expected accept(\(next)), got \(e)", false)
+        }
+    case .error(let code):
+        switch result {
+        case .success:
+            check("dispatch[\(name)]: expected \(code), got accept", false)
+        case .failure(let e):
+            check("dispatch[\(name)]: \(code)", e == code)
+        }
+    }
+}
+
+func dispatchOutboundKind(named name: String) -> V3Dispatch.OutboundKind {
+    switch name {
+    case "host_profile_announce": return .hostProfileAnnounce
+    case "profile_result_accepted": return .profileResultAccepted
+    case "profile_result_rejected": return .profileResultRejected
+    case "frame_ack": return .frameAck
+    case "key_event": return .keyEvent
+    case "button_event": return .buttonEvent
+    case "scroll_event": return .scrollEvent
+    case "release_input": return .releaseInput
+    case "heartbeat": return .heartbeat
+    case "clock_ping": return .clockPing
+    case "clock_pong": return .clockPong
+    case "display_settings": return .displaySettings
+    case "fatal_report": return .fatalReport
+    default: fatalError("dispatch_cases.json: unknown OutboundKind name \(name)")
+    }
+}
+
+/// D1 acceptance ("both languages pass shared vectors") requires
+/// noteOutbound to be vector-covered like validateInbound. One check()
+/// call per row, same style as assertDispatchCase.
+func assertOutboundCase(_ name: String, role: V3Dispatch.Role, phase: V3Dispatch.Phase,
+                         kind: V3Dispatch.OutboundKind, verdict: String) {
+    let result = V3Dispatch.noteOutbound(role: role, phase: phase, kind: kind)
+    switch dispatchVerdict(from: verdict) {
+    case .accept(let next, _):
+        switch result {
+        case .success(let n): check("outbound[\(name)]: accept -> \(next)", n == next)
+        case .failure(let e): check("outbound[\(name)]: expected accept(\(next)), got \(e)", false)
+        }
+    case .error(let code):
+        switch result {
+        case .success: check("outbound[\(name)]: expected \(code), got accept", false)
+        case .failure(let e): check("outbound[\(name)]: \(code)", e == code)
+        }
+    }
+}
+
+/// Same D1 rationale as `assertOutboundCase`, for noteVideoAck's 6-row table.
+func assertVideoAckCase(_ name: String, phase: V3Dispatch.Phase, verdict: String) {
+    let result = V3Dispatch.noteVideoAck(phase)
+    switch dispatchVerdict(from: verdict) {
+    case .accept(let next, _):
+        switch result {
+        case .success(let n): check("videoAck[\(name)]: accept -> \(next)", n == next)
+        case .failure(let e): check("videoAck[\(name)]: expected accept(\(next)), got \(e)", false)
+        }
+    case .error(let code):
+        switch result {
+        case .success: check("videoAck[\(name)]: expected \(code), got accept", false)
+        case .failure(let e): check("videoAck[\(name)]: \(code)", e == code)
+        }
+    }
+}
+
+do {
+    let dispatchBytes = try Data(contentsOf: fixturesDir.appendingPathComponent("dispatch_cases.json"))
+    guard let dispatchObj = try JSONSerialization.jsonObject(with: dispatchBytes) as? [String: Any] else {
+        throw FixtureCheckError(message: "dispatch_cases.json: unexpected top-level structure")
+    }
+
+    // -- framing (Layer 1: frameBodyLen) --
+    let framingCases = dispatchObj["framing"] as? [[String: Any]] ?? []
+    check("dispatch_cases.json framing has 6 rows", framingCases.count == 6)
+    for row in framingCases {
+        guard let name = row["name"] as? String,
+              let prefixHex = row["prefix_hex"] as? String,
+              let verdict = row["verdict"] as? String else {
+            check("dispatch framing row has expected fields", false)
+            continue
+        }
+        let prefixBytes = Array(dispatchHexBytes(prefixHex))
+        guard prefixBytes.count == 4 else {
+            check("dispatch framing[\(name)]: prefix_hex decodes to 4 bytes", false)
+            continue
+        }
+        let prefix = (prefixBytes[0], prefixBytes[1], prefixBytes[2], prefixBytes[3])
+        let result = V3Dispatch.frameBodyLen(prefix)
+        if verdict == "accept" {
+            let expectedLen = Int(UInt32(prefixBytes[0]) | (UInt32(prefixBytes[1]) << 8)
+                                   | (UInt32(prefixBytes[2]) << 16) | (UInt32(prefixBytes[3]) << 24))
+            switch result {
+            case .success(let len): check("dispatch framing[\(name)]: accept len \(expectedLen)", len == expectedLen)
+            case .failure(let e): check("dispatch framing[\(name)]: expected accept, got \(e)", false)
+            }
+        } else {
+            let expectedCode = dispatchFatalCode(named: verdict)
+            switch result {
+            case .success: check("dispatch framing[\(name)]: expected \(verdict), got accept", false)
+            case .failure(let e): check("dispatch framing[\(name)]: \(verdict)", e == expectedCode)
+            }
+        }
+    }
+
+    // -- state (Layer 2: validateInbound over the 144-cell matrix + 20 special rows) --
+    let stateCases = dispatchObj["state"] as? [[String: Any]] ?? []
+    check("dispatch_cases.json state has 164 rows", stateCases.count == 164)
+    for row in stateCases {
+        guard let name = row["name"] as? String,
+              let roleStr = row["role"] as? String,
+              let phaseStr = row["phase"] as? String,
+              let kind = row["payload"] as? String,
+              let fields = row["fields"] as? [String: Any],
+              let verdict = row["verdict"] as? String else {
+            check("dispatch state row has expected fields", false)
+            continue
+        }
+        var env = Resc_V3_Envelope()
+        env.sessionRunID = dField(row, "env_run_id")
+        env.protocolVersion = UInt32(dField(row, "env_version"))
+        env.payload = dispatchPayload(kind: kind, fields: fields)
+        let expectedRunId = (row["expected_run_id"] as? Int).map { UInt64($0) }
+        assertDispatchCase(name, role: dispatchRole(named: roleStr), phase: dispatchPhase(named: phaseStr),
+                            env: env, expectedRunId: expectedRunId, verdict: verdict)
+    }
+
+    // -- raw (Layer 2 over hand-encoded byte vectors: absent-payload / zero-byte envelopes) --
+    let rawCases = dispatchObj["raw"] as? [[String: Any]] ?? []
+    check("dispatch_cases.json raw has 3 rows", rawCases.count == 3)
+    for row in rawCases {
+        guard let name = row["name"] as? String,
+              let file = row["file"] as? String,
+              let roleStr = row["role"] as? String,
+              let phaseStr = row["phase"] as? String,
+              let verdict = row["verdict"] as? String else {
+            check("dispatch raw row has expected fields", false)
+            continue
+        }
+        let expectedRunId = (row["expected_run_id"] as? Int).map { UInt64($0) }
+        do {
+            let raw = try Data(contentsOf: fixturesDir.appendingPathComponent(file))
+            let env = try Resc_V3_Envelope(serializedBytes: raw)
+            assertDispatchCase(name, role: dispatchRole(named: roleStr), phase: dispatchPhase(named: phaseStr),
+                                env: env, expectedRunId: expectedRunId, verdict: verdict)
+        } catch {
+            check("dispatch raw[\(name)]: decode \(file)", false)
+        }
+    }
+
+    // -- outbound (sender-side mirror: noteOutbound over the full 13-kind x 6-phase x 2-role matrix) --
+    let outboundCases = dispatchObj["outbound"] as? [[String: Any]] ?? []
+    check("dispatch_cases.json outbound has 156 rows", outboundCases.count == 156)
+    for row in outboundCases {
+        guard let name = row["name"] as? String,
+              let roleStr = row["role"] as? String,
+              let phaseStr = row["phase"] as? String,
+              let kindStr = row["kind"] as? String,
+              let verdict = row["verdict"] as? String else {
+            check("dispatch outbound row has expected fields", false)
+            continue
+        }
+        assertOutboundCase(name, role: dispatchRole(named: roleStr), phase: dispatchPhase(named: phaseStr),
+                            kind: dispatchOutboundKind(named: kindStr), verdict: verdict)
+    }
+
+    // -- video_ack (noteVideoAck over all 6 phases) --
+    let videoAckCases = dispatchObj["video_ack"] as? [[String: Any]] ?? []
+    check("dispatch_cases.json video_ack has 6 rows", videoAckCases.count == 6)
+    for row in videoAckCases {
+        guard let name = row["name"] as? String,
+              let phaseStr = row["phase"] as? String,
+              let verdict = row["verdict"] as? String else {
+            check("dispatch video_ack row has expected fields", false)
+            continue
+        }
+        assertVideoAckCase(name, phase: dispatchPhase(named: phaseStr), verdict: verdict)
+    }
+} catch {
+    print("FAIL loading dispatch_cases.json: \(error)")
+    failures += 1
+}
+
+// MARK: - (h) ERR-01 activation-barrier scheduling proof (R2a)
+
+// CONTRACT_ERRATA.md ERR-01, proven against the R5 phase model (the single
+// state machine both endpoints share — no second, drifting one). The
+// single-cell legality of every (role, phase, payload) pair is already
+// vector-graded in section (g); these traces add the *sequence* dimension:
+// walking the two TCP handlers' events in specific schedules — including
+// the reordered schedule the model must surface as a violation instead of
+// silently arming input. Twin: ubuntu-client/crates/protocol/tests/err01_barrier.rs.
+
+do {
+    let runId: UInt64 = 0x0102_0304_0506_0708
+
+    func mkEnv(_ fill: (inout Resc_V3_Envelope) -> Void) -> Resc_V3_Envelope {
+        var e = Resc_V3_Envelope()
+        e.sessionRunID = runId
+        e.protocolVersion = 3
+        fill(&e)
+        return e
+    }
+    let heartbeatEnv = mkEnv { $0.heartbeat = Resc_V3_Heartbeat() }
+    let displaySettingsEnv = mkEnv { $0.displaySettings = .with { $0.warmStrength = 0.5 } }
+    let keyEventEnv = mkEnv {
+        $0.keyEvent = .with { k in k.hidUsage = 4; k.isDown = true; k.modifiers = 0 }
+    }
+    let frameAckEnv = mkEnv { $0.frameAck = .with { $0.frameOrdinal = 1 } }
+    let profileResultAcceptedEnv = mkEnv {
+        $0.profileResult = .with { p in
+            p.accepted = true
+            p.profileCanonical = Data(repeating: UInt8(ascii: "x"), count: 20)
+            p.profileHash = Data([1, 2, 3, 4, 5, 6, 7, 8])
+            p.buildCommit = String(repeating: "a", count: 40)
+            p.buildDirty = false
+            p.rejectCode = .fatalUnspecified
+            p.videoListenerReady = true
+        }
+    }
+
+    // The client-side sends ERR-01 forbids before activation (FrameAck is
+    // deliberately not gated — decoded frames race the activation signal).
+    let clientInputKinds: [V3Dispatch.OutboundKind] =
+        [.keyEvent, .buttonEvent, .scrollEvent, .releaseInput, .heartbeat]
+
+    func clientInputArmed(_ phase: V3Dispatch.Phase) -> Bool {
+        clientInputKinds.allSatisfy {
+            if case .success(.active) = V3Dispatch.noteOutbound(role: .client, phase: phase, kind: $0) {
+                return true
+            }
+            return false
+        }
+    }
+    func clientInputFullyDisarmed(_ phase: V3Dispatch.Phase) -> Bool {
+        clientInputKinds.allSatisfy {
+            if case .failure = V3Dispatch.noteOutbound(role: .client, phase: phase, kind: $0) {
+                return true
+            }
+            return false
+        }
+    }
+    func inbound(_ role: V3Dispatch.Role, _ phase: V3Dispatch.Phase,
+                 _ env: Resc_V3_Envelope) -> Result<V3Dispatch.Accepted, Resc_V3_FatalCode> {
+        V3Dispatch.validateInbound(role: role, phase: phase, env: env, expectedRunId: runId)
+    }
+    func acceptedNext(_ r: Result<V3Dispatch.Accepted, Resc_V3_FatalCode>) -> V3Dispatch.Phase? {
+        if case .success(let a) = r { return a.next }
+        return nil
+    }
+    func isProtocolViolation(_ r: Result<V3Dispatch.Accepted, Resc_V3_FatalCode>) -> Bool {
+        if case .failure(.protocolViolation) = r { return true }
+        return false
+    }
+
+    // -- Trace 1: correct schedule, step by step --
+    var phase = V3Dispatch.Phase.profileAccepted
+    check("ERR-01 client t0 (ProfileAccepted): input fully disarmed", clientInputFullyDisarmed(phase))
+    check("ERR-01 client t0: FrameAck send illegal pre-Ack", {
+        if case .failure = V3Dispatch.noteOutbound(role: .client, phase: phase, kind: .frameAck) { return true }
+        return false
+    }())
+
+    check("ERR-01 client A: noteVideoAck -> videoAckAccepted", {
+        if case .success(.videoAckAccepted) = V3Dispatch.noteVideoAck(phase) {
+            phase = .videoAckAccepted
+            return true
+        }
+        return false
+    }())
+    check("ERR-01 client t1 (barrier window): input fully disarmed", clientInputFullyDisarmed(phase))
+    check("ERR-01 client t1: FrameAck send legal (races activation by design)", {
+        if case .success(.videoAckAccepted) = V3Dispatch.noteOutbound(role: .client, phase: phase, kind: .frameAck) { return true }
+        return false
+    }())
+    check("ERR-01 client D: DisplaySettings accepted, phase unchanged",
+          acceptedNext(inbound(.client, phase, displaySettingsEnv)) == .videoAckAccepted)
+    check("ERR-01 client t1 after D: input still disarmed", clientInputFullyDisarmed(phase))
+    check("ERR-01 client H: activation heartbeat -> active", {
+        guard let next = acceptedNext(inbound(.client, phase, heartbeatEnv)), next == .active else { return false }
+        phase = next
+        return true
+    }())
+    check("ERR-01 client t2: first post-barrier input + heartbeat armed", clientInputArmed(phase))
+    check("ERR-01 client t2: liveness heartbeat keeps active",
+          acceptedNext(inbound(.client, phase, heartbeatEnv)) == .active)
+
+    // -- Trace 2: reordered handlers surfaced as violations --
+    check("ERR-01 client reordered: heartbeat in ProfileAccepted -> PROTOCOL_VIOLATION",
+          isProtocolViolation(inbound(.client, .profileAccepted, heartbeatEnv)))
+    check("ERR-01 client reordered: DisplaySettings in ProfileAccepted -> PROTOCOL_VIOLATION",
+          isProtocolViolation(inbound(.client, .profileAccepted, displaySettingsEnv)))
+    check("ERR-01 client reordered: input stays disarmed", clientInputFullyDisarmed(.profileAccepted))
+
+    // -- Trace 3: prefix sweep over [A, D, H] — armed iff H processed --
+    enum BarrierEv { case a, d, h }
+    let schedule: [BarrierEv] = [.a, .d, .h]
+    for cut in 0...schedule.count {
+        var p = V3Dispatch.Phase.profileAccepted
+        var activated = false
+        var walkOk = true
+        for ev in schedule.prefix(cut) {
+            switch ev {
+            case .a:
+                guard case .success(let next) = V3Dispatch.noteVideoAck(p) else { walkOk = false; break }
+                p = next
+            case .d:
+                guard let next = acceptedNext(inbound(.client, p, displaySettingsEnv)) else { walkOk = false; break }
+                p = next
+            case .h:
+                guard let next = acceptedNext(inbound(.client, p, heartbeatEnv)) else { walkOk = false; break }
+                activated = true
+                p = next
+            }
+        }
+        check("ERR-01 client prefix[\(cut)]: walk legal", walkOk)
+        check("ERR-01 client prefix[\(cut)]: armed == activated",
+              clientInputArmed(p) == activated)
+        if !activated {
+            check("ERR-01 client prefix[\(cut)]: fully disarmed pre-activation",
+                  clientInputFullyDisarmed(p))
+        }
+    }
+
+    // -- Trace 4: host side --
+    var hostPhase = V3Dispatch.Phase.bootstrap
+    check("ERR-01 host: announce Bootstrap -> Announced", {
+        if case .success(.announced) = V3Dispatch.noteOutbound(role: .host, phase: hostPhase, kind: .hostProfileAnnounce) {
+            hostPhase = .announced
+            return true
+        }
+        return false
+    }())
+    check("ERR-01 host: ProfileResult(accepted) -> profileAccepted", {
+        guard let next = acceptedNext(inbound(.host, hostPhase, profileResultAcceptedEnv)), next == .profileAccepted else { return false }
+        hostPhase = next
+        return true
+    }())
+    check("ERR-01 host: no heartbeat send before video Ack", {
+        if case .failure = V3Dispatch.noteOutbound(role: .host, phase: hostPhase, kind: .heartbeat) { return true }
+        return false
+    }())
+    check("ERR-01 host: noteVideoAck -> videoAckAccepted", {
+        if case .success(.videoAckAccepted) = V3Dispatch.noteVideoAck(hostPhase) {
+            hostPhase = .videoAckAccepted
+            return true
+        }
+        return false
+    }())
+    check("ERR-01 host pre-activation: rogue KeyEvent -> PROTOCOL_VIOLATION",
+          isProtocolViolation(inbound(.host, hostPhase, keyEventEnv)))
+    check("ERR-01 host pre-activation: client heartbeat -> PROTOCOL_VIOLATION",
+          isProtocolViolation(inbound(.host, hostPhase, heartbeatEnv)))
+    check("ERR-01 host pre-activation: FrameAck racing activation accepted",
+          acceptedNext(inbound(.host, hostPhase, frameAckEnv)) == .videoAckAccepted)
+    check("ERR-01 host activation send -> active", {
+        if case .success(.active) = V3Dispatch.noteOutbound(role: .host, phase: hostPhase, kind: .heartbeat) {
+            hostPhase = .active
+            return true
+        }
+        return false
+    }())
+    check("ERR-01 host post-barrier: first input accepted",
+          acceptedNext(inbound(.host, hostPhase, keyEventEnv)) == .active)
+    check("ERR-01 host post-barrier: client heartbeat accepted",
+          acceptedNext(inbound(.host, hostPhase, heartbeatEnv)) == .active)
+    check("ERR-01 host post-barrier: FrameAck accepted",
+          acceptedNext(inbound(.host, hostPhase, frameAckEnv)) == .active)
+}
+
+// MARK: - (i) R2b: generation slot + cursor clock
+
+// A00_REMEDIATION_PLAN.md §4 items 1–3 + work item R2b; CONTRACT_ERRATA.md
+// "Implementation proofs required" — late capture callbacks (generation
+// binding: a callback from a torn-down capture session must not populate a
+// newer run's slot) and cursor timestamp_us (sender-local diagnostic time
+// in the host continuous-monotonic domain; sequence number, never the
+// timestamp, governs ordering). GenerationalFrameSlot<Int> stands in for
+// the host's GenerationalFrameSlot<CVPixelBuffer> — no CVPixelBuffer or
+// ScreenCaptureKit dependency is needed to exercise the generation/store/
+// take state machine. R2b is Mac-only (no capture pipeline on the Rust
+// side), so there is no Rust twin for this section.
+
+func mkFrame(_ gen: UInt64, _ seq: UInt64, pixels: Int, ts: UInt64 = 1000) -> CapturedFrame<Int> {
+    CapturedFrame(pixels: pixels, generation: gen, captureSeq: seq, captureTsUs: ts,
+                  tsSource: .sckPts, uncertaintyUs: 0)
+}
+
+do {
+    // -- basic store + take --
+    let slot = GenerationalFrameSlot<Int>()
+    let gen1 = slot.beginGeneration()
+    let f1 = mkFrame(gen1, 1, pixels: 111, ts: 1000)
+    check("R2b slot: store into a fresh generation == .stored", slot.store(f1) == .stored)
+    let taken = slot.tryTake()
+    check("R2b slot: tryTake returns the stored frame's generation", taken?.generation == gen1)
+    check("R2b slot: tryTake returns the stored frame's captureSeq", taken?.captureSeq == 1)
+    check("R2b slot: tryTake returns the stored frame's captureTsUs", taken?.captureTsUs == 1000)
+    check("R2b slot: tryTake returns the stored frame's payload", taken?.pixels == 111)
+}
+
+do {
+    // -- latest-wins within one generation --
+    let slot = GenerationalFrameSlot<Int>()
+    let gen1 = slot.beginGeneration()
+    check("R2b slot: first store == .stored", slot.store(mkFrame(gen1, 1, pixels: 1)) == .stored)
+    check("R2b slot: second same-generation store == .storedReplacingDropped",
+          slot.store(mkFrame(gen1, 2, pixels: 2)) == .storedReplacingDropped)
+    check("R2b slot: latest-wins replacement counted in dropCount", slot.dropCount == 1)
+    let taken = slot.tryTake()
+    check("R2b slot: tryTake returns ONLY the latest identity (seq 2)", taken?.captureSeq == 2)
+    check("R2b slot: the dropped identity (seq 1) is never seen again", slot.tryTake() == nil)
+}
+
+do {
+    // -- LATE CALLBACK: CONTRACT_ERRATA.md late-capture-callbacks proof --
+    // teardown -> new run -> late callback bound to the torn-down run must
+    // not populate the new run's slot.
+    let slot = GenerationalFrameSlot<Int>()
+    let gen1 = slot.beginGeneration()
+    slot.endGeneration()                    // teardown of run 1
+    let gen2 = slot.beginGeneration()       // run 2 starts
+    check("R2b slot: late callback bound to the torn-down generation is rejected",
+          slot.store(mkFrame(gen1, 99, pixels: -1)) == .rejectedStale)
+    check("R2b slot: staleRejectCount incremented", slot.staleRejectCount == 1)
+    check("R2b slot: slot untouched by the stale store", slot.tryTake() == nil)
+    check("R2b slot: a store bound to the CURRENT generation still succeeds",
+          slot.store(mkFrame(gen2, 1, pixels: 42)) == .stored)
+    let taken = slot.tryTake()
+    check("R2b slot: tryTake returns ONLY the gen2 identity",
+          taken?.generation == gen2 && taken?.pixels == 42)
+}
+
+do {
+    // -- teardown discards a held, never-consumed frame --
+    let slot = GenerationalFrameSlot<Int>()
+    let gen1 = slot.beginGeneration()
+    check("R2b slot: store before teardown == .stored", slot.store(mkFrame(gen1, 1, pixels: 7)) == .stored)
+    slot.endGeneration()
+    check("R2b slot: teardown discards the held frame (tryTake nil)", slot.tryTake() == nil)
+    check("R2b slot: teardown discard counted in dropCount", slot.dropCount == 1)
+}
+
+do {
+    // -- no-current-token window --
+    let slot = GenerationalFrameSlot<Int>()
+    let gen1 = slot.beginGeneration()
+    slot.endGeneration()
+    check("R2b slot: store during the no-current-token window is rejectedStale",
+          slot.store(mkFrame(gen1, 1, pixels: 0)) == .rejectedStale)
+}
+
+do {
+    // -- frameCount counts only successful stores --
+    let slot = GenerationalFrameSlot<Int>()
+    let gen1 = slot.beginGeneration()
+    _ = slot.store(mkFrame(gen1, 1, pixels: 1))          // .stored
+    _ = slot.store(mkFrame(gen1, 2, pixels: 2))          // .storedReplacingDropped
+    _ = slot.store(mkFrame(gen1 + 1, 3, pixels: 3))      // .rejectedStale (not the current token)
+    check("R2b slot: frameCount excludes stale rejections", slot.frameCount == 2)
+}
+
+// -- CursorPacket: v1 wire byte layout (docs/WIRE.md legacy schema) --
+// FixtureCheck depends only on RescCore/RescProto/SwiftProtobuf
+// (Package.swift) and cannot import the RemoteDisplayHost executable
+// target, so ProtocolConstants.magic/protocolVersion/packetTypeCursorUpdate
+// are mirrored here as literals rather than referenced directly.
+let cursorMagic: [UInt8] = [0x52, 0x45, 0x53, 0x43] // "RESC" — ProtocolConstants.magic
+let cursorVersion: UInt8 = 1                        // ProtocolConstants.protocolVersion
+let cursorPacketType: UInt8 = 1                     // ProtocolConstants.packetTypeCursorUpdate
+
+func u32LE(_ d: Data, _ o: Int) -> UInt32 {
+    let b = [UInt8](d)
+    return UInt32(b[o]) | (UInt32(b[o + 1]) << 8) | (UInt32(b[o + 2]) << 16) | (UInt32(b[o + 3]) << 24)
+}
+func u64LE(_ d: Data, _ o: Int) -> UInt64 {
+    let b = [UInt8](d)
+    var v: UInt64 = 0
+    for i in 0..<8 { v |= UInt64(b[o + i]) << (8 * i) }
+    return v
+}
+func i32LE(_ d: Data, _ o: Int) -> Int32 { Int32(bitPattern: u32LE(d, o)) }
+
+do {
+    let packet = CursorPacket.build(magic: cursorMagic, version: cursorVersion, packetType: cursorPacketType,
+                                     seq: 7, timestampUs: 123_456_789, x: 111, y: -22, shape: 3)
+    check("CursorPacket.build returns exactly 35 bytes", packet.count == 35)
+
+    let bytes = [UInt8](packet)
+    check("CursorPacket bytes 0..3 == magic", Array(bytes[0..<4]) == cursorMagic)
+    check("CursorPacket byte 4 == protocol version", bytes[4] == cursorVersion)
+    check("CursorPacket byte 5 == packetTypeCursorUpdate", bytes[5] == cursorPacketType)
+
+    check("CursorPacket round-trip: seq", u32LE(packet, 6) == 7)
+    check("CursorPacket round-trip: timestamp_us", u64LE(packet, 10) == 123_456_789)
+    check("CursorPacket round-trip: x_px", i32LE(packet, 18) == 111)
+    check("CursorPacket round-trip: y_px", i32LE(packet, 22) == -22)
+    check("CursorPacket round-trip: shape_id", bytes[26] == 3)
+}
+
+do {
+    // -- monotonicity property: injected strictly-increasing clock --
+    // CursorTracker.sendUpdate is a thin wrapper: nowUs() for the
+    // timestamp, then CursorPacket.build for the bytes (CursorTracker.swift).
+    // That composition — a clock closure feeding build's timestampUs
+    // parameter — is the tested seam; driving CursorTracker itself would
+    // need a live UDP socket, which this check binary does not open.
+    var fakeNow: UInt64 = 1_000_000
+    let nowUs: () -> UInt64 = { defer { fakeNow += 1_000 }; return fakeNow }
+
+    let p1 = CursorPacket.build(magic: cursorMagic, version: cursorVersion, packetType: cursorPacketType,
+                                 seq: 1, timestampUs: nowUs(), x: 0, y: 0, shape: 0)
+    let p2 = CursorPacket.build(magic: cursorMagic, version: cursorVersion, packetType: cursorPacketType,
+                                 seq: 2, timestampUs: nowUs(), x: 0, y: 0, shape: 0)
+    let p3 = CursorPacket.build(magic: cursorMagic, version: cursorVersion, packetType: cursorPacketType,
+                                 seq: 3, timestampUs: nowUs(), x: 0, y: 0, shape: 0)
+
+    let t1 = u64LE(p1, 10), t2 = u64LE(p2, 10), t3 = u64LE(p3, 10)
+    check("CursorPacket monotonicity: consecutive packets carry strictly increasing timestamps under an injected increasing clock",
+          t1 < t2 && t2 < t3)
+}
+
+do {
+    // -- SEPARATE property: seq governs ordering, NEVER the timestamp
+    //    (CONTRACT_ERRATA.md cursor timestamp_us proof) --
+    let fakeClockValues: [UInt64] = [100, 50, 200] // deliberately non-monotonic
+    let packets = (0..<3).map { i in
+        CursorPacket.build(magic: cursorMagic, version: cursorVersion, packetType: cursorPacketType,
+                            seq: UInt32(i + 1), timestampUs: fakeClockValues[i], x: 0, y: 0, shape: 0)
+    }
+    let seqs = packets.map { u32LE($0, 6) }
+    let timestamps = packets.map { u64LE($0, 10) }
+
+    check("CursorPacket seq strictly increments 1,2,3 even under a non-monotonic clock", seqs == [1, 2, 3])
+    check("CursorPacket timestamps reflect the non-monotonic clock as fed (not reordered)",
+          timestamps == fakeClockValues)
+    check("CursorPacket: ordering authority is seq, never timestamp (errata cursor proof — timestamp went DOWN between packet 1 and 2, seq did not)",
+          seqs == [1, 2, 3] && timestamps[1] < timestamps[0])
+}
+
+// ===========================================================================
+// MARK: - (j) R3a: fail-closed host infrastructure
+//
+// A00_REMEDIATION_PLAN.md §5 R3a. Two RescCore pieces are directly
+// unit-testable here: HarnessVerdict's pure predicate function and
+// VideoEncoder's new checked-status EncoderError cases. The two-process
+// lock-contention test proves the flock(2) mechanism InstanceLock.swift's
+// acquire(path:profileId:) depends on holds across real process boundaries
+// (see the RESC_LOCK_CONTENTION_CHILD branch at the very top of this file
+// for why it duplicates InstanceLock's algorithm rather than calling it
+// directly). Doctor.swift, RescLog.flushNow(), and HarnessSender's pump are
+// exercised only by the manual verification runs (RESC_DOCTOR_INJECT=... and
+// the harness sender/receiver pair) — none of those types live in a module
+// this executable target can import.
+// ===========================================================================
+
+// -- HarnessVerdict.evaluate: baseline + each argument alone flips it --
+
+check("HarnessVerdict: all-clean run -> pass",
+      HarnessVerdict.evaluate(sent: 100, acked: 100, outstanding: 0, orderViolations: 0, writeErrors: 0))
+check("HarnessVerdict: zero-frame run must NOT pass vacuously -> fail",
+      !HarnessVerdict.evaluate(sent: 0, acked: 0, outstanding: 0, orderViolations: 0, writeErrors: 0))
+check("HarnessVerdict: acked < sent alone -> fail",
+      !HarnessVerdict.evaluate(sent: 100, acked: 99, outstanding: 0, orderViolations: 0, writeErrors: 0))
+check("HarnessVerdict: acked > sent alone -> fail",
+      !HarnessVerdict.evaluate(sent: 100, acked: 101, outstanding: 0, orderViolations: 0, writeErrors: 0))
+check("HarnessVerdict: nonzero outstanding alone -> fail",
+      !HarnessVerdict.evaluate(sent: 100, acked: 100, outstanding: 1, orderViolations: 0, writeErrors: 0))
+check("HarnessVerdict: nonzero ack-order violations alone -> fail",
+      !HarnessVerdict.evaluate(sent: 100, acked: 100, outstanding: 0, orderViolations: 1, writeErrors: 0))
+check("HarnessVerdict: nonzero write errors alone -> fail",
+      !HarnessVerdict.evaluate(sent: 100, acked: 100, outstanding: 0, orderViolations: 0, writeErrors: 1))
+check("HarnessVerdict: every predicate failing simultaneously -> fail",
+      !HarnessVerdict.evaluate(sent: 100, acked: 90, outstanding: 5, orderViolations: 2, writeErrors: 1))
+
+// -- VideoEncoder.EncoderError: checked-status descriptions (requirement 1) --
+
+check("EncoderError.sessionCreationFailed description names the status",
+      "\(VideoEncoder.EncoderError.sessionCreationFailed(-12345))".contains("-12345"))
+check("EncoderError.propertySetFailed description names both the key and the status", {
+    let d = "\(VideoEncoder.EncoderError.propertySetFailed(key: "AverageBitRate", status: -12902))"
+    return d.contains("AverageBitRate") && d.contains("-12902")
+}())
+check("EncoderError.prepareFailed description names the status",
+      "\(VideoEncoder.EncoderError.prepareFailed(-12903))".contains("-12903"))
+
+// -- Two-process lock contention (R3a): proves flock(2) semantics hold
+// across process boundaries — the same mechanism InstanceLock.swift's
+// acquire(path:profileId:) uses (open + 0600-reassert + LOCK_EX|LOCK_NB
+// flock, duplicated at the top of this file as fixtureCheckAttemptScratchLock
+// since this target cannot import InstanceLock directly).
+
+do {
+    let scratchPath = NSTemporaryDirectory()
+        + "resc-fixture-check-lock-contention-\(ProcessInfo.processInfo.processIdentifier).lock"
+    try? FileManager.default.removeItem(atPath: scratchPath)
+    defer { try? FileManager.default.removeItem(atPath: scratchPath) }
+
+    // Deliberately wrong permissions before the first open, proving the
+    // same 0600-reassertion-on-open fix applied to the real
+    // InstanceLock.swift (lock hygiene, R3a) — not just at creation time.
+    guard FileManager.default.createFile(atPath: scratchPath, contents: nil) else {
+        throw FixtureCheckError(message: "could not create scratch lock file at \(scratchPath)")
+    }
+    try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: scratchPath)
+
+    guard let parentFd = fixtureCheckAttemptScratchLock(path: scratchPath) else {
+        throw FixtureCheckError(message: "parent could not acquire its own scratch lock")
+    }
+    check("R3a lock contention: parent acquires the scratch lock", true)
+
+    let permsAfterOpen = (try FileManager.default.attributesOfItem(atPath: scratchPath))[.posixPermissions] as? Int
+    check("R3a lock contention: 0600 reasserted on open even though the file pre-existed as 0644",
+          permsAfterOpen == 0o600)
+
+    let fixtureCheckExecutableURL: URL = {
+        if let p = Bundle.main.executablePath { return URL(fileURLWithPath: p) }
+        return URL(fileURLWithPath: CommandLine.arguments[0])
+    }()
+
+    func spawnContentionChild() throws -> Int32 {
+        let process = Process()
+        process.executableURL = fixtureCheckExecutableURL
+        process.environment = ProcessInfo.processInfo.environment.merging(
+            ["RESC_LOCK_CONTENTION_CHILD": scratchPath]) { _, new in new }
+        try process.run()
+        process.waitUntilExit()
+        return process.terminationStatus
+    }
+
+    let childWhileHeld = try spawnContentionChild()
+    check("R3a lock contention: child exits 20 (INSTANCE_LOCK_HELD) while the parent holds the lock",
+          childWhileHeld == 20)
+
+    close(parentFd)
+
+    let childAfterRelease = try spawnContentionChild()
+    check("R3a lock contention: child exits 0 after the parent releases the lock",
+          childAfterRelease == 0)
+} catch {
+    print("FAIL R3a lock contention setup: \(error)")
+    failures += 1
+}
 
 if failures > 0 {
     print("resc-fixture-check: \(failures) FAILURE(S)")

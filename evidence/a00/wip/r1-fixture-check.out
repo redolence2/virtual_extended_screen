@@ -1,0 +1,132 @@
+ok   fixture has no trailing newline (errata proof 3)
+ok   fixture SHA-256 prefix == 0cc2249662880597
+ok   fixture is already canonical
+ok   placeholder backend rejected by runtime validation
+ok   canonicalize sorts and minifies
+ok   canonical fixture passes ASCII-only rule (ERR-07)
+ok   firstNonASCII reports a non-ASCII nested value with its path
+ok   firstNonASCII reports a non-ASCII key
+ok   profile_nonascii_raw.json rejected by ASCII gate (ERR-07), violation at profile_id
+ok   profile_nonascii_escaped.json rejected by ASCII gate (ERR-07), violation at profile_id
+ok   videohello.bin: sessionRunId == 0x1122334455667788
+ok   videohello.bin: profileHash == 0cc2249662880597
+ok   videohelloack_ok.bin: status == ok
+ok   videohelloack_mismatch.bin: status == mismatch
+ok   videohelloack_busy.bin: status == busy
+ok   videohelloack_internal.bin: status == internal
+ok   frame_header_min.bin: flags == 1
+ok   frame_header_min.bin: frameOrdinal == 1
+ok   frame_header_min.bin: payloadLen == 0
+ok   move.bin: seq == 1
+ok   move.bin: x == 100
+ok   move.bin: y == 200
+ok   cursor.bin: seq == 1
+ok   cursor.bin: x == 100
+ok   cursor.bin: y == 200
+ok   cursor.bin: shape == 0
+ok   cursor.bin: scale == 1.0
+ok   malformed/bad_magic_hello.bin -> protocolViolation
+ok   malformed/bad_length_hello.bin -> protocolViolation
+ok   malformed/nonzero_reserved_hello.bin -> protocolViolation
+ok   malformed/unknown_status_ack.bin -> protocolViolation
+ok   malformed/unknown_flag_frame.bin -> protocolViolation
+ok   malformed/overflow_frame.bin -> recordCapViolation(total: 4294967327, cap: 2097184)
+ok   malformed/short_move.bin -> protocolViolation
+ok   malformed/long_cursor.bin -> protocolViolation
+ok   envelope_clock_ping.bin: sessionRunID == 72623859790382856
+ok   envelope_clock_ping.bin: protocolVersion == 3
+ok   envelope_clock_ping.bin: payload case == clock_ping
+ok   envelope_clock_ping.bin: clockPing.seq
+ok   envelope_clock_ping.bin: clockPing.t1MonoUs
+ok   envelope_clock_ping.bin: re-encode byte-equality
+ok   envelope_fatal_report.bin: sessionRunID == 72623859790382856
+ok   envelope_fatal_report.bin: protocolVersion == 3
+ok   envelope_fatal_report.bin: payload case == fatal_report
+ok   envelope_fatal_report.bin: fatalReport.code
+ok   envelope_fatal_report.bin: fatalReport.component
+ok   envelope_fatal_report.bin: fatalReport.summary
+ok   envelope_fatal_report.bin: re-encode byte-equality
+ok   envelope_frame_ack.bin: sessionRunID == 72623859790382856
+ok   envelope_frame_ack.bin: protocolVersion == 3
+ok   envelope_frame_ack.bin: payload case == frame_ack
+ok   envelope_frame_ack.bin: frameAck.frameOrdinal
+ok   envelope_frame_ack.bin: re-encode byte-equality
+ok   envelope_heartbeat.bin: sessionRunID == 72623859790382856
+ok   envelope_heartbeat.bin: protocolVersion == 3
+ok   envelope_heartbeat.bin: payload case == heartbeat
+ok   envelope_heartbeat.bin: heartbeat.tMonoUs
+ok   envelope_heartbeat.bin: re-encode byte-equality
+ok   classify(0) [fatalUnspecified] == unspecified
+ok   classify(1) [profileMismatch] == deterministic
+ok   classify(2) [buildMismatch] == deterministic
+ok   classify(3) [versionMismatch] == deterministic
+ok   classify(4) [malformedFraming] == deterministic
+ok   classify(5) [recordCapViolation] == deterministic
+ok   classify(6) [encoderProperty] == deterministic
+ok   classify(7) [profileInvalid] == deterministic
+ok   classify(8) [protocolViolation] == deterministic
+ok   classify(9) [requiredNativeApi] == deterministic
+ok   classify(10) [socketFailure] == transient
+ok   classify(11) [decodeFatal] == transient
+ok   classify(12) [watchdogAckAge] == transient
+ok   classify(13) [watchdogOutput] == transient
+ok   classify(14) [watchdogHandshake] == transient
+ok   classify(15) [watchdogEncoder] == transient
+ok   classify(16) [watchdogHeartbeat] == transient
+ok   classify(17) [identityFailure] == transient
+ok   classify(18) [raVerification] == transient
+ok   classify(19) [retryBudgetExhausted] == terminal
+ok   classify(20) [instanceLockHeld] == terminal
+ok   classify(21) [permissionDenied] == deterministic
+ok   classify(22) [watchdogFirstRa] == transient
+ok   classify(99) == nil (unknown code)
+ok   newerU32: equal -> false
+ok   newerU32: forward -> true
+ok   newerU32: wrap-forward (a=5, b=0xFFFFFFF0) -> true
+ok   newerU32: stale -> false
+ok   newerU32: d == 0x80000000 exactly -> false
+ok   newerU32: d == 0x7FFFFFFF exactly -> true
+ok   newerU24: equal -> false
+ok   newerU24: forward -> true
+ok   newerU24: wrap-forward (a=5, b=0xFFFFF0) -> true
+ok   newerU24: stale -> false
+ok   newerU24: d == 0x800000 exactly -> false
+ok   newerU24: d == 0x7FFFFF exactly -> true
+ok   newerU24: masks inputs beyond 24 bits (a=0xFF000006, b=5) -> true
+ok   scroll_cases.json has 12 cases
+ok   scroll[plain_positive]: dx == 10
+ok   scroll[plain_positive]: dy == 20
+ok   scroll[plain_negative]: dx == -30
+ok   scroll[plain_negative]: dy == -10
+ok   scroll[zero]: dx == 0
+ok   scroll[zero]: dy == 0
+ok   scroll[rotated_basic]: dx == -20
+ok   scroll[rotated_basic]: dy == 10
+ok   scroll[rotated_negative]: dx == -40
+ok   scroll[rotated_negative]: dy == -30
+ok   scroll[rotated_zero_dy]: dx == 0
+ok   scroll[rotated_zero_dy]: dy == 50
+ok   scroll[large_no_saturate]: dx == 2147483640
+ok   scroll[large_no_saturate]: dy == -2147483640
+ok   scroll[saturate_positive]: dx == 2147483647
+ok   scroll[saturate_positive]: dy == 0
+ok   scroll[saturate_negative]: dx == -2147483648
+ok   scroll[saturate_negative]: dy == 0
+ok   scroll[saturate_int_min]: dx == -2147483648
+ok   scroll[saturate_int_min]: dy == 0
+ok   scroll[rotated_saturate]: dx == 2147483647
+ok   scroll[rotated_saturate]: dy == 0
+ok   scroll[rotated_int_min_dx]: dx == -10
+ok   scroll[rotated_int_min_dx]: dy == -2147483648
+ok   RA (32,33,34,19) -> ok
+ok   RA (32,33,34,20) -> ok
+ok   RA missing PPS -> fail
+ok   RA CRA instead of IDR -> fail
+ok   RA CRA alongside IDR -> fail
+ok   RA empty input -> fail
+ok   RA 3-byte start codes still scan correctly
+ok   keyframeClaimMatches: IDR present, claim=true -> match
+ok   keyframeClaimMatches: IDR present, claim=false -> mismatch
+ok   keyframeClaimMatches: no IDR, claim=false -> match
+ok   keyframeClaimMatches: no IDR, claim=true -> mismatch
+resc-fixture-check: all checks passed

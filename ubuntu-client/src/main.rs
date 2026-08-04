@@ -388,6 +388,13 @@ async fn main() -> Result<()> {
             let mut decode_total_us = 0u64;
             let mut has_frame = false;
             let mut new_video_frame; // set per loop iteration
+            // Recovered identity (A00_REMEDIATION_PLAN.md §4 item 7) of the
+            // most recently uploaded decoded frame — i.e. whatever
+            // `r.update_frame()` last copied into the persistent texture.
+            // Read at the present call site (§4 item 8) since
+            // `present_with_cursor()` re-presents this same texture on
+            // cursor-only redraws too, with no frame reference of its own.
+            let mut last_uploaded_recovered_id: Option<u64> = None;
             // A0.0 trace-mode per-frame log (RESC_TRACE=1 only; see
             // crates/diagnostics/src/trace.rs). Cheap no-op otherwise.
             let trace = diagnostics::trace::ClientTrace::global();
@@ -404,15 +411,10 @@ async fn main() -> Result<()> {
                 // Collect ALL available frames from queue, DECODE all (maintains
                 // HEVC reference chain), but only RENDER the last good one.
                 let mut frames_to_decode: Vec<AssembledFrame> = Vec::new();
-                // Parallel per-frame arrival timestamps for ClientTrace.frame's
-                // ts_recv_us (A0.0 trace mode only).
-                let mut recv_ts_us: Vec<u64> = Vec::new();
                 match frame_rx.recv_timeout(Duration::from_millis(1)) {
                     Ok(frame) => {
-                        if trace.enabled() { recv_ts_us.push(diagnostics::mono_us()); }
                         frames_to_decode.push(frame);
                         while let Ok(more) = frame_rx.try_recv() {
-                            if trace.enabled() { recv_ts_us.push(diagnostics::mono_us()); }
                             frames_to_decode.push(more);
                         }
                     }
@@ -435,7 +437,7 @@ async fn main() -> Result<()> {
                         }
 
                         let decode_start = std::time::Instant::now();
-                        match decoder.decode(&assembled.data, assembled.timestamp_us, assembled.is_keyframe) {
+                        match decoder.decode(&assembled.data, assembled.frame_id, assembled.timestamp_us, assembled.is_keyframe) {
                             Ok(decoded_frames) => {
                                 // Check for pending IDR request from decoder
                                 if let Some(reason) = decoder.pending_idr_reason.take() {
@@ -449,7 +451,6 @@ async fn main() -> Result<()> {
                                 let decode_us = decode_start.elapsed().as_micros() as u64;
                                 decode_total_us += decode_us;
 
-                                let mut presented = false;
                                 for decoded in &decoded_frames {
                                     if decoded.planes[0].is_empty() { continue; }
                                     frame_count += 1;
@@ -459,8 +460,8 @@ async fn main() -> Result<()> {
                                     if is_last {
                                         new_video_frame = true;
                                         if let Some(ref mut r) = renderer_opt {
-                                            presented = true;
                                             let _ = r.update_frame(decoded);
+                                            last_uploaded_recovered_id = decoded.recovered_frame_id;
                                         }
                                     }
 
@@ -470,15 +471,22 @@ async fn main() -> Result<()> {
                                             decoded.width, decoded.height, decode_us as f64 / 1000.0
                                         );
                                     }
-                                }
 
-                                if trace.enabled() {
-                                    trace.frame(serde_json::json!({
-                                        "frame_id": assembled.frame_id,
-                                        "ts_recv_us": recv_ts_us.get(i).copied().unwrap_or(0),
-                                        "ts_decode_done_us": diagnostics::mono_us(),
-                                        "presented": presented,
-                                    }));
+                                    // A00_REMEDIATION_PLAN.md §4 items 6-7 (schema
+                                    // FROZEN, field names exact): one record per
+                                    // EMITTED decoded frame — not per decode() call
+                                    // — each recovering its OWN identity.
+                                    // ts_recv_us is now the assembly-completion
+                                    // stamp carried on the frame itself (item 6),
+                                    // not a channel-pull-time hack.
+                                    if trace.enabled() {
+                                        trace.frame(serde_json::json!({
+                                            "wire_frame_id": assembled.frame_id,
+                                            "recovered_frame_id": decoded.recovered_frame_id,
+                                            "ts_recv_us": assembled.recv_ts_us,
+                                            "ts_decode_done_us": diagnostics::mono_us(),
+                                        }));
+                                    }
                                 }
                             }
                             Err(e) => {
@@ -598,6 +606,25 @@ async fn main() -> Result<()> {
                                 cursor_renderer.update(mouse.x(), mouse.y(), 0);
                             }
                             r.present_with_cursor(&cursor_renderer);
+
+                            // A00_REMEDIATION_PLAN.md §4 item 8 (schema FROZEN):
+                            // stamped immediately adjacent to the successful
+                            // presentation call itself — not at update_frame's
+                            // upload-scheduling time. Gated on new_video_frame
+                            // (not just need_render) so this fires once per
+                            // genuinely new presented frame, not on every
+                            // cursor-only redraw of the same last-uploaded
+                            // texture (present_with_cursor has no frame
+                            // argument of its own — cursor moves alone also
+                            // reach this call). null recovered_frame_id is
+                            // written as-is when identity recovery failed —
+                            // the joiner counts that as a rejected sample.
+                            if new_video_frame && trace.enabled() {
+                                trace.present(serde_json::json!({
+                                    "recovered_frame_id": last_uploaded_recovered_id,
+                                    "ts_present_us": diagnostics::mono_us(),
+                                }));
+                            }
                         }
                     }
                 }

@@ -21,12 +21,34 @@ enum InstanceLock {
             .appendingPathComponent("Library/Application Support/RESC", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let path = dir.appendingPathComponent("\(profileId).lock").path
+        return acquire(path: path, profileId: profileId)
+    }
 
+    /// Internal/testable entry point taking an explicit lock-file path
+    /// (A00_REMEDIATION_PLAN.md §5 R3a: "support a path override in
+    /// InstanceLock's API"). `acquire(profileId:)` above computes the
+    /// default per-profile path and delegates here; default path behavior
+    /// is unchanged. (FixtureCheck's two-process lock contention check
+    /// cannot call this directly — FixtureCheck is a separate
+    /// executableTarget that does not depend on RemoteDisplayHost's module,
+    /// the same constraint HarnessSender/main.swift already documents for
+    /// its own duplicated continuousNowUs() helper — so that check
+    /// duplicates this exact algorithm locally instead. This entry point
+    /// exists for InstanceLock's own testability regardless.)
+    @discardableResult
+    static func acquire(path: String, profileId: String) -> Bool {
         let fd = open(path, O_CREAT | O_RDWR, 0o600)
         guard fd >= 0 else {
             logResult(profileId: profileId, acquired: false, reason: "open_failed", errnoValue: errno)
             return false
         }
+
+        // 0600 reassertion (R3a lock hygiene): open()'s mode argument is
+        // only honored by the kernel when O_CREAT actually creates the file
+        // — on every run after the first, the lock file already exists and
+        // open() silently keeps whatever permissions it already had.
+        // Reassert explicitly on every open, not only at creation.
+        chmod(path, 0o600)
 
         guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
             let savedErrno = errno

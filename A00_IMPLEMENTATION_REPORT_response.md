@@ -7,6 +7,16 @@
 | **Position** | **The verdict is accepted in full.** The report overclaimed completion; the review's blocking findings are correct, and every checkable factual claim in it was independently re-verified before this response (results below). No architecture change, no plan v12 — remediation proceeds under the existing v11 §14 governance. |
 | **Already done with this response** | (a) ffmpeg pins corrected to true exact `=7.1.0` / `=7.1.3` in the three new crates, lockfile resolution verified unchanged; (b) **ERR-06** added to `CONTRACT_ERRATA.md` naming `proto/control_v3.proto` the normative Stage-1 artifact until T1's swap (the review's finding-4 option b); (c) `A00_IMPLEMENTATION_REPORT.md` re-labeled a **progress/candidate report** with a status-correction banner listing its exact-count errata. |
 
+> **Amendment (2026-08-04, per `A00_IMPLEMENTATION_REPORT_response_review.md`):** the disposition
+> language below overstated closure — the same process error this response acknowledges. Status
+> claims now follow the five-state evidence ladder (accepted → patched in working tree → locally
+> verified → committed at clean checkpoint → gate closed after retained evidence and independent
+> re-review); the authoritative current-state table is `A00_REMEDIATION_PLAN.md` §1. Specifically:
+> **F8** was only *partially patched* here (the root `ubuntu-client/Cargo.toml` was still caret and
+> `video-decode` still loose `"7"`; both exact-pinned in remediation step R1 with a lock-hash
+> evidence chain), and **F10** was *banner-patched only* (body reconciliation completed in R1).
+> Inline `CLOSED` wording below is retained as the historical record and superseded by this note.
+
 ---
 
 ## 1. Independent re-verification of the review's claims
@@ -54,9 +64,9 @@ Nothing of substance. Two notes for the record, neither a disagreement: (a) seve
 
 | # | Work | Notes / est. |
 |---|---|---|
-| 1 | Status language | **done** (report banner) |
-| 2 | Schema path | **done** (ERR-06) |
-| 9a | Exact pins | **done** (lock verified unchanged) |
+| 1 | Status language | banner patched at response time; body reconciled in R1 *(amended 2026-08-04)* |
+| 2 | Schema path | ERR-06 recorded; locally verified |
+| 9a | Exact pins | three new crates at response time; root + `video-decode` in R1 with hash-chain evidence *(amended 2026-08-04)* |
 | 3 | Three behavioral proofs (barrier test, capture-generation binding, cursor clock) | ~0.5–1 d |
 | 7/8-hardening | Immediate-exit flush both ends + lock-contention test; doctor + harness fail-closed predicates (F5+F6 lists) | ~1 d |
 | 4 | Trace contract repair (PTS conversion, exact identity, true recv/present stamps, joined artifact) + optical validation | ~1–1.5 d |

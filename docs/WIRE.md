@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Date** | 2026-07-30 |
-| **Status** | **Stage-1 structural freeze (A0.0).** |
+| **Status** | **Stage-1 candidate; freeze pending A0.0 gates and clean checkpoint** (see `CONTRACT_ERRATA.md` 2026-08-04 governance note). |
 | **Governance** | Normative. Any change to a fact in this document requires a dated entry in `CONTRACT_ERRATA.md` first; this file is then updated to match. Do not hand-edit a structural fact here without a corresponding errata entry. |
 | **Normative sources** | `IMPLEMENTATION_PLAN_V11.md` §1, §4, §5, §7, §9 + `CONTRACT_ERRATA.md` (all entries). Where the two disagree, `CONTRACT_ERRATA.md` is later and wins — it exists specifically to record corrections against this plan. |
 | **Companions** | `proto/control_v3.proto` (protobuf schema) · `proto/fixtures/*` (binary fixtures) · `tools/gen_fixtures.py` (fixture generator) |
@@ -318,7 +318,9 @@ Source: `IMPLEMENTATION_PLAN_V11.md` §2; `CONTRACT_ERRATA.md`, "Profile hash by
 - keys sorted lexicographically
 - no whitespace (minified)
 - base-10 integers
-- NFC-normalized strings
+- ASCII-only keys and string values (ERR-07 — replaces the former NFC rule; validators check the
+  parsed document, before the canonical-bytes comparison, so both languages return identical
+  verdicts on raw-UTF-8 and \uXXXX-escaped encodings alike)
 
 ### Placeholder bytes (exact, one line)
 

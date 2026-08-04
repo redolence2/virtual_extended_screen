@@ -1,0 +1,12 @@
+requirement in backend-construct: ffmpeg-next =7.1.0
+requirement in backend-construct: ffmpeg-sys-next =7.1.3
+requirement in decoder-experiment: ffmpeg-next =7.1.0
+requirement in decoder-experiment: ffmpeg-sys-next =7.1.3
+requirement in harness-receiver: ffmpeg-next =7.1.0
+requirement in harness-receiver: ffmpeg-sys-next =7.1.3
+requirement in remote-display-client: ffmpeg-next =7.1.0
+requirement in remote-display-client: ffmpeg-sys-next =7.1.3
+requirement in video-decode: ffmpeg-next =7.1.0
+requirement in video-decode: ffmpeg-sys-next =7.1.3
+resolved ffmpeg-next 7.1.0
+resolved ffmpeg-sys-next 7.1.3

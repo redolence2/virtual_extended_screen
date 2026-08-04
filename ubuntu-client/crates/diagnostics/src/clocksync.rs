@@ -12,10 +12,15 @@
 //! *differences* are meaningful, and those can be negative even though every
 //! individual timestamp is an unsigned mono count. Samples with `delay < 0`
 //! (physically impossible — indicates a clock step or bad sample) or
-//! `delay >= 5000` (5 ms — too much queuing/scheduling noise to trust the
-//! offset) are rejected outright. Among accepted samples, the minimum-delay
-//! one is retained as [`ClockSync::best`] — it has the tightest uncertainty
-//! bound (`uncertainty_us = delay_us / 2`).
+//! `delay >= 100_000` (100 ms sanity ceiling) are rejected outright; within
+//! that ceiling EVERY sample is accepted and carries its honest uncertainty
+//! (`uncertainty_us = delay_us / 2`, the standard NTP bound on offset
+//! error). ERR-08 (CONTRACT_ERRATA.md, 2026-08-04) replaced the original
+//! 5 ms accept gate: the deployment link measures ~7 ms RTT, so that gate
+//! structurally rejected every real sample — best-sample selection with
+//! explicit uncertainty replaces filtering. Among accepted samples, the
+//! minimum-delay one is retained as [`ClockSync::best`] — it has the
+//! tightest uncertainty bound.
 
 /// One accepted clock-sync sample.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,8 +31,12 @@ pub struct Sample {
     pub uncertainty_us: u32,
 }
 
-/// Samples with `delay_us >= 5000` (5 ms round-trip) are rejected (plan §10).
-const MAX_ACCEPTED_DELAY_US: i128 = 5000;
+/// Sanity ceiling: samples with `delay_us >= 100_000` (100 ms round-trip)
+/// are rejected as pathological. ERR-08 replaced plan §10's 5 ms accept
+/// gate — on the real ~7 ms-RTT link that gate rejected every sample;
+/// best-sample selection plus per-sample `uncertainty_us = delay/2`
+/// carries link quality honestly instead of filtering it away.
+const MAX_ACCEPTED_DELAY_US: i128 = 100_000;
 
 /// Accumulates clock-sync samples across one session, retaining the
 /// minimum-delay (tightest-uncertainty) accepted sample.
@@ -45,9 +54,9 @@ impl ClockSync {
     /// client's) mono microseconds at send/receive; `t2`/`t3` are the
     /// responder's (host's) mono microseconds at receive/send, as echoed
     /// back in the pong. Returns `Some(sample)` when accepted (`delay_us`
-    /// in `0..5000`); `None` when rejected. Accepting a sample here does not
-    /// guarantee it becomes [`Self::best`] — only the minimum-delay sample
-    /// seen so far is kept there.
+    /// in `0..100_000` — ERR-08); `None` when rejected. Accepting a sample
+    /// here does not guarantee it becomes [`Self::best`] — only the
+    /// minimum-delay sample seen so far is kept there.
     pub fn on_pong(&mut self, t1: u64, t2: u64, t3: u64, t4: u64, seq: u32) -> Option<Sample> {
         let (t1, t2, t3, t4) = (t1 as i128, t2 as i128, t3 as i128, t4 as i128);
 
@@ -63,7 +72,7 @@ impl ClockSync {
         // synthetic inputs near u64::MAX on all four timestamps could make
         // `offset_i128` exceed i64's range, and that can't happen here since
         // `delay_i128` (which shares t1/t4 and t2/t3 terms) is already capped
-        // above at < 5000.
+        // above at < 100_000.
         let sample = Sample {
             seq,
             offset_us: offset_i128 as i64,
@@ -135,11 +144,15 @@ mod tests {
     }
 
     #[test]
-    fn delay_at_or_above_5ms_rejected() {
+    fn delay_ceiling_is_100ms_and_link_realistic_samples_accepted() {
         let mut cs = ClockSync::new();
         // Zero processing time (t2=t3=0) so delay = t4-t1 = round-trip directly.
-        assert_eq!(cs.on_pong(0, 0, 0, 5000, 1), None); // delay == 5000 (threshold) -> rejected
-        assert!(cs.on_pong(0, 0, 0, 4999, 2).is_some()); // delay == 4999 -> accepted
+        assert_eq!(cs.on_pong(0, 0, 0, 100_000, 1), None); // delay == ceiling -> rejected
+        assert!(cs.on_pong(0, 0, 0, 99_999, 2).is_some()); // just under -> accepted
+        // ERR-08's motivating case: the deployment link's ~7 ms RTT must be
+        // accepted and carry its honest half-delay uncertainty.
+        let s = cs.on_pong(0, 0, 0, 7_000, 3).expect("7 ms sample accepted (ERR-08)");
+        assert_eq!(s.uncertainty_us, 3_500);
     }
 
     #[test]

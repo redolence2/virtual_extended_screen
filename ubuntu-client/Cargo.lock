@@ -731,6 +731,7 @@ name = "net-transport"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "diagnostics",
  "flume",
  "jitter-buffer",
  "libc",

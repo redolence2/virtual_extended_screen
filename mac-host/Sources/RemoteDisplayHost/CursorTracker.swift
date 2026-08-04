@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+import RescCore
 
 /// Tracks Mac cursor position and shape when over the virtual display.
 /// Sends CursorUpdate packets over UDP to the Ubuntu client.
@@ -27,11 +28,19 @@ final class CursorTracker {
     private var lastShape: UInt8 = 0
     private var active = false
     private let queue = DispatchQueue(label: "com.resc.cursor", qos: .userInteractive)
+    /// Sender-local diagnostic clock for `timestamp_us` — host
+    /// continuous-monotonic domain by default (CONTRACT_ERRATA.md
+    /// "Implementation proofs required" › cursor `timestamp_us` proof).
+    /// Injectable so FixtureCheck can prove the clock-injection seam
+    /// without a live socket; production always uses the default.
+    private let nowUs: () -> UInt64
 
-    init(displayID: CGDirectDisplayID, streamWidth: Int, streamHeight: Int) {
+    init(displayID: CGDirectDisplayID, streamWidth: Int, streamHeight: Int,
+         nowUs: @escaping () -> UInt64 = RescClockBridge.continuousNowUs) {
         self.displayID = displayID
         self.streamWidth = streamWidth
         self.streamHeight = streamHeight
+        self.nowUs = nowUs
     }
 
     // MARK: - Start / Stop
@@ -108,25 +117,21 @@ final class CursorTracker {
         guard fd >= 0, var addr = destAddr else { return }
 
         seq &+= 1
-        let timestampUs = UInt64(CFAbsoluteTimeGetCurrent() * 1_000_000)
+        // Sender-local diagnostic time, host continuous-monotonic domain
+        // (CONTRACT_ERRATA.md cursor timestamp_us proof). `seq`, not this
+        // timestamp, is what governs ordering/liveness/presentation on the
+        // receiving end.
+        let timestampUs = nowUs()
 
-        // Build packet: PacketPrefix(6) + CursorUpdate(29) = 35 bytes
-        var packet = Data(capacity: 35)
-
-        // PacketPrefix
-        packet.append(contentsOf: ProtocolConstants.magic)
-        packet.append(ProtocolConstants.protocolVersion)
-        packet.append(ProtocolConstants.packetTypeCursorUpdate)
-
-        // CursorUpdate (29 bytes, exact field order from spec)
-        appendLE(&packet, seq)                    // seq: u32
-        appendLE(&packet, timestampUs)            // timestamp_us: u64
-        appendLEi32(&packet, x)                   // x_px: i32
-        appendLEi32(&packet, y)                   // y_px: i32
-        packet.append(shape)                      // shape_id: u8
-        appendLE16(&packet, 0)                    // hotspot_x_px: u16 (0 for arrow tip)
-        appendLE16(&packet, 0)                    // hotspot_y_px: u16
-        appendLEf32(&packet, 1.0)                 // cursor_scale: f32
+        // sendUpdate is a thin wrapper: nowUs() for the timestamp, then the
+        // pure CursorPacket.build for the byte layout — that composition is
+        // itself the tested seam (FixtureCheck section (i)), since driving
+        // this method directly needs a live socket.
+        let packet = CursorPacket.build(
+            magic: ProtocolConstants.magic, version: ProtocolConstants.protocolVersion,
+            packetType: ProtocolConstants.packetTypeCursorUpdate,
+            seq: seq, timestampUs: timestampUs, x: x, y: y, shape: shape
+        )
 
         // Send
         let _ = packet.withUnsafeBytes { bufPtr in
@@ -137,11 +142,4 @@ final class CursorTracker {
             }
         }
     }
-
-    // MARK: - Helpers
-    private func appendLE(_ d: inout Data, _ v: UInt32) { var x = v.littleEndian; d.append(Data(bytes: &x, count: 4)) }
-    private func appendLE(_ d: inout Data, _ v: UInt64) { var x = v.littleEndian; d.append(Data(bytes: &x, count: 8)) }
-    private func appendLEi32(_ d: inout Data, _ v: Int32) { var x = v.littleEndian; d.append(Data(bytes: &x, count: 4)) }
-    private func appendLE16(_ d: inout Data, _ v: UInt16) { var x = v.littleEndian; d.append(Data(bytes: &x, count: 2)) }
-    private func appendLEf32(_ d: inout Data, _ v: Float) { var x = v.bitPattern.littleEndian; d.append(Data(bytes: &x, count: 4)) }
 }

@@ -75,6 +75,14 @@ impl ClientTrace {
         self.write("frame", fields);
     }
 
+    /// Records one presentation trace line (A00_REMEDIATION_PLAN.md §4 item
+    /// 8: "the render trace records the recovered frameID immediately
+    /// adjacent to the successful presentation call — not when upload is
+    /// merely scheduled"). Same per-frame exemption as [`Self::frame`].
+    pub fn present(&self, fields: Value) {
+        self.write("present", fields);
+    }
+
     /// Records one clock-sync sample (`ClockSync::on_pong`'s accepted
     /// output; IMPLEMENTATION_PLAN_V11.md §10).
     pub fn clock(&self, offset_us: i64, delay_us: i64, uncertainty_us: u32, seq: u32) {
@@ -121,6 +129,14 @@ impl TraceWriter {
         std::fs::create_dir_all(base_dir)?;
         let path = base_dir.join(FILE_NAME);
         let file = OpenOptions::new().create(true).append(true).mode(0o600).open(&path)?;
+        // 0600 reassertion (R3a lock/log hygiene): open(2)'s mode argument
+        // only applies when O_CREAT actually creates the file — reassert on
+        // every open so a pre-existing trace file can't keep looser
+        // permissions. Best-effort, mirroring jsonl.rs/instance_lock.rs.
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = file.set_permissions(std::fs::Permissions::from_mode(0o600));
+        }
         Ok(TraceWriter { file: BufWriter::new(file), records_since_flush: 0, last_flush: Instant::now() })
     }
 

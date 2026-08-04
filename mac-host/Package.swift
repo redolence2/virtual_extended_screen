@@ -50,6 +50,10 @@ let package = Package(
         // CryptoKit above working with no linkerSettings block).
         .target(
             name: "RescCore",
+            dependencies: [
+                "RescProto",
+                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
+            ],
             path: "Sources/RescCore"
         ),
         // Fixture checks run as an executable because this Mac has only

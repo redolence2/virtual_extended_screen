@@ -12,6 +12,17 @@
 //! is assumed to enforce the window; the receiver only validates, decodes,
 //! and acks per contract (exact-once acceptance + drain-to-`Again` before
 //! ack; drain `Error` ⇒ teardown, no ack — `IMPLEMENTATION_PLAN_V11.md` §7).
+//! Submission and drain go through the shared `backend_construct`
+//! retain-drain-resubmit engine (`A00_REMEDIATION_PLAN.md` §3 D2 / §5 R6),
+//! so this binary no longer duplicates that state machine locally.
+//!
+//! The pass predicate is hardened per §5 R3a ("Receiver pass predicate")
+//! and extracted into [`verdict::VerdictInputs::evaluate`] — a pure
+//! function, unit-tested per term, mirroring the Mac-side `HarnessVerdict`
+//! pattern — so it drives both the JSON report's `pass` field and this
+//! process's exit code identically.
+
+mod verdict;
 
 use anyhow::{bail, Context, Result};
 use std::io::{Read, Write};
@@ -176,12 +187,19 @@ fn build_ack(frame_ordinal: u64) -> [u8; 12] {
 }
 
 // ---------------------------------------------------------------------
-// Decode + drain (same EAGAIN/EOF/error discipline as decoder-experiment)
+// Decode + drain via the shared backend_construct engine; ordinal-fidelity
+// bookkeeping (A00_REMEDIATION_PLAN.md §5 R3a's duplicates/reorders/skips
+// terms — mirrors decoder-experiment's classification).
 // ---------------------------------------------------------------------
 
 struct RunState {
     emitted: u64,
     unknown_pts: u64,
+    duplicates: u64,
+    reorders: u64,
+    skips: u64,
+    expected_next: i64,
+    seen: std::collections::HashSet<i64>,
 }
 
 impl RunState {
@@ -189,72 +207,38 @@ impl RunState {
         RunState {
             emitted: 0,
             unknown_pts: 0,
+            duplicates: 0,
+            reorders: 0,
+            skips: 0,
+            expected_next: 1,
+            seen: std::collections::HashSet::new(),
         }
     }
 }
 
-enum DrainStop {
-    Again,
-    Eof,
-}
-
-fn record_emission(
-    frame: &ffmpeg_next::frame::Video,
-    is_hw: bool,
-    state: &mut RunState,
-) -> std::result::Result<(), String> {
-    if is_hw {
-        backend_construct::transfer_hw_frame(frame)?;
-    }
-
+/// Classifies one recovered ordinal (`backend_construct` has already run it
+/// through the hw transfer when applicable) against the expected
+/// strictly-increasing sequence. A duplicate is an ordinal seen before; a
+/// skip is a higher ordinal arriving while a lower expected one is still
+/// missing; a reorder is anything else out of place (not a repeat, not
+/// ahead of schedule).
+fn record_emission(recovered_ordinal: Option<i64>, state: &mut RunState) {
     state.emitted += 1;
-    if backend_construct::recovered_ordinal(frame).is_none() {
-        state.unknown_pts += 1;
-    }
-    Ok(())
-}
-
-fn drain_frames(
-    decoder: &mut ffmpeg_next::decoder::Video,
-    frame: &mut ffmpeg_next::frame::Video,
-    is_hw: bool,
-    state: &mut RunState,
-) -> std::result::Result<DrainStop, String> {
-    loop {
-        match backend_construct::receive_one(decoder, frame)? {
-            backend_construct::ReceiveOutcome::Frame => {
-                record_emission(frame, is_hw, state)?;
+    match recovered_ordinal {
+        None => state.unknown_pts += 1,
+        Some(got) => {
+            if got == state.expected_next {
+                state.expected_next += 1;
+            } else if state.seen.contains(&got) {
+                state.duplicates += 1;
+            } else if got > state.expected_next {
+                state.skips += 1;
+                state.expected_next = got + 1;
+            } else {
+                state.reorders += 1;
+                state.expected_next = got + 1;
             }
-            backend_construct::ReceiveOutcome::Again => return Ok(DrainStop::Again),
-            backend_construct::ReceiveOutcome::Eof => return Ok(DrainStop::Eof),
-        }
-    }
-}
-
-fn send_with_eagain_retry(
-    decoder: &mut ffmpeg_next::decoder::Video,
-    packet: &ffmpeg_next::Packet,
-    frame: &mut ffmpeg_next::frame::Video,
-    is_hw: bool,
-    state: &mut RunState,
-    eagain_retries: &mut u64,
-) -> std::result::Result<(), String> {
-    const MAX_EAGAIN_CYCLES: u32 = 64;
-    let mut cycles = 0u32;
-    loop {
-        match decoder.send_packet(packet) {
-            Ok(()) => return Ok(()),
-            Err(ffmpeg_next::Error::Other { errno }) if errno == libc::EAGAIN => {
-                *eagain_retries += 1;
-                cycles += 1;
-                if cycles > MAX_EAGAIN_CYCLES {
-                    return Err(format!(
-                        "send_packet EAGAIN did not converge after {cycles} drain cycles"
-                    ));
-                }
-                drain_frames(decoder, frame, is_hw, state)?;
-            }
-            Err(e) => return Err(format!("send_packet fatal error: {e}")),
+            state.seen.insert(got);
         }
     }
 }
@@ -278,12 +262,17 @@ fn write_report(value: &serde_json::Value, json_out: Option<&PathBuf>) -> Result
     Ok(())
 }
 
-fn init_failure_report(
-    args: &Args,
-    failing_call: &str,
-    detail: &str,
-) -> serde_json::Value {
+/// Report schema version. Bumped from the pre-hardening (unversioned)
+/// report to 2 with this predicate-hardening pass (A00_REMEDIATION_PLAN.md
+/// §5 R3a) — every new field below (`duplicates`, `reorders`, `skips`,
+/// `ack_order_violations`, `protocol_errors`, `fatal_decoder_errors`,
+/// `clean_eof_tail_drain`, `outstanding_at_exit`) is additive alongside the
+/// original fields.
+const REPORT_V: u32 = 2;
+
+fn init_failure_report(args: &Args, failing_call: &str, detail: &str) -> serde_json::Value {
     serde_json::json!({
+        "report_v": REPORT_V,
         "backend": args.backend.id(),
         "listen": args.listen.to_string(),
         "peer": null,
@@ -293,6 +282,14 @@ fn init_failure_report(
         "frames_emitted": 0,
         "frames_acked": 0,
         "unknown_pts": 0,
+        "duplicates": 0,
+        "reorders": 0,
+        "skips": 0,
+        "ack_order_violations": 0,
+        "protocol_errors": 0,
+        "fatal_decoder_errors": 0,
+        "clean_eof_tail_drain": false,
+        "outstanding_at_exit": 0,
         "max_decode_lag_frames": 0,
         "receive_to_ack_latency_ms": { "p50": 0.0, "p95": 0.0, "max": 0.0 },
         "eagain_retries": 0,
@@ -303,20 +300,34 @@ fn init_failure_report(
     })
 }
 
+/// Everything one connection produced, for report-building in `main`.
+struct ConnectionResult {
+    frames_received: u64,
+    frames_accepted: u64,
+    frames_acked: u64,
+    state: RunState,
+    max_decode_lag: i64,
+    latencies_ms: Vec<f64>,
+    torn_down: bool,
+    fail_reasons: Vec<String>,
+    eagain_retries: u64,
+    ack_order_violations: u64,
+    protocol_errors: u64,
+    fatal_decoder_errors: u64,
+    outstanding_at_exit: u64,
+    /// True iff the TCP stream closed cleanly at a record boundary *and*
+    /// the subsequent decoder `flush_tail` succeeded — the real-backend
+    /// EOF/tail-drain evidence A00_REMEDIATION_PLAN.md §3 D2 requires,
+    /// applied to the harness rig's own predicate (§5 R3a).
+    clean_eof_tail_drain: bool,
+}
+
 fn handle_connection(
     mut stream: TcpStream,
     handle: &mut backend_construct::DecoderHandle,
-    eagain_retries: &mut u64,
-) -> (
-    u64,           // frames_received
-    u64,           // frames_accepted
-    u64,           // frames_acked
-    RunState,
-    i64,           // max_decode_lag_frames
-    Vec<f64>,      // receive->ack latencies (ms)
-    bool,          // torn_down
-    Vec<String>,   // fail_reasons
-) {
+) -> ConnectionResult {
+    const MAX_EAGAIN_CYCLES: u32 = 64;
+
     let mut frames_received: u64 = 0;
     let mut frames_accepted: u64 = 0;
     let mut frames_acked: u64 = 0;
@@ -324,10 +335,15 @@ fn handle_connection(
     let mut latencies_ms: Vec<f64> = Vec::new();
     let mut fail_reasons: Vec<String> = Vec::new();
     let mut torn_down = false;
+    let mut eagain_retries: u64 = 0;
+    let mut ack_order_violations: u64 = 0;
+    let mut protocol_errors: u64 = 0;
+    let mut fatal_decoder_errors: u64 = 0;
+    let mut outstanding: u64 = 0;
+    let mut last_acked_ordinal: Option<u64> = None;
+    let mut clean_close = false;
 
     let mut state = RunState::new();
-    let mut frame = ffmpeg_next::frame::Video::empty();
-    let is_hw = handle.is_hw;
     let mut header_buf = [0u8; 32];
 
     loop {
@@ -335,6 +351,7 @@ fn handle_connection(
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
                 log::info!("clean EOF at record boundary after {frames_received} record(s)");
+                clean_close = true;
                 break;
             }
             Err(e) => {
@@ -352,6 +369,7 @@ fn handle_connection(
                 let msg = format!("PROTOCOL_VIOLATION parsing header: {reason}");
                 log::error!("teardown: {msg}");
                 fail_reasons.push(msg);
+                protocol_errors += 1;
                 torn_down = true;
                 break;
             }
@@ -379,29 +397,56 @@ fn handle_connection(
             header.content_capture_ts_us
         );
 
-        let mut packet = ffmpeg_next::Packet::copy(&payload);
-        let ord_i64 = header.frame_ordinal as i64;
-        packet.set_pts(Some(ord_i64));
-
-        if let Err(reason) = send_with_eagain_retry(
-            &mut handle.decoder,
-            &packet,
-            &mut frame,
-            is_hw,
-            &mut state,
-            eagain_retries,
-        ) {
-            let msg = format!("teardown at ordinal {}: {reason}", header.frame_ordinal);
-            log::error!("{msg}");
-            fail_reasons.push(msg);
-            torn_down = true;
-            break;
+        // ACK-order self-check: the ordinal we're about to accept must
+        // strictly increase past the last one we acked (symmetric to the
+        // sender's own oldest-outstanding-ordinal validation on the ACKs it
+        // reads back — §9.1's `ack_order_violation`). A violation means the
+        // sender or wire is confused, not just this frame — fail-closed.
+        if let Some(prev) = last_acked_ordinal {
+            if header.frame_ordinal <= prev {
+                let msg = format!(
+                    "ACK-order violation: ordinal {} did not increase past last-acked {prev}",
+                    header.frame_ordinal
+                );
+                log::error!("teardown: {msg}");
+                fail_reasons.push(msg);
+                ack_order_violations += 1;
+                torn_down = true;
+                break;
+            }
         }
+
+        let ord_i64 = header.frame_ordinal as i64;
+        let record = match backend_construct::submit_with_retry(handle, ord_i64, &payload, MAX_EAGAIN_CYCLES) {
+            Ok(r) => r,
+            Err(reason) => {
+                let msg = format!("teardown at ordinal {}: {reason}", header.frame_ordinal);
+                log::error!("{msg}");
+                fail_reasons.push(msg);
+                fatal_decoder_errors += 1;
+                torn_down = true;
+                break;
+            }
+        };
         frames_accepted += 1;
+        outstanding += 1;
+        for attempt in &record.attempts {
+            if attempt.again {
+                eagain_retries += 1;
+            }
+        }
+        for drain in &record.drains {
+            for &ord in drain {
+                record_emission(ord, &mut state);
+            }
+        }
         max_decode_lag = max_decode_lag.max(frames_accepted as i64 - state.emitted as i64);
 
-        match drain_frames(&mut handle.decoder, &mut frame, is_hw, &mut state) {
-            Ok(_) => {
+        match backend_construct::drain_fully(handle) {
+            Ok(drain) => {
+                for ord in drain {
+                    record_emission(ord, &mut state);
+                }
                 // Exact-once acceptance + drain-to-Again/Eof done — ack now.
                 let ack = build_ack(header.frame_ordinal);
                 if let Err(e) = stream.write_all(&ack) {
@@ -413,6 +458,8 @@ fn handle_connection(
                 }
                 let ack_done = Instant::now();
                 frames_acked += 1;
+                outstanding -= 1;
+                last_acked_ordinal = Some(header.frame_ordinal);
                 let latency_ms = ack_done.duration_since(receive_complete).as_secs_f64() * 1000.0;
                 latencies_ms.push(latency_ms);
                 log::debug!(
@@ -426,13 +473,40 @@ fn handle_connection(
                 let msg = format!("teardown draining ordinal {}: {reason}", header.frame_ordinal);
                 log::error!("{msg}");
                 fail_reasons.push(msg);
+                fatal_decoder_errors += 1;
                 torn_down = true;
                 break;
             }
         }
     }
 
-    (
+    // Clean EOF/tail drain (A00_REMEDIATION_PLAN.md §3 D2 / §5 R3a): only
+    // attempted when the stream itself closed cleanly. The TCP connection
+    // is already gone by this point, so any frames recovered here can
+    // never be individually acked — `frames_acked` stays a pure per-record
+    // protocol counter, while `frames_emitted` (via `state.emitted`) grows
+    // to catch up with `frames_accepted`, which is exactly what the
+    // emitted==submitted predicate term needs.
+    let mut clean_eof_tail_drain = false;
+    if clean_close {
+        match backend_construct::flush_tail(handle, MAX_EAGAIN_CYCLES) {
+            Ok(tail) => {
+                eagain_retries += tail.eagain_count as u64;
+                for ord in tail.recovered {
+                    record_emission(ord, &mut state);
+                }
+                clean_eof_tail_drain = true;
+            }
+            Err(reason) => {
+                let msg = format!("tail flush error: {reason}");
+                log::error!("{msg}");
+                fail_reasons.push(msg);
+                fatal_decoder_errors += 1;
+            }
+        }
+    }
+
+    ConnectionResult {
         frames_received,
         frames_accepted,
         frames_acked,
@@ -441,7 +515,13 @@ fn handle_connection(
         latencies_ms,
         torn_down,
         fail_reasons,
-    )
+        eagain_retries,
+        ack_order_violations,
+        protocol_errors,
+        fatal_decoder_errors,
+        outstanding_at_exit: outstanding,
+        clean_eof_tail_drain,
+    }
 }
 
 fn main() -> Result<()> {
@@ -498,19 +578,9 @@ fn main() -> Result<()> {
         log::warn!("set_nodelay failed (continuing anyway): {e}");
     }
 
-    let mut eagain_retries: u64 = 0;
-    let (
-        frames_received,
-        frames_accepted,
-        frames_acked,
-        state,
-        max_decode_lag,
-        latencies_ms,
-        torn_down,
-        fail_reasons,
-    ) = handle_connection(stream, &mut handle, &mut eagain_retries);
+    let result = handle_connection(stream, &mut handle);
 
-    let mut sorted_latencies = latencies_ms.clone();
+    let mut sorted_latencies = result.latencies_ms.clone();
     sorted_latencies.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let receive_to_ack_latency_ms = serde_json::json!({
         "p50": percentile(&sorted_latencies, 50.0),
@@ -518,28 +588,60 @@ fn main() -> Result<()> {
         "max": sorted_latencies.last().copied().unwrap_or(0.0),
     });
 
-    let pass = !torn_down && fail_reasons.is_empty();
+    // Every accepted record is submitted to the decoder exactly once before
+    // acceptance is counted (no separate "submitted but not yet accepted"
+    // state in this rig's synchronous per-record loop), so
+    // frames_accepted *is* the "submitted" term the predicate compares
+    // frames_emitted against.
+    let verdict_inputs = verdict::VerdictInputs {
+        frames_accepted: result.frames_accepted,
+        frames_acked: result.frames_acked,
+        frames_emitted: result.state.emitted,
+        frames_submitted: result.frames_accepted,
+        unknown_pts: result.state.unknown_pts,
+        duplicates: result.state.duplicates,
+        reorders: result.state.reorders,
+        skips: result.state.skips,
+        ack_order_violations: result.ack_order_violations,
+        protocol_errors: result.protocol_errors,
+        fatal_decoder_errors: result.fatal_decoder_errors,
+        clean_eof_tail_drain: result.clean_eof_tail_drain,
+        outstanding_at_exit: result.outstanding_at_exit,
+    };
+    let pass = verdict_inputs.evaluate();
 
     let report = serde_json::json!({
+        "report_v": REPORT_V,
         "backend": args.backend.id(),
         "listen": args.listen.to_string(),
         "peer": peer.to_string(),
         "pass": pass,
-        "frames_received": frames_received,
-        "frames_accepted": frames_accepted,
-        "frames_emitted": state.emitted,
-        "frames_acked": frames_acked,
-        "unknown_pts": state.unknown_pts,
-        "max_decode_lag_frames": max_decode_lag,
+        "frames_received": result.frames_received,
+        "frames_accepted": result.frames_accepted,
+        "frames_emitted": result.state.emitted,
+        "frames_acked": result.frames_acked,
+        "unknown_pts": result.state.unknown_pts,
+        "duplicates": result.state.duplicates,
+        "reorders": result.state.reorders,
+        "skips": result.state.skips,
+        "ack_order_violations": result.ack_order_violations,
+        "protocol_errors": result.protocol_errors,
+        "fatal_decoder_errors": result.fatal_decoder_errors,
+        "clean_eof_tail_drain": result.clean_eof_tail_drain,
+        "outstanding_at_exit": result.outstanding_at_exit,
+        "max_decode_lag_frames": result.max_decode_lag,
         "receive_to_ack_latency_ms": receive_to_ack_latency_ms,
-        "eagain_retries": eagain_retries,
-        "torn_down": torn_down,
-        "fail_reasons": fail_reasons,
+        "eagain_retries": result.eagain_retries,
+        "torn_down": result.torn_down,
+        "fail_reasons": result.fail_reasons,
     });
 
     log::info!(
-        "harness-receiver done: pass={pass} received={frames_received} accepted={frames_accepted} emitted={} acked={frames_acked}",
-        state.emitted
+        "harness-receiver done: pass={pass} received={} accepted={} emitted={} acked={}",
+        result.frames_received,
+        result.frames_accepted,
+        result.state.emitted,
+        result.frames_acked
     );
 
     write_report(&report, args.json_out.as_ref())?;

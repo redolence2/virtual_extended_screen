@@ -1,4 +1,5 @@
 import Foundation
+import RescCore
 
 /// Sends encoded H.264 frames as chunked UDP packets to the receiver.
 /// Uses raw POSIX sockets for reliability (NWConnection UDP had silent failures).
@@ -47,8 +48,15 @@ final class VideoSender {
         print("[RESC] Video sender: \(totalPacketsSent) packets, \(totalBytesSent / 1024)KB sent")
     }
 
-    /// Send an encoded frame as chunked UDP packets.
-    func sendFrame(data: Data, isKeyframe: Bool, timestampUs: UInt64) {
+    /// Send an encoded frame as chunked UDP packets. `identity` is the exact
+    /// capture identity recovered from the encoder's per-submit context for
+    /// this frame (nil for sources with no capture identity) — threaded
+    /// straight into the host trace's frameID→capture-identity record
+    /// (A00_REMEDIATION_PLAN.md §4 item 5). `encodeOutTsUs` was stamped at
+    /// VT-callback entry (encoder emission); the send stamp is taken here,
+    /// adjacent to the socket writes — two events, two stamps.
+    func sendFrame(data: Data, isKeyframe: Bool, timestampUs: UInt64, identity: FrameIdentity?,
+                   encodeOutTsUs: UInt64) {
         guard fd >= 0, var addr = destAddr else { return }
 
         let currentFrameID = frameID
@@ -112,10 +120,14 @@ final class VideoSender {
             }
         }
 
-        // A0 trace mode only (RESC_TRACE=1) — see RescTrace.swift.
+        // A0 trace mode only (RESC_TRACE=1) — see RescTrace.swift. sendTsUs is
+        // read adjacent to the socket writes above; encodeOutTsUs was stamped
+        // at VT-callback entry and threaded down (both host continuous-
+        // monotonic µs — A00_REMEDIATION_PLAN.md §4 item 5).
         if RescTrace.enabled {
-            RescTrace.shared.frameSent(frameID: currentFrameID, bytes: data.count, isKeyframe: isKeyframe,
-                                        encodeOutTsUs: RescClockBridge.continuousNowUs())
+            RescTrace.shared.frameSent(frameID: currentFrameID, identity: identity, bytes: data.count, isKeyframe: isKeyframe,
+                                        encodeOutTsUs: encodeOutTsUs,
+                                        sendTsUs: RescClockBridge.continuousNowUs())
         }
     }
 

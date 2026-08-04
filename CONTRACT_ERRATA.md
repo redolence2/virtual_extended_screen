@@ -69,6 +69,50 @@ This entry formalizes what the A0.0 report had recorded as deviation §12.3.
 
 ---
 
+## 2026-08-04 · ERR-07 — ASCII-only profile strings (replaces the NFC canonicalization rule)
+
+V11 §2 and `docs/WIRE.md` §9 list "NFC-normalized strings" among the canonicalization rules. For
+this fixed personal profile the value vocabulary is closed and entirely ASCII, so Unicode
+normalization machinery is unreachable complexity — and worse, the two languages' JSON serializers
+may disagree on non-ASCII emission (raw UTF-8 vs escape sequences), so a non-ASCII value could
+produce divergent canonical-form verdicts. Normative rule, replacing NFC: **every profile key and
+every string value MUST consist only of ASCII bytes.** Both validators check this on the parsed
+document (covering raw-UTF-8 and \uXXXX-escaped encodings alike) **before** any canonical-bytes
+comparison, so both languages return the same verdict on the same bytes. No Unicode normalization
+machinery anywhere. Fixtures: `proto/fixtures/profile.canonical.json` (valid, all-ASCII);
+`profile_nonascii_raw.json` and `profile_nonascii_escaped.json` (sorted/minified, real backend id,
+one non-ASCII `profile_id` value in raw and escaped encodings — rejected by both validators with
+the ASCII verdict, attributing rejection to this rule alone). Generator:
+`tools/gen_profile_fixtures.py` (idempotent).
+
+## 2026-08-04 · Governance note — `docs/WIRE.md` status line during remediation
+
+Recorded before the corresponding WIRE.md edit, per that file's own governance header. The status
+line previously read "Stage-1 structural freeze (A0.0)"; the freeze has **not** occurred — the
+A0.0 completion claim was withdrawn (see the `A00_IMPLEMENTATION_REPORT.md` status-correction
+banner and `A00_REMEDIATION_PLAN.md`). The line now reads "**Stage-1 candidate; freeze pending
+A0.0 gates and clean checkpoint**" until the R7 clean-checkpoint evidence passes independent
+re-review. No structural fact in WIRE.md changes under this note; ERR-07 (above) is the only
+concurrent structural change and carries its own entry.
+
+---
+
+## 2026-08-04 · ERR-08 — Clock-sample acceptance: best-sample selection replaces the 5 ms cutoff
+
+V11 §10's clock-sync acceptance gate ("reject delay ≥ 5 ms") assumed a wired sub-millisecond
+LAN. The deployment link measures ~7 ms RTT (A0 harness p50 7.09 ms; two R4 live-gate runs —
+30 s and 90 s, ~12 ping cycles total — accepted **zero** samples), so the gate structurally
+empties the joined trace artifact's offset column on the only link this personal deployment
+uses. Normative replacement: accept every sample with non-negative delay below a 100 ms sanity
+ceiling; per-sample `uncertainty_us = delay_us / 2` (the standard NTP bound on offset error —
+larger on this link, and carried honestly rather than hidden by a reject gate); the existing
+minimum-delay best-sample selection continues to pick the authoritative offset; the joined
+artifact records each sample's offset ± uncertainty explicitly. The A0 optical spot-check
+remains the end-to-end validation of transferred offsets. Discovered by, and first verified
+against, the R4 live joined-artifact gate.
+
+---
+
 ## Implementation proofs required (recorded here; not plan changes)
 
 - **Late capture callbacks:** each ScreenCaptureKit callback is bound at creation to its run; a

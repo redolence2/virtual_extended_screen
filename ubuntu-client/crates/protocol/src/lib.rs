@@ -22,6 +22,11 @@ pub mod resc_v3 {
 /// §4-§6; CONTRACT_ERRATA.md ERR-04/ERR-05).
 pub mod v3wire;
 
+/// Protocol v3 two-layer inbound dispatch: framing-length gate + typed
+/// validator/router (docs/WIRE.md §1; CONTRACT_ERRATA.md ERR-01). INACTIVE
+/// — not yet wired into any runtime binary (remediation item R5).
+pub mod v3dispatch;
+
 /// Protocol constants (v1). Must match Swift ProtocolConstants exactly.
 pub mod constants {
     pub const PROTOCOL_VERSION: u8 = 1;
