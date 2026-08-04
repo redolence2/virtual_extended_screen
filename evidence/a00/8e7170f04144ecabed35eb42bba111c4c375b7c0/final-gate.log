@@ -1,0 +1,55 @@
+== preflight: archive any old host trace ==
+== preflight: fresh client trace dir on box ==
+== start host (Mac, RESC_TRACE=1, HEVC -> 192.168.50.47) ==
+host pid: 82498
+== start client (box, RESC_TRACE=1, DISPLAY=:0) ==
+client pid: 131420
+client-running
+== streaming for 30s ==
+== stop: client first (full drain/tail/footer while the host lives), then host ==
+client exited cleanly
+client log tail:
+[2026-08-04T19:31:03Z INFO  net_transport::video_receiver] Recv stats: 600 packets, 0 dropped, 30 assembled, 0 frame_drops
+[2026-08-04T19:31:18Z INFO  net_transport::video_receiver] Recv stats: 700 packets, 0 dropped, 60 assembled, 2 frame_drops
+[2026-08-04T19:31:18Z INFO  net_transport::video_receiver] Recv stats: 800 packets, 0 dropped, 60 assembled, 2 frame_drops
+[2026-08-04T19:31:18Z INFO  net_transport::video_receiver] Recv stats: 900 packets, 0 dropped, 60 assembled, 2 frame_drops
+[2026-08-04T19:31:23Z INFO  remote_display_client] Decoded: 60 frames, 2.1 fps, avg decode 2.0ms
+[2026-08-04T19:31:27Z INFO  remote_display_client] Trace-mode clean shutdown: draining admitted queue
+[2026-08-04T19:31:27Z INFO  remote_display_client] Trace-mode clean shutdown: decoder EOF/tail flush
+[2026-08-04T19:31:27Z INFO  remote_display_client] Trace-mode shutdown complete: status=clean pending_identities=0 identity_failures=0 render_failures=0
+host exited cleanly
+== collect traces ==
+      77 /Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/a00/wip/r4-live-host-trace.jsonl
+     131 /Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/a00/wip/r4-live-client-trace.jsonl
+     208 total
+== join ==
+join_trace: host_frames=72 client_frames=69 presents=57 joined=69 presented_joined=57 identity_ambiguities=0 identity_failure_records=0 rejected={'never_received': 3}
+PASS (identity_ambiguities=0, identity_failure_records=0, joined=69)
+JOINER EXIT: 0
+== summary ==
+{
+  "client_frames": 69,
+  "host_frames": 72,
+  "identity_ambiguities": 0,
+  "identity_failure_records": 0,
+  "joined": 69,
+  "offset_stats": {
+    "median_delay_us": 11443.5,
+    "min_delay_us": 6421,
+    "sample_count": 4
+  },
+  "pass": true,
+  "presented_joined": 57,
+  "presents": 57,
+  "rejected": {
+    "never_received": 3
+  }
+}
+
+== host log tail ==
+[RESC] Video sender: 957 packets, 1285KB sent
+[RESC] Video sender: 957 packets, 1285KB sent
+[RESC] Control connection closed
+[RESC] Capture stopped. Total frames: 137, dropped: 0
+[RESC] Virtual display destroyed
+[RESC] Final: 137 frames, 6 KF, avg 7.0ms

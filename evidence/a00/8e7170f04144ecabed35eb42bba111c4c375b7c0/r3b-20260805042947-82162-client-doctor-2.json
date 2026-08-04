@@ -1,0 +1,80 @@
+{
+  "checks": [
+    {
+      "auth_mode": "trusted_lan_none",
+      "ffmpeg": {
+        "avcodec_version": "61.19.101",
+        "avcodec_version_raw": 4002661
+      },
+      "kernel": {
+        "machine": "x86_64",
+        "release": "6.8.0-65-generic",
+        "sysname": "Linux",
+        "version": "#68~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Jul 15 18:06:34 UTC 2"
+      },
+      "name": "environment",
+      "nvidia": {
+        "ok": true,
+        "output": "NVIDIA GeForce RTX 4090, 570.169"
+      },
+      "ok": true,
+      "sdl_version": "2.0.20"
+    },
+    {
+      "candidate": "sw1-lowdelay",
+      "is_hw": false,
+      "name": "backend_open",
+      "ok": true
+    },
+    {
+      "duplicates": 0,
+      "eagain_retries": 0,
+      "frames_emitted": 480,
+      "frames_submitted": 480,
+      "name": "decode_sample",
+      "ok": true,
+      "reorders": 0,
+      "sample_path": "/home/wan/resc/sample_1080x1920.h265",
+      "submitted_eq_emitted": true,
+      "unknown_pts": 0
+    },
+    {
+      "candidate": "sw1-lowdelay",
+      "candidate_format": "iyuv",
+      "candidate_texture_create_ok": true,
+      "candidate_texture_update_ok": true,
+      "iyuv": {
+        "create_ok": true,
+        "detail": null,
+        "exit_affecting": true,
+        "update_ok": true
+      },
+      "name": "sdl_texture",
+      "nv12": {
+        "create_ok": true,
+        "detail": "captured frame has 3 planes, not the 2 NV12 needs",
+        "exit_affecting": false,
+        "update_ok": false
+      },
+      "ok": true,
+      "sdl_init_ok": true,
+      "sdl_video_driver": "dummy",
+      "sdl_video_ok": true
+    },
+    {
+      "display_connection": true,
+      "initialized_subsystems": [
+        "events",
+        "video"
+      ],
+      "name": "input_capability",
+      "num_video_displays": 1,
+      "ok": true
+    }
+  ],
+  "doctor_report_v": 1,
+  "exit_code": 0,
+  "profile_id": "moyunfei-desk-1",
+  "side": "client",
+  "ts_wall": "2026-08-04T19:29:56.328Z"
+}

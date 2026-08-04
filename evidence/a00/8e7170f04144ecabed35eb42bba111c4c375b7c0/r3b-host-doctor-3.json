@@ -1,0 +1,115 @@
+[RESC] Remote Extended Screen Host starting...
+[RESC] WARNING: Unknown macOS build 26A5388g — attempting virtual display creation
+[RESC] Display identity [creation]: displayID=51, vendor=3676/model=1/serial=1380275011, size=1080x1920
+[RESC] Virtual display destroyed
+[RESC] Encoder started: HEVC 1080x1920, 20Mbps
+[RESC] Encoder stopped: 1 frames, 1 KF, avg 23.1ms [HEVC]
+[RESC] Encoder stopped: 1 frames, 1 KF, avg 23.1ms [HEVC]
+{
+  "checks" : [
+    {
+      "auth_mode" : "trusted_lan_none",
+      "cpu_arch" : "arm64",
+      "name" : "environment",
+      "ok" : true,
+      "os_build" : "26A5388g",
+      "os_version" : "Version 27.0 (Build 26A5388g)"
+    },
+    {
+      "name" : "cgvirtualdisplay_api",
+      "ok" : true
+    },
+    {
+      "name" : "virtual_display_create",
+      "observed" : {
+        "display_id" : 51
+      },
+      "ok" : true,
+      "requested" : {
+        "height" : 1920,
+        "refresh_hz" : 60,
+        "width" : 1080
+      }
+    },
+    {
+      "name" : "encoder_create",
+      "ok" : true,
+      "properties" : {
+        "AllowFrameReordering" : {
+          "match" : true,
+          "observed" : false,
+          "requested" : false
+        },
+        "AverageBitRate" : {
+          "match" : true,
+          "observed" : 20000000,
+          "requested" : 20000000
+        },
+        "MaxKeyFrameInterval" : {
+          "match" : true,
+          "observed" : 3600,
+          "requested" : 3600
+        },
+        "MaxKeyFrameIntervalDuration" : {
+          "match" : true,
+          "observed" : 60,
+          "requested" : 60
+        },
+        "ProfileLevel" : {
+          "match" : true,
+          "observed" : "HEVC_Main_AutoLevel",
+          "requested" : "HEVC_Main_AutoLevel"
+        },
+        "RealTime" : {
+          "match" : true,
+          "observed" : true,
+          "requested" : true
+        }
+      },
+      "requested" : {
+        "bitrate_bps" : 20000000,
+        "codec" : "HEVC",
+        "fps" : 60,
+        "height" : 1920,
+        "max_keyframe_interval" : 3600,
+        "max_keyframe_interval_duration_s" : 60,
+        "width" : 1080
+      }
+    },
+    {
+      "bytes" : 1019,
+      "is_keyframe" : true,
+      "name" : "encode_bundled_frame",
+      "ok" : true,
+      "pixel_format" : 875704438,
+      "pixel_format_nv12" : true,
+      "timed_out" : false
+    },
+    {
+      "has_cra_instead_of_idr" : false,
+      "has_idr" : true,
+      "has_pps" : true,
+      "has_sps" : true,
+      "has_vps" : true,
+      "nal_types_found" : [
+        20,
+        32,
+        33,
+        34,
+        39
+      ],
+      "name" : "ra_verification",
+      "ok" : true
+    },
+    {
+      "name" : "corebrightness_nightshift",
+      "observed_strength" : 0.5,
+      "ok" : true
+    }
+  ],
+  "doctor_report_v" : 1,
+  "exit_code" : 0,
+  "profile_id" : "moyunfei-desk-1",
+  "side" : "host",
+  "ts_wall" : "2026-08-04T10:12:32.302Z"
+}

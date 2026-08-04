@@ -1,0 +1,19 @@
+{
+  "backend": "cuvid-lowdelay",
+  "duplicates": 0,
+  "eagain_retries": 0,
+  "fail_reasons": [],
+  "frames_emitted": 480,
+  "frames_submitted": 480,
+  "max_lag_frames": 2,
+  "mode": "clean",
+  "output_delay_ms": {
+    "max": 16.999321000000002,
+    "p50": 1.865677,
+    "p95": 1.909821,
+    "p99": 2.0045599999999997
+  },
+  "pass": true,
+  "reorders": 0,
+  "unknown_pts": 0
+}

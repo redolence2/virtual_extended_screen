@@ -1,0 +1,625 @@
+ok   fixture has no trailing newline (errata proof 3)
+ok   fixture SHA-256 prefix == 0cc2249662880597
+ok   fixture is already canonical
+ok   placeholder backend rejected by runtime validation
+ok   canonicalize sorts and minifies
+ok   canonical fixture passes ASCII-only rule (ERR-07)
+ok   firstNonASCII reports a non-ASCII nested value with its path
+ok   firstNonASCII reports a non-ASCII key
+ok   profile_nonascii_raw.json rejected by ASCII gate (ERR-07), violation at profile_id
+ok   profile_nonascii_escaped.json rejected by ASCII gate (ERR-07), violation at profile_id
+ok   videohello.bin: sessionRunId == 0x1122334455667788
+ok   videohello.bin: profileHash == 0cc2249662880597
+ok   videohelloack_ok.bin: status == ok
+ok   videohelloack_mismatch.bin: status == mismatch
+ok   videohelloack_busy.bin: status == busy
+ok   videohelloack_internal.bin: status == internal
+ok   frame_header_min.bin: flags == 1
+ok   frame_header_min.bin: frameOrdinal == 1
+ok   frame_header_min.bin: payloadLen == 0
+ok   move.bin: seq == 1
+ok   move.bin: x == 100
+ok   move.bin: y == 200
+ok   cursor.bin: seq == 1
+ok   cursor.bin: x == 100
+ok   cursor.bin: y == 200
+ok   cursor.bin: shape == 0
+ok   cursor.bin: scale == 1.0
+ok   malformed/bad_magic_hello.bin -> protocolViolation
+ok   malformed/bad_length_hello.bin -> protocolViolation
+ok   malformed/nonzero_reserved_hello.bin -> protocolViolation
+ok   malformed/unknown_status_ack.bin -> protocolViolation
+ok   malformed/unknown_flag_frame.bin -> protocolViolation
+ok   malformed/overflow_frame.bin -> recordCapViolation(total: 4294967327, cap: 2097184)
+ok   malformed/short_move.bin -> protocolViolation
+ok   malformed/long_cursor.bin -> protocolViolation
+ok   envelope_clock_ping.bin: sessionRunID == 72623859790382856
+ok   envelope_clock_ping.bin: protocolVersion == 3
+ok   envelope_clock_ping.bin: payload case == clock_ping
+ok   envelope_clock_ping.bin: clockPing.seq
+ok   envelope_clock_ping.bin: clockPing.t1MonoUs
+ok   envelope_clock_ping.bin: re-encode byte-equality
+ok   envelope_fatal_report.bin: sessionRunID == 72623859790382856
+ok   envelope_fatal_report.bin: protocolVersion == 3
+ok   envelope_fatal_report.bin: payload case == fatal_report
+ok   envelope_fatal_report.bin: fatalReport.code
+ok   envelope_fatal_report.bin: fatalReport.component
+ok   envelope_fatal_report.bin: fatalReport.summary
+ok   envelope_fatal_report.bin: re-encode byte-equality
+ok   envelope_frame_ack.bin: sessionRunID == 72623859790382856
+ok   envelope_frame_ack.bin: protocolVersion == 3
+ok   envelope_frame_ack.bin: payload case == frame_ack
+ok   envelope_frame_ack.bin: frameAck.frameOrdinal
+ok   envelope_frame_ack.bin: re-encode byte-equality
+ok   envelope_heartbeat.bin: sessionRunID == 72623859790382856
+ok   envelope_heartbeat.bin: protocolVersion == 3
+ok   envelope_heartbeat.bin: payload case == heartbeat
+ok   envelope_heartbeat.bin: heartbeat.tMonoUs
+ok   envelope_heartbeat.bin: re-encode byte-equality
+ok   classify(0) [fatalUnspecified] == unspecified
+ok   classify(1) [profileMismatch] == deterministic
+ok   classify(2) [buildMismatch] == deterministic
+ok   classify(3) [versionMismatch] == deterministic
+ok   classify(4) [malformedFraming] == deterministic
+ok   classify(5) [recordCapViolation] == deterministic
+ok   classify(6) [encoderProperty] == deterministic
+ok   classify(7) [profileInvalid] == deterministic
+ok   classify(8) [protocolViolation] == deterministic
+ok   classify(9) [requiredNativeApi] == deterministic
+ok   classify(10) [socketFailure] == transient
+ok   classify(11) [decodeFatal] == transient
+ok   classify(12) [watchdogAckAge] == transient
+ok   classify(13) [watchdogOutput] == transient
+ok   classify(14) [watchdogHandshake] == transient
+ok   classify(15) [watchdogEncoder] == transient
+ok   classify(16) [watchdogHeartbeat] == transient
+ok   classify(17) [identityFailure] == transient
+ok   classify(18) [raVerification] == transient
+ok   classify(19) [retryBudgetExhausted] == terminal
+ok   classify(20) [instanceLockHeld] == terminal
+ok   classify(21) [permissionDenied] == deterministic
+ok   classify(22) [watchdogFirstRa] == transient
+ok   classify(99) == nil (unknown code)
+ok   newerU32: equal -> false
+ok   newerU32: forward -> true
+ok   newerU32: wrap-forward (a=5, b=0xFFFFFFF0) -> true
+ok   newerU32: stale -> false
+ok   newerU32: d == 0x80000000 exactly -> false
+ok   newerU32: d == 0x7FFFFFFF exactly -> true
+ok   newerU24: equal -> false
+ok   newerU24: forward -> true
+ok   newerU24: wrap-forward (a=5, b=0xFFFFF0) -> true
+ok   newerU24: stale -> false
+ok   newerU24: d == 0x800000 exactly -> false
+ok   newerU24: d == 0x7FFFFF exactly -> true
+ok   newerU24: masks inputs beyond 24 bits (a=0xFF000006, b=5) -> true
+ok   scroll_cases.json has 12 cases
+ok   scroll[plain_positive]: dx == 10
+ok   scroll[plain_positive]: dy == 20
+ok   scroll[plain_negative]: dx == -30
+ok   scroll[plain_negative]: dy == -10
+ok   scroll[zero]: dx == 0
+ok   scroll[zero]: dy == 0
+ok   scroll[rotated_basic]: dx == -20
+ok   scroll[rotated_basic]: dy == 10
+ok   scroll[rotated_negative]: dx == -40
+ok   scroll[rotated_negative]: dy == -30
+ok   scroll[rotated_zero_dy]: dx == 0
+ok   scroll[rotated_zero_dy]: dy == 50
+ok   scroll[large_no_saturate]: dx == 2147483640
+ok   scroll[large_no_saturate]: dy == -2147483640
+ok   scroll[saturate_positive]: dx == 2147483647
+ok   scroll[saturate_positive]: dy == 0
+ok   scroll[saturate_negative]: dx == -2147483648
+ok   scroll[saturate_negative]: dy == 0
+ok   scroll[saturate_int_min]: dx == -2147483648
+ok   scroll[saturate_int_min]: dy == 0
+ok   scroll[rotated_saturate]: dx == 2147483647
+ok   scroll[rotated_saturate]: dy == 0
+ok   scroll[rotated_int_min_dx]: dx == -10
+ok   scroll[rotated_int_min_dx]: dy == -2147483648
+ok   RA (32,33,34,19) -> ok
+ok   RA (32,33,34,20) -> ok
+ok   RA missing PPS -> fail
+ok   RA CRA instead of IDR -> fail
+ok   RA CRA alongside IDR -> fail
+ok   RA empty input -> fail
+ok   RA 3-byte start codes still scan correctly
+ok   keyframeClaimMatches: IDR present, claim=true -> match
+ok   keyframeClaimMatches: IDR present, claim=false -> mismatch
+ok   keyframeClaimMatches: no IDR, claim=false -> match
+ok   keyframeClaimMatches: no IDR, claim=true -> mismatch
+ok   dispatch_cases.json framing has 6 rows
+ok   dispatch framing[len_0]: accept len 0
+ok   dispatch framing[len_1]: accept len 1
+ok   dispatch framing[len_65535]: accept len 65535
+ok   dispatch framing[len_65536]: accept len 65536
+ok   dispatch framing[len_65537]: MALFORMED_FRAMING
+ok   dispatch framing[len_4294967295]: MALFORMED_FRAMING
+ok   dispatch_cases.json state has 210 rows
+ok   dispatch[host_bootstrap_display_settings]: protocolViolation
+ok   dispatch[client_bootstrap_display_settings]: protocolViolation
+ok   dispatch[host_announced_display_settings]: protocolViolation
+ok   dispatch[client_announced_display_settings]: protocolViolation
+ok   dispatch[host_profile_accepted_display_settings]: protocolViolation
+ok   dispatch[client_profile_accepted_display_settings]: protocolViolation
+ok   dispatch[host_profile_rejected_display_settings]: protocolViolation
+ok   dispatch[client_profile_rejected_display_settings]: protocolViolation
+ok   dispatch[host_video_ack_accepted_display_settings]: protocolViolation
+ok   dispatch[client_video_ack_accepted_display_settings]: accept -> videoAckAccepted, learnedCandidate == nil
+ok   dispatch[host_active_display_settings]: protocolViolation
+ok   dispatch[client_active_display_settings]: accept -> active, learnedCandidate == nil
+ok   dispatch[host_bootstrap_key_event]: protocolViolation
+ok   dispatch[client_bootstrap_key_event]: protocolViolation
+ok   dispatch[host_announced_key_event]: protocolViolation
+ok   dispatch[client_announced_key_event]: protocolViolation
+ok   dispatch[host_profile_accepted_key_event]: protocolViolation
+ok   dispatch[client_profile_accepted_key_event]: protocolViolation
+ok   dispatch[host_profile_rejected_key_event]: protocolViolation
+ok   dispatch[client_profile_rejected_key_event]: protocolViolation
+ok   dispatch[host_video_ack_accepted_key_event]: protocolViolation
+ok   dispatch[client_video_ack_accepted_key_event]: protocolViolation
+ok   dispatch[host_active_key_event]: accept -> active, learnedCandidate == nil
+ok   dispatch[client_active_key_event]: protocolViolation
+ok   dispatch[host_bootstrap_host_profile_announce]: protocolViolation
+ok   dispatch[client_bootstrap_host_profile_announce]: accept -> announced, learnedCandidate == Optional(72623859790382856)
+ok   dispatch[host_announced_host_profile_announce]: protocolViolation
+ok   dispatch[client_announced_host_profile_announce]: protocolViolation
+ok   dispatch[host_profile_accepted_host_profile_announce]: protocolViolation
+ok   dispatch[client_profile_accepted_host_profile_announce]: protocolViolation
+ok   dispatch[host_profile_rejected_host_profile_announce]: protocolViolation
+ok   dispatch[client_profile_rejected_host_profile_announce]: protocolViolation
+ok   dispatch[host_video_ack_accepted_host_profile_announce]: protocolViolation
+ok   dispatch[client_video_ack_accepted_host_profile_announce]: protocolViolation
+ok   dispatch[host_active_host_profile_announce]: protocolViolation
+ok   dispatch[client_active_host_profile_announce]: protocolViolation
+ok   dispatch[host_bootstrap_profile_result]: protocolViolation
+ok   dispatch[client_bootstrap_profile_result]: protocolViolation
+ok   dispatch[host_announced_profile_result]: accept -> profileAccepted, learnedCandidate == nil
+ok   dispatch[client_announced_profile_result]: protocolViolation
+ok   dispatch[host_profile_accepted_profile_result]: protocolViolation
+ok   dispatch[client_profile_accepted_profile_result]: protocolViolation
+ok   dispatch[host_profile_rejected_profile_result]: protocolViolation
+ok   dispatch[client_profile_rejected_profile_result]: protocolViolation
+ok   dispatch[host_video_ack_accepted_profile_result]: protocolViolation
+ok   dispatch[client_video_ack_accepted_profile_result]: protocolViolation
+ok   dispatch[host_active_profile_result]: protocolViolation
+ok   dispatch[client_active_profile_result]: protocolViolation
+ok   dispatch[host_bootstrap_frame_ack]: protocolViolation
+ok   dispatch[client_bootstrap_frame_ack]: protocolViolation
+ok   dispatch[host_announced_frame_ack]: protocolViolation
+ok   dispatch[client_announced_frame_ack]: protocolViolation
+ok   dispatch[host_profile_accepted_frame_ack]: protocolViolation
+ok   dispatch[client_profile_accepted_frame_ack]: protocolViolation
+ok   dispatch[host_profile_rejected_frame_ack]: protocolViolation
+ok   dispatch[client_profile_rejected_frame_ack]: protocolViolation
+ok   dispatch[host_video_ack_accepted_frame_ack]: accept -> videoAckAccepted, learnedCandidate == nil
+ok   dispatch[client_video_ack_accepted_frame_ack]: protocolViolation
+ok   dispatch[host_active_frame_ack]: accept -> active, learnedCandidate == nil
+ok   dispatch[client_active_frame_ack]: protocolViolation
+ok   dispatch[host_bootstrap_button_event]: protocolViolation
+ok   dispatch[client_bootstrap_button_event]: protocolViolation
+ok   dispatch[host_announced_button_event]: protocolViolation
+ok   dispatch[client_announced_button_event]: protocolViolation
+ok   dispatch[host_profile_accepted_button_event]: protocolViolation
+ok   dispatch[client_profile_accepted_button_event]: protocolViolation
+ok   dispatch[host_profile_rejected_button_event]: protocolViolation
+ok   dispatch[client_profile_rejected_button_event]: protocolViolation
+ok   dispatch[host_video_ack_accepted_button_event]: protocolViolation
+ok   dispatch[client_video_ack_accepted_button_event]: protocolViolation
+ok   dispatch[host_active_button_event]: accept -> active, learnedCandidate == nil
+ok   dispatch[client_active_button_event]: protocolViolation
+ok   dispatch[host_bootstrap_scroll_event]: protocolViolation
+ok   dispatch[client_bootstrap_scroll_event]: protocolViolation
+ok   dispatch[host_announced_scroll_event]: protocolViolation
+ok   dispatch[client_announced_scroll_event]: protocolViolation
+ok   dispatch[host_profile_accepted_scroll_event]: protocolViolation
+ok   dispatch[client_profile_accepted_scroll_event]: protocolViolation
+ok   dispatch[host_profile_rejected_scroll_event]: protocolViolation
+ok   dispatch[client_profile_rejected_scroll_event]: protocolViolation
+ok   dispatch[host_video_ack_accepted_scroll_event]: protocolViolation
+ok   dispatch[client_video_ack_accepted_scroll_event]: protocolViolation
+ok   dispatch[host_active_scroll_event]: accept -> active, learnedCandidate == nil
+ok   dispatch[client_active_scroll_event]: protocolViolation
+ok   dispatch[host_bootstrap_clock_ping]: protocolViolation
+ok   dispatch[client_bootstrap_clock_ping]: protocolViolation
+ok   dispatch[host_announced_clock_ping]: protocolViolation
+ok   dispatch[client_announced_clock_ping]: protocolViolation
+ok   dispatch[host_profile_accepted_clock_ping]: protocolViolation
+ok   dispatch[client_profile_accepted_clock_ping]: protocolViolation
+ok   dispatch[host_profile_rejected_clock_ping]: protocolViolation
+ok   dispatch[client_profile_rejected_clock_ping]: protocolViolation
+ok   dispatch[host_video_ack_accepted_clock_ping]: protocolViolation
+ok   dispatch[client_video_ack_accepted_clock_ping]: protocolViolation
+ok   dispatch[host_active_clock_ping]: protocolViolation
+ok   dispatch[client_active_clock_ping]: protocolViolation
+ok   dispatch[host_bootstrap_clock_pong]: protocolViolation
+ok   dispatch[client_bootstrap_clock_pong]: protocolViolation
+ok   dispatch[host_announced_clock_pong]: protocolViolation
+ok   dispatch[client_announced_clock_pong]: protocolViolation
+ok   dispatch[host_profile_accepted_clock_pong]: protocolViolation
+ok   dispatch[client_profile_accepted_clock_pong]: protocolViolation
+ok   dispatch[host_profile_rejected_clock_pong]: protocolViolation
+ok   dispatch[client_profile_rejected_clock_pong]: protocolViolation
+ok   dispatch[host_video_ack_accepted_clock_pong]: protocolViolation
+ok   dispatch[client_video_ack_accepted_clock_pong]: protocolViolation
+ok   dispatch[host_active_clock_pong]: protocolViolation
+ok   dispatch[client_active_clock_pong]: protocolViolation
+ok   dispatch[host_bootstrap_fatal_report]: protocolViolation
+ok   dispatch[client_bootstrap_fatal_report]: protocolViolation
+ok   dispatch[host_announced_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[client_announced_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[host_profile_accepted_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[client_profile_accepted_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[host_profile_rejected_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[client_profile_rejected_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[host_video_ack_accepted_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[client_video_ack_accepted_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[host_active_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[client_active_fatal_report]: remoteFatal(deterministic)
+ok   dispatch[host_bootstrap_release_input]: protocolViolation
+ok   dispatch[client_bootstrap_release_input]: protocolViolation
+ok   dispatch[host_announced_release_input]: protocolViolation
+ok   dispatch[client_announced_release_input]: protocolViolation
+ok   dispatch[host_profile_accepted_release_input]: protocolViolation
+ok   dispatch[client_profile_accepted_release_input]: protocolViolation
+ok   dispatch[host_profile_rejected_release_input]: protocolViolation
+ok   dispatch[client_profile_rejected_release_input]: protocolViolation
+ok   dispatch[host_video_ack_accepted_release_input]: protocolViolation
+ok   dispatch[client_video_ack_accepted_release_input]: protocolViolation
+ok   dispatch[host_active_release_input]: accept -> active, learnedCandidate == nil
+ok   dispatch[client_active_release_input]: protocolViolation
+ok   dispatch[host_bootstrap_heartbeat]: protocolViolation
+ok   dispatch[client_bootstrap_heartbeat]: protocolViolation
+ok   dispatch[host_announced_heartbeat]: protocolViolation
+ok   dispatch[client_announced_heartbeat]: protocolViolation
+ok   dispatch[host_profile_accepted_heartbeat]: protocolViolation
+ok   dispatch[client_profile_accepted_heartbeat]: protocolViolation
+ok   dispatch[host_profile_rejected_heartbeat]: protocolViolation
+ok   dispatch[client_profile_rejected_heartbeat]: protocolViolation
+ok   dispatch[host_video_ack_accepted_heartbeat]: protocolViolation
+ok   dispatch[client_video_ack_accepted_heartbeat]: accept -> active, learnedCandidate == nil
+ok   dispatch[host_active_heartbeat]: accept -> active, learnedCandidate == nil
+ok   dispatch[client_active_heartbeat]: accept -> active, learnedCandidate == nil
+ok   dispatch[special_bad_version]: versionMismatch
+ok   dispatch[special_run_id_mismatch]: protocolViolation
+ok   dispatch[special_build_commit_39_chars]: protocolViolation
+ok   dispatch[special_build_commit_41_chars]: protocolViolation
+ok   dispatch[special_build_commit_uppercase]: protocolViolation
+ok   dispatch[special_build_commit_40_lowercase]: accept -> announced, learnedCandidate == Optional(72623859790382856)
+ok   dispatch[special_component_257_bytes]: recordCapViolation
+ok   dispatch[special_summary_2049_bytes]: recordCapViolation
+ok   dispatch[special_summary_2048_bytes]: remoteFatal(deterministic)
+ok   dispatch[special_profile_canonical_4097_bytes]: recordCapViolation
+ok   dispatch[special_profile_hash_7_bytes]: recordCapViolation
+ok   dispatch[special_profile_hash_9_bytes]: recordCapViolation
+ok   dispatch[special_button_out_of_range]: protocolViolation
+ok   dispatch[special_warm_strength_over_one]: protocolViolation
+ok   dispatch[special_warm_strength_nan]: protocolViolation
+ok   dispatch[special_profile_result_accepted_with_reject_code]: protocolViolation
+ok   dispatch[special_profile_result_rejected_with_listener_ready]: protocolViolation
+ok   dispatch[special_cap_before_direction_oversized_announce_at_host]: recordCapViolation
+ok   dispatch[special_profile_result_rejected_transition_a]: accept -> profileRejected, learnedCandidate == nil
+ok   dispatch[special_profile_result_rejected_transition_b]: accept -> profileRejected, learnedCandidate == nil
+ok   dispatch[special_zero_run_id_host_active_heartbeat]: protocolViolation
+ok   dispatch[special_zero_run_id_client_video_ack_display_settings]: protocolViolation
+ok   dispatch[special_zero_run_id_announce]: protocolViolation
+ok   dispatch[special_valid_announce_learning_from_no_run]: accept -> announced, learnedCandidate == Optional(72623859790382856)
+ok   dispatch[special_announce_when_run_already_candidate]: protocolViolation
+ok   dispatch[special_candidate_id_mismatch]: protocolViolation
+ok   dispatch[special_inconsistent_facts_bootstrap_active_run]: protocolViolation
+ok   dispatch[special_inconsistent_facts_active_phase_candidate_run]: protocolViolation
+ok   dispatch[special_frame_ack_ordinal_match]: accept -> active, learnedCandidate == nil
+ok   dispatch[special_frame_ack_ordinal_mismatch]: protocolViolation
+ok   dispatch[special_frame_ack_no_outstanding]: protocolViolation
+ok   dispatch[special_fatal_code_zero]: protocolViolation
+ok   dispatch[special_fatal_code_unknown_99]: protocolViolation
+ok   dispatch[special_fatal_code_deterministic_8]: remoteFatal(deterministic)
+ok   dispatch[special_fatal_code_transient_10]: remoteFatal(transient)
+ok   dispatch[special_fatal_code_terminal_19]: remoteFatal(terminal)
+ok   dispatch[special_fatal_report_client_bootstrap_rejected]: protocolViolation
+ok   dispatch[special_profile_result_rejected_code_zero]: protocolViolation
+ok   dispatch[special_profile_result_rejected_code_unknown]: protocolViolation
+ok   dispatch[special_profile_result_rejected_code_transient]: protocolViolation
+ok   dispatch[special_profile_result_rejected_code_terminal]: protocolViolation
+ok   dispatch[special_clock_host_profile_accepted_clock_ping_normal]: protocolViolation
+ok   dispatch[special_clock_host_profile_accepted_clock_ping_trace_or_doctor]: accept -> profileAccepted, learnedCandidate == nil
+ok   dispatch[special_clock_host_profile_accepted_clock_pong_normal]: protocolViolation
+ok   dispatch[special_clock_host_profile_accepted_clock_pong_trace_or_doctor]: accept -> profileAccepted, learnedCandidate == nil
+ok   dispatch[special_clock_host_video_ack_accepted_clock_ping_normal]: protocolViolation
+ok   dispatch[special_clock_host_video_ack_accepted_clock_ping_trace_or_doctor]: accept -> videoAckAccepted, learnedCandidate == nil
+ok   dispatch[special_clock_host_video_ack_accepted_clock_pong_normal]: protocolViolation
+ok   dispatch[special_clock_host_video_ack_accepted_clock_pong_trace_or_doctor]: accept -> videoAckAccepted, learnedCandidate == nil
+ok   dispatch[special_clock_host_active_clock_ping_normal]: protocolViolation
+ok   dispatch[special_clock_host_active_clock_ping_trace_or_doctor]: accept -> active, learnedCandidate == nil
+ok   dispatch[special_clock_host_active_clock_pong_normal]: protocolViolation
+ok   dispatch[special_clock_host_active_clock_pong_trace_or_doctor]: accept -> active, learnedCandidate == nil
+ok   dispatch[special_clock_client_profile_accepted_clock_ping_normal]: protocolViolation
+ok   dispatch[special_clock_client_profile_accepted_clock_ping_trace_or_doctor]: accept -> profileAccepted, learnedCandidate == nil
+ok   dispatch[special_clock_client_profile_accepted_clock_pong_normal]: protocolViolation
+ok   dispatch[special_clock_client_profile_accepted_clock_pong_trace_or_doctor]: accept -> profileAccepted, learnedCandidate == nil
+ok   dispatch[special_clock_client_video_ack_accepted_clock_ping_normal]: protocolViolation
+ok   dispatch[special_clock_client_video_ack_accepted_clock_ping_trace_or_doctor]: accept -> videoAckAccepted, learnedCandidate == nil
+ok   dispatch[special_clock_client_video_ack_accepted_clock_pong_normal]: protocolViolation
+ok   dispatch[special_clock_client_video_ack_accepted_clock_pong_trace_or_doctor]: accept -> videoAckAccepted, learnedCandidate == nil
+ok   dispatch[special_clock_client_active_clock_ping_normal]: protocolViolation
+ok   dispatch[special_clock_client_active_clock_ping_trace_or_doctor]: accept -> active, learnedCandidate == nil
+ok   dispatch[special_clock_client_active_clock_pong_normal]: protocolViolation
+ok   dispatch[special_clock_client_active_clock_pong_trace_or_doctor]: accept -> active, learnedCandidate == nil
+ok   dispatch[special_clock_trace_or_doctor_wrong_phase_still_violates]: protocolViolation
+ok   dispatch_cases.json raw has 3 rows
+ok   dispatch[unknown_only_oneof_absent_payload]: protocolViolation
+ok   dispatch[empty_envelope_host_active_some_run_id]: versionMismatch
+ok   dispatch[empty_envelope_client_bootstrap_null_run_id]: versionMismatch
+ok   dispatch_cases.json outbound has 166 rows
+ok   outbound[host_bootstrap_host_profile_announce]: accept -> announced
+ok   outbound[client_bootstrap_host_profile_announce]: protocolViolation
+ok   outbound[host_announced_host_profile_announce]: protocolViolation
+ok   outbound[client_announced_host_profile_announce]: protocolViolation
+ok   outbound[host_profile_accepted_host_profile_announce]: protocolViolation
+ok   outbound[client_profile_accepted_host_profile_announce]: protocolViolation
+ok   outbound[host_profile_rejected_host_profile_announce]: protocolViolation
+ok   outbound[client_profile_rejected_host_profile_announce]: protocolViolation
+ok   outbound[host_video_ack_accepted_host_profile_announce]: protocolViolation
+ok   outbound[client_video_ack_accepted_host_profile_announce]: protocolViolation
+ok   outbound[host_active_host_profile_announce]: protocolViolation
+ok   outbound[client_active_host_profile_announce]: protocolViolation
+ok   outbound[host_bootstrap_profile_result_accepted]: protocolViolation
+ok   outbound[client_bootstrap_profile_result_accepted]: protocolViolation
+ok   outbound[host_announced_profile_result_accepted]: protocolViolation
+ok   outbound[client_announced_profile_result_accepted]: accept -> profileAccepted
+ok   outbound[host_profile_accepted_profile_result_accepted]: protocolViolation
+ok   outbound[client_profile_accepted_profile_result_accepted]: protocolViolation
+ok   outbound[host_profile_rejected_profile_result_accepted]: protocolViolation
+ok   outbound[client_profile_rejected_profile_result_accepted]: protocolViolation
+ok   outbound[host_video_ack_accepted_profile_result_accepted]: protocolViolation
+ok   outbound[client_video_ack_accepted_profile_result_accepted]: protocolViolation
+ok   outbound[host_active_profile_result_accepted]: protocolViolation
+ok   outbound[client_active_profile_result_accepted]: protocolViolation
+ok   outbound[host_bootstrap_profile_result_rejected]: protocolViolation
+ok   outbound[client_bootstrap_profile_result_rejected]: protocolViolation
+ok   outbound[host_announced_profile_result_rejected]: protocolViolation
+ok   outbound[client_announced_profile_result_rejected]: accept -> profileRejected
+ok   outbound[host_profile_accepted_profile_result_rejected]: protocolViolation
+ok   outbound[client_profile_accepted_profile_result_rejected]: protocolViolation
+ok   outbound[host_profile_rejected_profile_result_rejected]: protocolViolation
+ok   outbound[client_profile_rejected_profile_result_rejected]: protocolViolation
+ok   outbound[host_video_ack_accepted_profile_result_rejected]: protocolViolation
+ok   outbound[client_video_ack_accepted_profile_result_rejected]: protocolViolation
+ok   outbound[host_active_profile_result_rejected]: protocolViolation
+ok   outbound[client_active_profile_result_rejected]: protocolViolation
+ok   outbound[host_bootstrap_frame_ack]: protocolViolation
+ok   outbound[client_bootstrap_frame_ack]: protocolViolation
+ok   outbound[host_announced_frame_ack]: protocolViolation
+ok   outbound[client_announced_frame_ack]: protocolViolation
+ok   outbound[host_profile_accepted_frame_ack]: protocolViolation
+ok   outbound[client_profile_accepted_frame_ack]: protocolViolation
+ok   outbound[host_profile_rejected_frame_ack]: protocolViolation
+ok   outbound[client_profile_rejected_frame_ack]: protocolViolation
+ok   outbound[host_video_ack_accepted_frame_ack]: protocolViolation
+ok   outbound[client_video_ack_accepted_frame_ack]: accept -> videoAckAccepted
+ok   outbound[host_active_frame_ack]: protocolViolation
+ok   outbound[client_active_frame_ack]: accept -> active
+ok   outbound[host_bootstrap_key_event]: protocolViolation
+ok   outbound[client_bootstrap_key_event]: protocolViolation
+ok   outbound[host_announced_key_event]: protocolViolation
+ok   outbound[client_announced_key_event]: protocolViolation
+ok   outbound[host_profile_accepted_key_event]: protocolViolation
+ok   outbound[client_profile_accepted_key_event]: protocolViolation
+ok   outbound[host_profile_rejected_key_event]: protocolViolation
+ok   outbound[client_profile_rejected_key_event]: protocolViolation
+ok   outbound[host_video_ack_accepted_key_event]: protocolViolation
+ok   outbound[client_video_ack_accepted_key_event]: protocolViolation
+ok   outbound[host_active_key_event]: protocolViolation
+ok   outbound[client_active_key_event]: accept -> active
+ok   outbound[host_bootstrap_button_event]: protocolViolation
+ok   outbound[client_bootstrap_button_event]: protocolViolation
+ok   outbound[host_announced_button_event]: protocolViolation
+ok   outbound[client_announced_button_event]: protocolViolation
+ok   outbound[host_profile_accepted_button_event]: protocolViolation
+ok   outbound[client_profile_accepted_button_event]: protocolViolation
+ok   outbound[host_profile_rejected_button_event]: protocolViolation
+ok   outbound[client_profile_rejected_button_event]: protocolViolation
+ok   outbound[host_video_ack_accepted_button_event]: protocolViolation
+ok   outbound[client_video_ack_accepted_button_event]: protocolViolation
+ok   outbound[host_active_button_event]: protocolViolation
+ok   outbound[client_active_button_event]: accept -> active
+ok   outbound[host_bootstrap_scroll_event]: protocolViolation
+ok   outbound[client_bootstrap_scroll_event]: protocolViolation
+ok   outbound[host_announced_scroll_event]: protocolViolation
+ok   outbound[client_announced_scroll_event]: protocolViolation
+ok   outbound[host_profile_accepted_scroll_event]: protocolViolation
+ok   outbound[client_profile_accepted_scroll_event]: protocolViolation
+ok   outbound[host_profile_rejected_scroll_event]: protocolViolation
+ok   outbound[client_profile_rejected_scroll_event]: protocolViolation
+ok   outbound[host_video_ack_accepted_scroll_event]: protocolViolation
+ok   outbound[client_video_ack_accepted_scroll_event]: protocolViolation
+ok   outbound[host_active_scroll_event]: protocolViolation
+ok   outbound[client_active_scroll_event]: accept -> active
+ok   outbound[host_bootstrap_release_input]: protocolViolation
+ok   outbound[client_bootstrap_release_input]: protocolViolation
+ok   outbound[host_announced_release_input]: protocolViolation
+ok   outbound[client_announced_release_input]: protocolViolation
+ok   outbound[host_profile_accepted_release_input]: protocolViolation
+ok   outbound[client_profile_accepted_release_input]: protocolViolation
+ok   outbound[host_profile_rejected_release_input]: protocolViolation
+ok   outbound[client_profile_rejected_release_input]: protocolViolation
+ok   outbound[host_video_ack_accepted_release_input]: protocolViolation
+ok   outbound[client_video_ack_accepted_release_input]: protocolViolation
+ok   outbound[host_active_release_input]: protocolViolation
+ok   outbound[client_active_release_input]: accept -> active
+ok   outbound[host_bootstrap_heartbeat]: protocolViolation
+ok   outbound[client_bootstrap_heartbeat]: protocolViolation
+ok   outbound[host_announced_heartbeat]: protocolViolation
+ok   outbound[client_announced_heartbeat]: protocolViolation
+ok   outbound[host_profile_accepted_heartbeat]: protocolViolation
+ok   outbound[client_profile_accepted_heartbeat]: protocolViolation
+ok   outbound[host_profile_rejected_heartbeat]: protocolViolation
+ok   outbound[client_profile_rejected_heartbeat]: protocolViolation
+ok   outbound[host_video_ack_accepted_heartbeat]: accept -> active
+ok   outbound[client_video_ack_accepted_heartbeat]: protocolViolation
+ok   outbound[host_active_heartbeat]: accept -> active
+ok   outbound[client_active_heartbeat]: accept -> active
+ok   outbound[host_bootstrap_clock_ping]: protocolViolation
+ok   outbound[client_bootstrap_clock_ping]: protocolViolation
+ok   outbound[host_announced_clock_ping]: protocolViolation
+ok   outbound[client_announced_clock_ping]: protocolViolation
+ok   outbound[host_profile_accepted_clock_ping]: protocolViolation
+ok   outbound[client_profile_accepted_clock_ping]: protocolViolation
+ok   outbound[host_profile_rejected_clock_ping]: protocolViolation
+ok   outbound[client_profile_rejected_clock_ping]: protocolViolation
+ok   outbound[host_video_ack_accepted_clock_ping]: protocolViolation
+ok   outbound[client_video_ack_accepted_clock_ping]: protocolViolation
+ok   outbound[host_active_clock_ping]: protocolViolation
+ok   outbound[client_active_clock_ping]: protocolViolation
+ok   outbound[host_bootstrap_clock_pong]: protocolViolation
+ok   outbound[client_bootstrap_clock_pong]: protocolViolation
+ok   outbound[host_announced_clock_pong]: protocolViolation
+ok   outbound[client_announced_clock_pong]: protocolViolation
+ok   outbound[host_profile_accepted_clock_pong]: protocolViolation
+ok   outbound[client_profile_accepted_clock_pong]: protocolViolation
+ok   outbound[host_profile_rejected_clock_pong]: protocolViolation
+ok   outbound[client_profile_rejected_clock_pong]: protocolViolation
+ok   outbound[host_video_ack_accepted_clock_pong]: protocolViolation
+ok   outbound[client_video_ack_accepted_clock_pong]: protocolViolation
+ok   outbound[host_active_clock_pong]: protocolViolation
+ok   outbound[client_active_clock_pong]: protocolViolation
+ok   outbound[host_bootstrap_display_settings]: protocolViolation
+ok   outbound[client_bootstrap_display_settings]: protocolViolation
+ok   outbound[host_announced_display_settings]: protocolViolation
+ok   outbound[client_announced_display_settings]: protocolViolation
+ok   outbound[host_profile_accepted_display_settings]: protocolViolation
+ok   outbound[client_profile_accepted_display_settings]: protocolViolation
+ok   outbound[host_profile_rejected_display_settings]: protocolViolation
+ok   outbound[client_profile_rejected_display_settings]: protocolViolation
+ok   outbound[host_video_ack_accepted_display_settings]: accept -> videoAckAccepted
+ok   outbound[client_video_ack_accepted_display_settings]: protocolViolation
+ok   outbound[host_active_display_settings]: accept -> active
+ok   outbound[client_active_display_settings]: protocolViolation
+ok   outbound[host_bootstrap_fatal_report]: accept -> bootstrap
+ok   outbound[client_bootstrap_fatal_report]: protocolViolation
+ok   outbound[host_announced_fatal_report]: accept -> announced
+ok   outbound[client_announced_fatal_report]: accept -> announced
+ok   outbound[host_profile_accepted_fatal_report]: accept -> profileAccepted
+ok   outbound[client_profile_accepted_fatal_report]: accept -> profileAccepted
+ok   outbound[host_profile_rejected_fatal_report]: accept -> profileRejected
+ok   outbound[client_profile_rejected_fatal_report]: accept -> profileRejected
+ok   outbound[host_video_ack_accepted_fatal_report]: accept -> videoAckAccepted
+ok   outbound[client_video_ack_accepted_fatal_report]: accept -> videoAckAccepted
+ok   outbound[host_active_fatal_report]: accept -> active
+ok   outbound[client_active_fatal_report]: accept -> active
+ok   outbound[special_outbound_host_clock_ping_send_normal_violates]: protocolViolation
+ok   outbound[special_outbound_host_clock_ping_send_trace_or_doctor_ok]: accept -> active
+ok   outbound[special_outbound_host_clock_pong_send_normal_violates]: protocolViolation
+ok   outbound[special_outbound_host_clock_pong_send_trace_or_doctor_ok]: accept -> active
+ok   outbound[special_outbound_client_clock_ping_send_normal_violates]: protocolViolation
+ok   outbound[special_outbound_client_clock_ping_send_trace_or_doctor_ok]: accept -> active
+ok   outbound[special_outbound_client_clock_pong_send_normal_violates]: protocolViolation
+ok   outbound[special_outbound_client_clock_pong_send_trace_or_doctor_ok]: accept -> active
+ok   outbound[special_outbound_fatal_send_client_no_run_err]: protocolViolation
+ok   outbound[special_outbound_fatal_send_client_candidate_ok]: accept -> announced
+ok   dispatch_cases.json video_ack has 6 rows
+ok   videoAck[video_ack_bootstrap]: protocolViolation
+ok   videoAck[video_ack_announced]: protocolViolation
+ok   videoAck[video_ack_profile_accepted]: accept -> videoAckAccepted
+ok   videoAck[video_ack_profile_rejected]: protocolViolation
+ok   videoAck[video_ack_video_ack_accepted]: protocolViolation
+ok   videoAck[video_ack_active]: protocolViolation
+ok   ERR-01 client t0 (ProfileAccepted): input fully disarmed
+ok   ERR-01 client t0: FrameAck send illegal pre-Ack
+ok   ERR-01 client A: noteVideoAck -> videoAckAccepted
+ok   ERR-01 client t1 (barrier window): input fully disarmed
+ok   ERR-01 client t1: FrameAck send legal (races activation by design)
+ok   ERR-01 client D: DisplaySettings accepted, phase unchanged
+ok   ERR-01 client t1 after D: input still disarmed
+ok   ERR-01 client H: activation heartbeat -> active
+ok   ERR-01 client t2: first post-barrier input + heartbeat armed
+ok   ERR-01 client t2: liveness heartbeat keeps active
+ok   ERR-01 client reordered: heartbeat in ProfileAccepted -> PROTOCOL_VIOLATION
+ok   ERR-01 client reordered: DisplaySettings in ProfileAccepted -> PROTOCOL_VIOLATION
+ok   ERR-01 client reordered: input stays disarmed
+ok   ERR-01 client prefix[0]: walk legal
+ok   ERR-01 client prefix[0]: armed == activated
+ok   ERR-01 client prefix[0]: fully disarmed pre-activation
+ok   ERR-01 client prefix[1]: walk legal
+ok   ERR-01 client prefix[1]: armed == activated
+ok   ERR-01 client prefix[1]: fully disarmed pre-activation
+ok   ERR-01 client prefix[2]: walk legal
+ok   ERR-01 client prefix[2]: armed == activated
+ok   ERR-01 client prefix[2]: fully disarmed pre-activation
+ok   ERR-01 client prefix[3]: walk legal
+ok   ERR-01 client prefix[3]: armed == activated
+ok   ERR-01 host: announce Bootstrap -> Announced
+ok   ERR-01 host: ProfileResult(accepted) -> profileAccepted
+ok   ERR-01 host: no heartbeat send before video Ack
+ok   ERR-01 host: noteVideoAck -> videoAckAccepted
+ok   ERR-01 host pre-activation: rogue KeyEvent -> PROTOCOL_VIOLATION
+ok   ERR-01 host pre-activation: client heartbeat -> PROTOCOL_VIOLATION
+ok   ERR-01 host pre-activation: FrameAck racing activation accepted
+ok   ERR-01 host activation send -> active
+ok   ERR-01 host post-barrier: first input accepted
+ok   ERR-01 host post-barrier: client heartbeat accepted
+ok   ERR-01 host post-barrier: FrameAck accepted
+ok   R2b slot: store into a fresh generation == .stored
+ok   R2b slot: tryTake returns the stored frame's generation
+ok   R2b slot: tryTake returns the stored frame's captureSeq
+ok   R2b slot: tryTake returns the stored frame's captureTsUs
+ok   R2b slot: tryTake returns the stored frame's payload
+ok   R2b slot: first store == .stored
+ok   R2b slot: second same-generation store == .storedReplacingDropped
+ok   R2b slot: latest-wins replacement counted in dropCount
+ok   R2b slot: tryTake returns ONLY the latest identity (seq 2)
+ok   R2b slot: the dropped identity (seq 1) is never seen again
+ok   R2b slot: late callback bound to the torn-down generation is rejected
+ok   R2b slot: staleRejectCount incremented
+ok   R2b slot: slot untouched by the stale store
+ok   R2b slot: a store bound to the CURRENT generation still succeeds
+ok   R2b slot: tryTake returns ONLY the gen2 identity
+ok   R2b slot: store before teardown == .stored
+ok   R2b slot: teardown discards the held frame (tryTake nil)
+ok   R2b slot: teardown discard counted in dropCount
+ok   R2b slot: store during the no-current-token window is rejectedStale
+ok   R2b slot: frameCount excludes stale rejections
+ok   CursorPacket.build returns exactly 35 bytes
+ok   CursorPacket bytes 0..3 == magic
+ok   CursorPacket byte 4 == protocol version
+ok   CursorPacket byte 5 == packetTypeCursorUpdate
+ok   CursorPacket round-trip: seq
+ok   CursorPacket round-trip: timestamp_us
+ok   CursorPacket round-trip: x_px
+ok   CursorPacket round-trip: y_px
+ok   CursorPacket round-trip: shape_id
+ok   CursorPacket monotonicity: consecutive packets carry strictly increasing timestamps under an injected increasing clock
+ok   CursorPacket seq strictly increments 1,2,3 even under a non-monotonic clock
+ok   CursorPacket timestamps reflect the non-monotonic clock as fed (not reordered)
+ok   CursorPacket: ordering authority is seq, never timestamp (errata cursor proof — timestamp went DOWN between packet 1 and 2, seq did not)
+ok   HarnessVerdict: all-clean run -> pass
+ok   HarnessVerdict: zero-frame run must NOT pass vacuously -> fail
+ok   HarnessVerdict: acked < sent alone -> fail
+ok   HarnessVerdict: acked > sent alone -> fail
+ok   HarnessVerdict: nonzero outstanding alone -> fail
+ok   HarnessVerdict: nonzero ack-order violations alone -> fail
+ok   HarnessVerdict: nonzero write errors alone -> fail
+ok   HarnessVerdict: every predicate failing simultaneously -> fail
+ok   EncoderError.sessionCreationFailed description names the status
+ok   EncoderError.propertySetFailed description names both the key and the status
+ok   EncoderError.prepareFailed description names the status
+ok   R3a lock contention: parent acquires the scratch lock
+ok   R3a lock contention: 0600 reasserted on open even though the file pre-existed as 0644
+ok   R3a lock contention: child exits 20 (INSTANCE_LOCK_HELD) while the parent holds the lock
+ok   R3a lock contention: child exits 0 after the parent releases the lock
+ok   C2 S1: activation accepted in videoAckAccepted
+ok   C2 S1: retained attempt trace exact
+ok   C2 S1: writes are FrameAck then first post-barrier input
+ok   C2 S2: activation before ack-note rejected
+ok   C2 S2: activation accepted after ack-note
+ok   C2 S2: attempt trace exact (two refused, one written)
+ok   C2 S3[0]: writes == post-activation attempts (5)
+ok   C2 S3[1]: writes == post-activation attempts (4)
+ok   C2 S3[2]: writes == post-activation attempts (3)
+ok   C2 S3[3]: writes == post-activation attempts (2)
+ok   C2 S3[4]: writes == post-activation attempts (1)
+ok   C2 S3[5]: writes == post-activation attempts (0)
+ok   C2 S4: exactly one activation write, only after ack-note
+ok   C2 S4: first post-barrier input accepted
+resc-fixture-check: all checks passed

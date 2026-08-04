@@ -1,0 +1,16 @@
+== run token: r3b-20260805042947-82162 ==
+== host doctor x3 (each run: exit + report copy + doctor_complete +1) ==
+host doctor run 1: exit=0 report_exit=0 delta=+1
+host doctor run 2: exit=0 report_exit=0 delta=+1
+host doctor run 3: exit=0 report_exit=0 delta=+1
+== client doctor x3 (isolated RESC_LOG_DIR per run) ==
+client doctor run 1: exit=0 doctor_complete=1
+client doctor run 2: exit=0 doctor_complete=1
+client doctor run 3: exit=0 doctor_complete=1
+== harness pair x3 (receiver exit captured via exit-file wrapper) ==
+harness run 1: sender exit=0 receiver exit=0
+harness run 2: sender exit=0 receiver exit=0
+harness run 3: sender exit=0 receiver exit=0
+== predicate validation (this run's artifacts only) ==
+== result ==
+R3B (r3b-20260805042947-82162): ALL GREEN
