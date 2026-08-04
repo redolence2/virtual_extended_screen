@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import RescCore
 
 /// Per-frame JSONL trace writer for the A0/A0.0 measurement mode
@@ -27,17 +28,42 @@ final class RescTrace {
     private let queue = DispatchQueue(label: "com.resc.resctrace")
     private let traceDir: URL
     private let traceFile: URL
+    /// Generated once, here in `init()` — see `makeRunToken()`.
+    private let runToken: String
     private var fileHandle: FileHandle?
     private var flushTimer: DispatchSourceTimer?
     private var pendingCount = 0
+    /// Lifetime counts of `"frame"`/`"pong"` records written by this trace —
+    /// queue-confined like `pendingCount`, incremented in
+    /// `enqueue(_:kind:)`. Back `counts` and the `finish`/`finishAborted`
+    /// footer fields so a shutdown path never needs its own parallel tally
+    /// (A00_COMPLETION_REPORT_AMENDED_response.md v2 §2 F4).
+    private var framesSentCount: UInt64 = 0
+    private var pongsCount: UInt64 = 0
 
     private init() {
         traceDir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Logs/RESC", isDirectory: true)
         traceFile = traceDir.appendingPathComponent("host-trace.jsonl")
+        runToken = Self.makeRunToken()
         guard Self.enabled else { return }
         openForAppend()
         scheduleFlushTimer()
+    }
+
+    /// Stable per-process identifier for this trace, written into the
+    /// `trace_complete` footer's `run_token` field so a live-gate joiner can
+    /// tell which host process instance produced a given footer
+    /// (A00_COMPLETION_REPORT_AMENDED_response_review.md amendment 3). Any
+    /// stable per-process value works — this hashes the process id together
+    /// with a continuous-clock read taken once here, at trace open, the same
+    /// way `CanonicalProfile.hash8` derives `profile_hash`: first 8 bytes of
+    /// SHA-256 over the two values, hex-encoded to exactly 16 lowercase
+    /// characters.
+    private static func makeRunToken() -> String {
+        let seed = Data("\(ProcessInfo.processInfo.processIdentifier):\(RescClockBridge.continuousNowUs())".utf8)
+        let digestPrefix = Data(SHA256.hash(data: seed).prefix(8))
+        return digestPrefix.map { String(format: "%02x", $0) }.joined()
     }
 
     // MARK: - Public API
@@ -66,7 +92,7 @@ final class RescTrace {
         record["capture_ts_us"] = identity?.captureTsUs ?? NSNull()
         record["ts_source"] = identity.map { Self.tsSourceString($0.tsSource) } ?? NSNull()
         record["uncertainty_us"] = identity?.uncertaintyUs ?? NSNull()
-        enqueue(record)
+        enqueue(record, kind: .frame)
     }
 
     /// `CaptureTsSource` → the frozen trace schema's `ts_source` string.
@@ -87,14 +113,72 @@ final class RescTrace {
             "t1": t1,
             "t2": t2,
             "t3": t3,
-        ])
+        ], kind: .pong)
+    }
+
+    // MARK: - Trace termination (A00_COMPLETION_REPORT_AMENDED_response_review.md
+    // amendment 3 / A00_COMPLETION_REPORT_AMENDED_response.md v2 §2 F4 — the
+    // C3 clean/aborted trace-termination protocol)
+
+    /// This trace's current lifetime `"frame"`/`"pong"` record counts, safe
+    /// to read from any thread. Lets a shutdown path pass exact totals into
+    /// `finish(status:framesSent:pongs:)` without keeping its own parallel
+    /// counters.
+    var counts: (framesSent: UInt64, pongs: UInt64) {
+        queue.sync { (self.framesSentCount, self.pongsCount) }
+    }
+
+    /// Appends the trace's one terminal footer record —
+    /// `{"t":"trace_complete","run_token":<16-hex string>,"status":status,
+    /// "frames_sent":N,"pongs":N}` — then synchronously flushes and fsyncs
+    /// (`synchronizeFile()`) the trace file before returning. Runs on
+    /// `queue.sync`, not the fire-and-forget `enqueue(_:kind:)` every other
+    /// record uses: a shutdown path calls this immediately before `exit()`,
+    /// so there is no later flush-timer tick to depend on — the footer must
+    /// be durable by the time this call returns. No-op unless `enabled`.
+    func finish(status: String, framesSent: UInt64, pongs: UInt64) {
+        guard Self.enabled else { return }
+        queue.sync {
+            self.write([
+                "t": "trace_complete",
+                "run_token": self.runToken,
+                "status": status,
+                "frames_sent": framesSent,
+                "pongs": pongs,
+            ])
+            self.flush()
+        }
+    }
+
+    /// Best-effort trace-abort marker for a fatal path that fires while
+    /// tracing is active: writes the same footer as `finish` with
+    /// `status: "aborted"`, using this trace's own internally tracked
+    /// frame/pong counts (`counts`) so the fatal call site does not need to
+    /// carry its own running totals just to call this. No-op unless
+    /// `enabled`; like `finish`, it flushes synchronously before returning.
+    func finishAborted() {
+        guard Self.enabled else { return }
+        let c = counts
+        finish(status: "aborted", framesSent: c.framesSent, pongs: c.pongs)
     }
 
     // MARK: - File I/O (queue-confined)
 
-    private func enqueue(_ record: [String: Any]) {
+    /// Which lifetime counter `enqueue(_:kind:)` should bump alongside
+    /// writing a record — backs the `finish`/`finishAborted` frame/pong
+    /// totals above.
+    private enum RecordKind {
+        case frame
+        case pong
+    }
+
+    private func enqueue(_ record: [String: Any], kind: RecordKind) {
         queue.async {
             self.write(record)
+            switch kind {
+            case .frame: self.framesSentCount += 1
+            case .pong: self.pongsCount += 1
+            }
             self.pendingCount += 1
             if self.pendingCount >= Self.flushCount { self.flush() }
         }

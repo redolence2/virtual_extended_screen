@@ -256,26 +256,67 @@ Task {
 }
 
 // Graceful shutdown
+/// Stops every subsystem and prints the final summary — shared by SIGINT
+/// (always) and, in trace mode, SIGTERM below, so both signals tear down
+/// through the identical sequence instead of maintaining two copies of it.
+func performGracefulShutdown() async {
+    encoder.stop()
+    h264FileHandle?.closeFile()
+    framePacer.stop()
+    cursorTracker?.stop()
+    inputReceiver?.stop()
+    streamingState.stopStreaming()
+    hostSession.stop()
+    await capturer.stop()
+    displayManager.destroy()
+    let s = encoder.stats
+    print("[RESC] Final: \(s.frames) frames, \(s.keyframes) KF, avg \(String(format: "%.1f", s.avgEncodeMs))ms")
+    let vs = streamingState.stats
+    if vs.packets > 0 {
+        print("[RESC] Sent: \(vs.packets) packets, \(vs.bytes / 1024)KB")
+    }
+}
+
 signal(SIGINT) { _ in
     print("\n[RESC] Shutting down...")
     Task {
-        encoder.stop()
-        h264FileHandle?.closeFile()
-        framePacer.stop()
-        cursorTracker?.stop()
-        inputReceiver?.stop()
-        streamingState.stopStreaming()
-        hostSession.stop()
-        await capturer.stop()
-        displayManager.destroy()
-        let s = encoder.stats
-        print("[RESC] Final: \(s.frames) frames, \(s.keyframes) KF, avg \(String(format: "%.1f", s.avgEncodeMs))ms")
-        let vs = streamingState.stats
-        if vs.packets > 0 {
-            print("[RESC] Sent: \(vs.packets) packets, \(vs.bytes / 1024)KB")
-        }
+        await performGracefulShutdown()
         exit(0)
     }
+}
+
+// SIGTERM: trace-mode-only clean-termination protocol (C3 —
+// A00_COMPLETION_REPORT_AMENDED_response_review.md amendment 3 /
+// A00_COMPLETION_REPORT_AMENDED_response.md v2 §2 F4). Untraced mode
+// installs no SIGTERM handler at all, so its behavior (default terminate)
+// is unchanged.
+var sigtermSource: DispatchSourceSignal?
+if RescTrace.enabled {
+    // DispatchSourceSignal, not the plain `signal(SIGTERM) { ... }`
+    // C-handler pattern SIGINT uses above: this handler ends by calling
+    // RescTrace.finish(), which does synchronous file I/O (queue.sync +
+    // JSON serialize + fsync) — not safe to run inside a real
+    // async-signal-handler context. SIG_IGN first disables the default
+    // terminate-on-SIGTERM disposition so the signal can't kill the process
+    // before GCD's dispatch source delivers the event to the main queue as
+    // an ordinary (non-signal-context) block. Scheduled on `.main`: this
+    // executable stays alive via RunLoop.main.run() below, which — like
+    // DisplayCapturer's own DispatchQueue.main.asyncAfter restart path —
+    // keeps pumping the main dispatch queue, so a `.main`-queued event
+    // handler fires correctly here too.
+    signal(SIGTERM, SIG_IGN)
+    let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+    source.setEventHandler {
+        print("\n[RESC] SIGTERM received (trace mode) — shutting down...")
+        Task {
+            await performGracefulShutdown()
+            let counts = RescTrace.shared.counts
+            RescTrace.shared.finish(status: "clean", framesSent: counts.framesSent, pongs: counts.pongs)
+            exit(0)
+        }
+    }
+    source.resume()
+    sigtermSource = source // retained for the process's lifetime — see DisplayCapturer's runOutput for the same must-retain-or-it-dies pattern
 }
 
 print("[RESC] Running. Press Ctrl+C to stop.")

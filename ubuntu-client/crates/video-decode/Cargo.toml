@@ -10,3 +10,6 @@ anyhow = "1"
 # response, F8: prose quarantine is not operational quarantine).
 ffmpeg-next = "=7.1.0"
 ffmpeg-sys-next = "=7.1.3"
+# EAGAIN classification for `flush()`'s send_eof retry loop (C3 / review
+# finding 1 correction) — same libc::EAGAIN check `backend-construct` uses.
+libc = "0.2"

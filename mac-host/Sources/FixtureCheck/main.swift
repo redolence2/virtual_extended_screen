@@ -495,13 +495,28 @@ func dispatchRole(named name: String) -> V3Dispatch.Role {
 
 enum DispatchVerdict {
     case accept(next: V3Dispatch.Phase, learn: Bool)
+    case remoteFatal(FailureClass)
     case error(Resc_V3_FatalCode)
+}
+
+/// The three `FailureClass` names the "remote_fatal:<class>" verdict
+/// vocabulary uses (C1: routing disposition for a fully-valid FatalReport).
+func dispatchFailureClass(named name: String) -> FailureClass {
+    switch name {
+    case "deterministic": return .deterministic
+    case "transient": return .transient
+    case "terminal": return .terminal
+    default: fatalError("dispatch_cases.json: unknown FailureClass name \(name)")
+    }
 }
 
 func dispatchVerdict(from s: String) -> DispatchVerdict {
     if s.hasPrefix("accept:") {
         let parts = s.dropFirst("accept:".count).split(separator: ":", omittingEmptySubsequences: false)
         return .accept(next: dispatchPhase(named: String(parts[0])), learn: parts.count > 1 && parts[1] == "learn")
+    }
+    if s.hasPrefix("remote_fatal:") {
+        return .remoteFatal(dispatchFailureClass(named: String(s.dropFirst("remote_fatal:".count))))
     }
     return .error(dispatchFatalCode(named: s))
 }
@@ -541,6 +556,36 @@ func dFieldS(_ fields: [String: Any], _ key: String) -> String {
 }
 func dFieldHex(_ fields: [String: Any], _ key: String) -> Data {
     dispatchHexBytes(dFieldS(fields, key))
+}
+/// `run` fact string ("no_run" | "candidate:<hex16>" | "active:<hex16>")
+/// -> `V3Dispatch.RunFact`, per `tools/gen_dispatch_fixtures.py`'s encoding.
+func dispatchRunFact(_ s: String) -> V3Dispatch.RunFact {
+    if s == "no_run" { return .noRun }
+    let parts = s.split(separator: ":", maxSplits: 1)
+    guard parts.count == 2, let id = UInt64(parts[1], radix: 16) else {
+        fatalError("dispatch_cases.json: bad run fact \(s)")
+    }
+    switch parts[0] {
+    case "candidate": return .candidate(id)
+    case "active": return .active(id)
+    default: fatalError("dispatch_cases.json: unknown run fact kind \(s)")
+    }
+}
+func dispatchDiagMode(_ s: String) -> V3Dispatch.DiagMode {
+    switch s {
+    case "normal": return .normal
+    case "trace_or_doctor": return .traceOrDoctor
+    default: fatalError("dispatch_cases.json: unknown diagnostics mode \(s)")
+    }
+}
+/// Builds the `DispatchFacts` a state/raw/outbound row was graded against
+/// from its flattened `run`/`diagnostics`/`oldest_outstanding` fields.
+func dispatchFacts(from row: [String: Any]) -> V3Dispatch.DispatchFacts {
+    V3Dispatch.DispatchFacts(
+        run: dispatchRunFact(dFieldS(row, "run")),
+        diagnostics: dispatchDiagMode(dFieldS(row, "diagnostics")),
+        oldestOutstandingOrdinal: (row["oldest_outstanding"] as? Int).map { UInt64($0) }
+    )
 }
 /// `warm_strength` is a JSON number except for the one non-finite special
 /// case, which uses the sentinel string "NaN" (raw JSON has no NaN literal).
@@ -647,20 +692,31 @@ func assertDispatchCase(
     _ name: String,
     role: V3Dispatch.Role,
     phase: V3Dispatch.Phase,
+    facts: V3Dispatch.DispatchFacts,
     env: Resc_V3_Envelope,
-    expectedRunId: UInt64?,
     verdict: String
 ) {
-    let result = V3Dispatch.validateInbound(role: role, phase: phase, env: env, expectedRunId: expectedRunId)
+    let result = V3Dispatch.validateInbound(role: role, phase: phase, facts: facts, env: env)
     switch dispatchVerdict(from: verdict) {
     case .accept(let next, let learn):
         switch result {
-        case .success(let accepted):
+        case .success(.accepted(let gotNext, let learnedCandidate)):
             let expectedLearned: UInt64? = learn ? env.sessionRunID : nil
-            check("dispatch[\(name)]: accept -> \(next), learnedRunId == \(String(describing: expectedLearned))",
-                  accepted.next == next && accepted.learnedRunId == expectedLearned)
+            check("dispatch[\(name)]: accept -> \(next), learnedCandidate == \(String(describing: expectedLearned))",
+                  gotNext == next && learnedCandidate == expectedLearned)
+        case .success(let other):
+            check("dispatch[\(name)]: expected accept(\(next)), got \(other)", false)
         case .failure(let e):
             check("dispatch[\(name)]: expected accept(\(next)), got \(e)", false)
+        }
+    case .remoteFatal(let cls):
+        switch result {
+        case .success(.remoteFatal(let gotCls)):
+            check("dispatch[\(name)]: remoteFatal(\(cls))", gotCls == cls)
+        case .success(let other):
+            check("dispatch[\(name)]: expected remoteFatal(\(cls)), got \(other)", false)
+        case .failure(let e):
+            check("dispatch[\(name)]: expected remoteFatal(\(cls)), got \(e)", false)
         }
     case .error(let code):
         switch result {
@@ -695,14 +751,16 @@ func dispatchOutboundKind(named name: String) -> V3Dispatch.OutboundKind {
 /// noteOutbound to be vector-covered like validateInbound. One check()
 /// call per row, same style as assertDispatchCase.
 func assertOutboundCase(_ name: String, role: V3Dispatch.Role, phase: V3Dispatch.Phase,
-                         kind: V3Dispatch.OutboundKind, verdict: String) {
-    let result = V3Dispatch.noteOutbound(role: role, phase: phase, kind: kind)
+                         facts: V3Dispatch.DispatchFacts, kind: V3Dispatch.OutboundKind, verdict: String) {
+    let result = V3Dispatch.noteOutbound(role: role, phase: phase, facts: facts, kind: kind)
     switch dispatchVerdict(from: verdict) {
     case .accept(let next, _):
         switch result {
         case .success(let n): check("outbound[\(name)]: accept -> \(next)", n == next)
         case .failure(let e): check("outbound[\(name)]: expected accept(\(next)), got \(e)", false)
         }
+    case .remoteFatal:
+        check("outbound[\(name)]: note_outbound never produces a remote_fatal verdict", false)
     case .error(let code):
         switch result {
         case .success: check("outbound[\(name)]: expected \(code), got accept", false)
@@ -720,6 +778,8 @@ func assertVideoAckCase(_ name: String, phase: V3Dispatch.Phase, verdict: String
         case .success(let n): check("videoAck[\(name)]: accept -> \(next)", n == next)
         case .failure(let e): check("videoAck[\(name)]: expected accept(\(next)), got \(e)", false)
         }
+    case .remoteFatal:
+        check("videoAck[\(name)]: note_video_ack never produces a remote_fatal verdict", false)
     case .error(let code):
         switch result {
         case .success: check("videoAck[\(name)]: expected \(code), got accept", false)
@@ -767,9 +827,9 @@ do {
         }
     }
 
-    // -- state (Layer 2: validateInbound over the 144-cell matrix + 20 special rows) --
+    // -- state (Layer 2: validateInbound over the 144-cell matrix + 66 C1 special rows) --
     let stateCases = dispatchObj["state"] as? [[String: Any]] ?? []
-    check("dispatch_cases.json state has 164 rows", stateCases.count == 164)
+    check("dispatch_cases.json state has 210 rows", stateCases.count == 210)
     for row in stateCases {
         guard let name = row["name"] as? String,
               let roleStr = row["role"] as? String,
@@ -784,9 +844,8 @@ do {
         env.sessionRunID = dField(row, "env_run_id")
         env.protocolVersion = UInt32(dField(row, "env_version"))
         env.payload = dispatchPayload(kind: kind, fields: fields)
-        let expectedRunId = (row["expected_run_id"] as? Int).map { UInt64($0) }
         assertDispatchCase(name, role: dispatchRole(named: roleStr), phase: dispatchPhase(named: phaseStr),
-                            env: env, expectedRunId: expectedRunId, verdict: verdict)
+                            facts: dispatchFacts(from: row), env: env, verdict: verdict)
     }
 
     // -- raw (Layer 2 over hand-encoded byte vectors: absent-payload / zero-byte envelopes) --
@@ -801,20 +860,20 @@ do {
             check("dispatch raw row has expected fields", false)
             continue
         }
-        let expectedRunId = (row["expected_run_id"] as? Int).map { UInt64($0) }
         do {
             let raw = try Data(contentsOf: fixturesDir.appendingPathComponent(file))
             let env = try Resc_V3_Envelope(serializedBytes: raw)
             assertDispatchCase(name, role: dispatchRole(named: roleStr), phase: dispatchPhase(named: phaseStr),
-                                env: env, expectedRunId: expectedRunId, verdict: verdict)
+                                facts: dispatchFacts(from: row), env: env, verdict: verdict)
         } catch {
             check("dispatch raw[\(name)]: decode \(file)", false)
         }
     }
 
-    // -- outbound (sender-side mirror: noteOutbound over the full 13-kind x 6-phase x 2-role matrix) --
+    // -- outbound (sender-side mirror: noteOutbound over the full 13-kind x 6-phase x 2-role
+    // matrix plus the C1 diagnostics/facts.run special rows) --
     let outboundCases = dispatchObj["outbound"] as? [[String: Any]] ?? []
-    check("dispatch_cases.json outbound has 156 rows", outboundCases.count == 156)
+    check("dispatch_cases.json outbound has 166 rows", outboundCases.count == 166)
     for row in outboundCases {
         guard let name = row["name"] as? String,
               let roleStr = row["role"] as? String,
@@ -825,7 +884,8 @@ do {
             continue
         }
         assertOutboundCase(name, role: dispatchRole(named: roleStr), phase: dispatchPhase(named: phaseStr),
-                            kind: dispatchOutboundKind(named: kindStr), verdict: verdict)
+                            facts: dispatchFacts(from: row), kind: dispatchOutboundKind(named: kindStr),
+                            verdict: verdict)
     }
 
     // -- video_ack (noteVideoAck over all 6 phases) --
@@ -854,6 +914,15 @@ do {
 // walking the two TCP handlers' events in specific schedules — including
 // the reordered schedule the model must surface as a violation instead of
 // silently arming input. Twin: ubuntu-client/crates/protocol/tests/err01_barrier.rs.
+//
+// C1 (corrective-cycle item closing review finding F2): validateInbound and
+// noteOutbound now take a DispatchFacts context. The traces below are
+// unchanged in meaning; each step is threaded with the DispatchFacts
+// consistent with the role/phase at that point (run confirmed once
+// profileAccepted is reached, candidate before that at the host; these
+// traces never exercise ClockPing/ClockPong so diagnostics stays .normal
+// throughout; the oldest outstanding ordinal fixed at frameAckEnv's
+// ordinal wherever a FrameAck envelope is validated).
 
 do {
     let runId: UInt64 = 0x0102_0304_0506_0708
@@ -888,9 +957,26 @@ do {
     let clientInputKinds: [V3Dispatch.OutboundKind] =
         [.keyEvent, .buttonEvent, .scrollEvent, .releaseInput, .heartbeat]
 
+    // The client's run is confirmed (active) for the whole client trace
+    // (1-3 below) -- it starts at profileAccepted and never revisits
+    // bootstrap/announced.
+    let clientFacts = V3Dispatch.DispatchFacts(run: .active(runId), diagnostics: .normal,
+                                                oldestOutstandingOrdinal: nil)
+    // The host trace (4) walks bootstrap -> announced -> profileAccepted ->
+    // videoAckAccepted -> active; facts.run tracks that (candidate before
+    // profileAccepted, active from profileAccepted on -- the host owns its
+    // candidate id from process start, so it is never noRun). The oldest
+    // outstanding ordinal is fixed at frameAckEnv's ordinal (1) throughout,
+    // irrelevant to every payload kind but FrameAck.
+    func hostFacts(_ phase: V3Dispatch.Phase) -> V3Dispatch.DispatchFacts {
+        let run: V3Dispatch.RunFact = (phase == .bootstrap || phase == .announced)
+            ? .candidate(runId) : .active(runId)
+        return V3Dispatch.DispatchFacts(run: run, diagnostics: .normal, oldestOutstandingOrdinal: 1)
+    }
+
     func clientInputArmed(_ phase: V3Dispatch.Phase) -> Bool {
         clientInputKinds.allSatisfy {
-            if case .success(.active) = V3Dispatch.noteOutbound(role: .client, phase: phase, kind: $0) {
+            if case .success(.active) = V3Dispatch.noteOutbound(role: .client, phase: phase, facts: clientFacts, kind: $0) {
                 return true
             }
             return false
@@ -898,21 +984,21 @@ do {
     }
     func clientInputFullyDisarmed(_ phase: V3Dispatch.Phase) -> Bool {
         clientInputKinds.allSatisfy {
-            if case .failure = V3Dispatch.noteOutbound(role: .client, phase: phase, kind: $0) {
+            if case .failure = V3Dispatch.noteOutbound(role: .client, phase: phase, facts: clientFacts, kind: $0) {
                 return true
             }
             return false
         }
     }
-    func inbound(_ role: V3Dispatch.Role, _ phase: V3Dispatch.Phase,
-                 _ env: Resc_V3_Envelope) -> Result<V3Dispatch.Accepted, Resc_V3_FatalCode> {
-        V3Dispatch.validateInbound(role: role, phase: phase, env: env, expectedRunId: runId)
+    func inbound(_ role: V3Dispatch.Role, _ phase: V3Dispatch.Phase, _ facts: V3Dispatch.DispatchFacts,
+                 _ env: Resc_V3_Envelope) -> Result<V3Dispatch.Dispatch, Resc_V3_FatalCode> {
+        V3Dispatch.validateInbound(role: role, phase: phase, facts: facts, env: env)
     }
-    func acceptedNext(_ r: Result<V3Dispatch.Accepted, Resc_V3_FatalCode>) -> V3Dispatch.Phase? {
-        if case .success(let a) = r { return a.next }
+    func acceptedNext(_ r: Result<V3Dispatch.Dispatch, Resc_V3_FatalCode>) -> V3Dispatch.Phase? {
+        if case .success(.accepted(let next, _)) = r { return next }
         return nil
     }
-    func isProtocolViolation(_ r: Result<V3Dispatch.Accepted, Resc_V3_FatalCode>) -> Bool {
+    func isProtocolViolation(_ r: Result<V3Dispatch.Dispatch, Resc_V3_FatalCode>) -> Bool {
         if case .failure(.protocolViolation) = r { return true }
         return false
     }
@@ -921,7 +1007,7 @@ do {
     var phase = V3Dispatch.Phase.profileAccepted
     check("ERR-01 client t0 (ProfileAccepted): input fully disarmed", clientInputFullyDisarmed(phase))
     check("ERR-01 client t0: FrameAck send illegal pre-Ack", {
-        if case .failure = V3Dispatch.noteOutbound(role: .client, phase: phase, kind: .frameAck) { return true }
+        if case .failure = V3Dispatch.noteOutbound(role: .client, phase: phase, facts: clientFacts, kind: .frameAck) { return true }
         return false
     }())
 
@@ -934,26 +1020,26 @@ do {
     }())
     check("ERR-01 client t1 (barrier window): input fully disarmed", clientInputFullyDisarmed(phase))
     check("ERR-01 client t1: FrameAck send legal (races activation by design)", {
-        if case .success(.videoAckAccepted) = V3Dispatch.noteOutbound(role: .client, phase: phase, kind: .frameAck) { return true }
+        if case .success(.videoAckAccepted) = V3Dispatch.noteOutbound(role: .client, phase: phase, facts: clientFacts, kind: .frameAck) { return true }
         return false
     }())
     check("ERR-01 client D: DisplaySettings accepted, phase unchanged",
-          acceptedNext(inbound(.client, phase, displaySettingsEnv)) == .videoAckAccepted)
+          acceptedNext(inbound(.client, phase, clientFacts, displaySettingsEnv)) == .videoAckAccepted)
     check("ERR-01 client t1 after D: input still disarmed", clientInputFullyDisarmed(phase))
     check("ERR-01 client H: activation heartbeat -> active", {
-        guard let next = acceptedNext(inbound(.client, phase, heartbeatEnv)), next == .active else { return false }
+        guard let next = acceptedNext(inbound(.client, phase, clientFacts, heartbeatEnv)), next == .active else { return false }
         phase = next
         return true
     }())
     check("ERR-01 client t2: first post-barrier input + heartbeat armed", clientInputArmed(phase))
     check("ERR-01 client t2: liveness heartbeat keeps active",
-          acceptedNext(inbound(.client, phase, heartbeatEnv)) == .active)
+          acceptedNext(inbound(.client, phase, clientFacts, heartbeatEnv)) == .active)
 
     // -- Trace 2: reordered handlers surfaced as violations --
     check("ERR-01 client reordered: heartbeat in ProfileAccepted -> PROTOCOL_VIOLATION",
-          isProtocolViolation(inbound(.client, .profileAccepted, heartbeatEnv)))
+          isProtocolViolation(inbound(.client, .profileAccepted, clientFacts, heartbeatEnv)))
     check("ERR-01 client reordered: DisplaySettings in ProfileAccepted -> PROTOCOL_VIOLATION",
-          isProtocolViolation(inbound(.client, .profileAccepted, displaySettingsEnv)))
+          isProtocolViolation(inbound(.client, .profileAccepted, clientFacts, displaySettingsEnv)))
     check("ERR-01 client reordered: input stays disarmed", clientInputFullyDisarmed(.profileAccepted))
 
     // -- Trace 3: prefix sweep over [A, D, H] — armed iff H processed --
@@ -969,10 +1055,10 @@ do {
                 guard case .success(let next) = V3Dispatch.noteVideoAck(p) else { walkOk = false; break }
                 p = next
             case .d:
-                guard let next = acceptedNext(inbound(.client, p, displaySettingsEnv)) else { walkOk = false; break }
+                guard let next = acceptedNext(inbound(.client, p, clientFacts, displaySettingsEnv)) else { walkOk = false; break }
                 p = next
             case .h:
-                guard let next = acceptedNext(inbound(.client, p, heartbeatEnv)) else { walkOk = false; break }
+                guard let next = acceptedNext(inbound(.client, p, clientFacts, heartbeatEnv)) else { walkOk = false; break }
                 activated = true
                 p = next
             }
@@ -989,19 +1075,19 @@ do {
     // -- Trace 4: host side --
     var hostPhase = V3Dispatch.Phase.bootstrap
     check("ERR-01 host: announce Bootstrap -> Announced", {
-        if case .success(.announced) = V3Dispatch.noteOutbound(role: .host, phase: hostPhase, kind: .hostProfileAnnounce) {
+        if case .success(.announced) = V3Dispatch.noteOutbound(role: .host, phase: hostPhase, facts: hostFacts(hostPhase), kind: .hostProfileAnnounce) {
             hostPhase = .announced
             return true
         }
         return false
     }())
     check("ERR-01 host: ProfileResult(accepted) -> profileAccepted", {
-        guard let next = acceptedNext(inbound(.host, hostPhase, profileResultAcceptedEnv)), next == .profileAccepted else { return false }
+        guard let next = acceptedNext(inbound(.host, hostPhase, hostFacts(hostPhase), profileResultAcceptedEnv)), next == .profileAccepted else { return false }
         hostPhase = next
         return true
     }())
     check("ERR-01 host: no heartbeat send before video Ack", {
-        if case .failure = V3Dispatch.noteOutbound(role: .host, phase: hostPhase, kind: .heartbeat) { return true }
+        if case .failure = V3Dispatch.noteOutbound(role: .host, phase: hostPhase, facts: hostFacts(hostPhase), kind: .heartbeat) { return true }
         return false
     }())
     check("ERR-01 host: noteVideoAck -> videoAckAccepted", {
@@ -1012,24 +1098,24 @@ do {
         return false
     }())
     check("ERR-01 host pre-activation: rogue KeyEvent -> PROTOCOL_VIOLATION",
-          isProtocolViolation(inbound(.host, hostPhase, keyEventEnv)))
+          isProtocolViolation(inbound(.host, hostPhase, hostFacts(hostPhase), keyEventEnv)))
     check("ERR-01 host pre-activation: client heartbeat -> PROTOCOL_VIOLATION",
-          isProtocolViolation(inbound(.host, hostPhase, heartbeatEnv)))
+          isProtocolViolation(inbound(.host, hostPhase, hostFacts(hostPhase), heartbeatEnv)))
     check("ERR-01 host pre-activation: FrameAck racing activation accepted",
-          acceptedNext(inbound(.host, hostPhase, frameAckEnv)) == .videoAckAccepted)
+          acceptedNext(inbound(.host, hostPhase, hostFacts(hostPhase), frameAckEnv)) == .videoAckAccepted)
     check("ERR-01 host activation send -> active", {
-        if case .success(.active) = V3Dispatch.noteOutbound(role: .host, phase: hostPhase, kind: .heartbeat) {
+        if case .success(.active) = V3Dispatch.noteOutbound(role: .host, phase: hostPhase, facts: hostFacts(hostPhase), kind: .heartbeat) {
             hostPhase = .active
             return true
         }
         return false
     }())
     check("ERR-01 host post-barrier: first input accepted",
-          acceptedNext(inbound(.host, hostPhase, keyEventEnv)) == .active)
+          acceptedNext(inbound(.host, hostPhase, hostFacts(hostPhase), keyEventEnv)) == .active)
     check("ERR-01 host post-barrier: client heartbeat accepted",
-          acceptedNext(inbound(.host, hostPhase, heartbeatEnv)) == .active)
+          acceptedNext(inbound(.host, hostPhase, hostFacts(hostPhase), heartbeatEnv)) == .active)
     check("ERR-01 host post-barrier: FrameAck accepted",
-          acceptedNext(inbound(.host, hostPhase, frameAckEnv)) == .active)
+          acceptedNext(inbound(.host, hostPhase, hostFacts(hostPhase), frameAckEnv)) == .active)
 }
 
 // MARK: - (i) R2b: generation slot + cursor clock
@@ -1304,6 +1390,140 @@ do {
 } catch {
     print("FAIL R3a lock contention setup: \(error)")
     failures += 1
+}
+
+// MARK: - (h2) ERR-01 write-level barrier proof (C2 writer spy)
+
+// A00_COMPLETION_REPORT_AMENDED_review.md finding 3: the (h) traces prove the
+// phase MODEL rejects pre-activation sends; the normative requirement is
+// about the WRITE boundary. A deterministic scheduler + writer spy around
+// the shared outbound gate records every send ATTEMPT (kind, written?), so
+// the retained attempt traces prove the gate — not scheduling luck —
+// prevented every pre-activation write, across named reordered cross-TCP
+// schedules. Twin: ubuntu-client/crates/protocol/tests/err01_writer_spy.rs.
+
+do {
+    let runId: UInt64 = 0x0102_0304_0506_0708
+    let spyFacts = V3Dispatch.DispatchFacts(run: .active(runId), diagnostics: .normal,
+                                            oldestOutstandingOrdinal: nil)
+
+    struct SpyAttempt: Equatable {
+        let kind: V3Dispatch.OutboundKind
+        let written: Bool
+    }
+
+    final class ClientGate {
+        var phase = V3Dispatch.Phase.profileAccepted
+        var attempts: [SpyAttempt] = []
+        let facts: V3Dispatch.DispatchFacts
+        init(_ facts: V3Dispatch.DispatchFacts) { self.facts = facts }
+
+        func trySend(_ kind: V3Dispatch.OutboundKind) {
+            switch V3Dispatch.noteOutbound(role: .client, phase: phase, facts: facts, kind: kind) {
+            case .success(let next):
+                attempts.append(SpyAttempt(kind: kind, written: true))
+                phase = next
+            case .failure:
+                attempts.append(SpyAttempt(kind: kind, written: false))
+            }
+        }
+        func onVideoAckNoted() {
+            if case .success(let next) = V3Dispatch.noteVideoAck(phase) { phase = next }
+        }
+        func onInboundHeartbeat(_ env: Resc_V3_Envelope) -> Bool {
+            if case .success(.accepted(let next, _)) =
+                V3Dispatch.validateInbound(role: .client, phase: phase, facts: facts, env: env) {
+                phase = next
+                return true
+            }
+            return false
+        }
+        var writes: [V3Dispatch.OutboundKind] { attempts.filter { $0.written }.map { $0.kind } }
+    }
+
+    var hb = Resc_V3_Envelope()
+    hb.sessionRunID = runId
+    hb.protocolVersion = 3
+    hb.heartbeat = Resc_V3_Heartbeat()
+
+    // -- S1: correct schedule --
+    let g1 = ClientGate(spyFacts)
+    g1.trySend(.keyEvent)
+    g1.trySend(.heartbeat)
+    g1.onVideoAckNoted()
+    g1.trySend(.keyEvent)
+    g1.trySend(.frameAck)
+    g1.trySend(.heartbeat)
+    check("C2 S1: activation accepted in videoAckAccepted", g1.onInboundHeartbeat(hb))
+    g1.trySend(.keyEvent)
+    g1.trySend(.heartbeat)
+    check("C2 S1: retained attempt trace exact", g1.attempts == [
+        SpyAttempt(kind: .keyEvent, written: false),
+        SpyAttempt(kind: .heartbeat, written: false),
+        SpyAttempt(kind: .keyEvent, written: false),
+        SpyAttempt(kind: .frameAck, written: true),
+        SpyAttempt(kind: .heartbeat, written: false),
+        SpyAttempt(kind: .keyEvent, written: true),
+        SpyAttempt(kind: .heartbeat, written: true),
+    ])
+    check("C2 S1: writes are FrameAck then first post-barrier input",
+          g1.writes == [.frameAck, .keyEvent, .heartbeat])
+
+    // -- S2: control-first (reordered) --
+    let g2 = ClientGate(spyFacts)
+    check("C2 S2: activation before ack-note rejected", !g2.onInboundHeartbeat(hb))
+    g2.trySend(.keyEvent)
+    g2.onVideoAckNoted()
+    g2.trySend(.keyEvent)
+    check("C2 S2: activation accepted after ack-note", g2.onInboundHeartbeat(hb))
+    g2.trySend(.keyEvent)
+    check("C2 S2: attempt trace exact (two refused, one written)", g2.attempts == [
+        SpyAttempt(kind: .keyEvent, written: false),
+        SpyAttempt(kind: .keyEvent, written: false),
+        SpyAttempt(kind: .keyEvent, written: true),
+    ])
+
+    // -- S3: delayed-activation sweep --
+    let attemptsPerRun = 5
+    for activationAt in 0...attemptsPerRun {
+        let g = ClientGate(spyFacts)
+        g.onVideoAckNoted()
+        for i in 0..<attemptsPerRun {
+            if i == activationAt { _ = g.onInboundHeartbeat(hb) }
+            g.trySend(.keyEvent)
+        }
+        let expectedWrites = attemptsPerRun - min(activationAt, attemptsPerRun)
+        check("C2 S3[\(activationAt)]: writes == post-activation attempts (\(expectedWrites))",
+              g.writes.count == expectedWrites && g.writes.allSatisfy { $0 == .keyEvent })
+    }
+
+    // -- S4: host activation write + first input accepted --
+    var hostPhase = V3Dispatch.Phase.profileAccepted
+    var hostAttempts: [SpyAttempt] = []
+    func hostTryActivation() {
+        switch V3Dispatch.noteOutbound(role: .host, phase: hostPhase, facts: spyFacts, kind: .heartbeat) {
+        case .success(let next): hostAttempts.append(SpyAttempt(kind: .heartbeat, written: true)); hostPhase = next
+        case .failure: hostAttempts.append(SpyAttempt(kind: .heartbeat, written: false))
+        }
+    }
+    hostTryActivation() // refused pre-ack-note
+    if case .success(let next) = V3Dispatch.noteVideoAck(hostPhase) { hostPhase = next }
+    hostTryActivation() // written
+    check("C2 S4: exactly one activation write, only after ack-note", hostAttempts == [
+        SpyAttempt(kind: .heartbeat, written: false),
+        SpyAttempt(kind: .heartbeat, written: true),
+    ] && hostPhase == .active)
+    var key = Resc_V3_Envelope()
+    key.sessionRunID = runId
+    key.protocolVersion = 3
+    key.keyEvent = .with { k in k.hidUsage = 4; k.isDown = true; k.modifiers = 0 }
+    check("C2 S4: first post-barrier input accepted", {
+        if case .success(.accepted(let next, _)) =
+            V3Dispatch.validateInbound(role: .host, phase: hostPhase, facts: spyFacts, env: key) {
+            return next == .active
+        }
+        return false
+    }())
 }
 
 if failures > 0 {

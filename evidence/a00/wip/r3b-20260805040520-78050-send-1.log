@@ -1,0 +1,40 @@
+[HARNESS] RESC A0 harness sender starting...
+[HARNESS] connect=192.168.50.47:9871 window=1 seconds=10 bitrate=20000000bps
+[HARNESS] Connected to 192.168.50.47:9871, TCP_NODELAY=true
+[RESC] Encoder started: HEVC 1080x1920, 20Mbps
+[RESC] Encode: 300 frames, 5 KF, avg 7.6ms [HEVC]
+[RESC] Encode: 600 frames, 10 KF, avg 7.9ms [HEVC]
+[HARNESS] Generation complete (600 source frames) — draining outstanding ACKs...
+[HARNESS] ACK recv error: errno=9
+[RESC] Encoder stopped: 600 frames, 10 KF, avg 7.9ms [HEVC]
+{
+  "achieved_fps" : 43.200000000000003,
+  "ack_order_violation" : 0,
+  "bytes" : {
+    "max" : 2293,
+    "p50" : 371,
+    "p95" : 374
+  },
+  "encode_ms" : {
+    "max" : 27.337074279785156,
+    "p50" : 6.0340166091918945,
+    "p95" : 12.272000312805176
+  },
+  "frames_acked" : 432,
+  "frames_sent" : 432,
+  "harness_report_v" : 2,
+  "outstanding_at_end" : 0,
+  "pending_replaced" : 168,
+  "rtt_ms" : {
+    "max" : 160.298,
+    "p50" : 8.1859999999999999,
+    "p95" : 89.311000000000007
+  },
+  "seconds" : 10,
+  "sender_integrity_pass" : true,
+  "sustained_60hz" : true,
+  "window" : 1,
+  "write_errors" : 0
+}
+[HARNESS] Report written to /Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/a00/wip/r3b-20260805040520-78050-send-1.json
+[HARNESS] Done. frames_sent=432 frames_acked=432 pending_replaced=168 ack_order_violation=0 write_errors=0 outstanding_at_end=0 achieved_fps=43.2 sustained_60hz=true

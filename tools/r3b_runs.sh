@@ -1,66 +1,117 @@
 #!/bin/bash
-# R3b: >=3x repeated selected-profile doctor + harness evidence runs.
-set -o pipefail
+# Repeated selected-profile doctor + harness evidence runs — fail-closed v2.
+#
+# C5 rebuild per A00_COMPLETION_REPORT_AMENDED_review.md finding 6 and
+# A00_COMPLETION_REPORT_AMENDED_response_review.md amendment 6: unique run
+# tokens; every exit captured immediately (including the remote receiver's,
+# via an exit-file wrapper — a trailing `echo` after a remote command masks
+# its status); the host's REAL doctor_host.json copied and parsed (stdout is
+# retained separately as .log); per-run doctor_complete deltas asserted == 1
+# (not a confusable global +3); copy/missing-artifact failures fatal; only
+# this run's uniquely-named artifacts validated; sender_integrity_pass and
+# the receiver's full v2 predicate required — never a bare exit code or the
+# legacy `sustained_60hz` name.
+set -u
 REPO=/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen
 BOX=wan@192.168.50.47
 EVID="$REPO/evidence/a00/wip"
-FAIL=0
+TOKEN="r3b-$(date +%Y%m%d%H%M%S)-$$"
+HOST_LOG="$HOME/Library/Logs/RESC/host.jsonl"
+FAILURES=0
 
-echo "== host doctor x3 =="
-H0=$(grep -c doctor_complete ~/Library/Logs/RESC/host.jsonl)
+die() { echo "FATAL: $*" >&2; exit 1; }
+flag() { echo "FAIL: $*" >&2; FAILURES=$((FAILURES + 1)); }
+
+json_field() { # file, python expr over parsed `r`
+  python3 -c "import json,sys; r=json.load(open('$1')); print($2)" 2>/dev/null
+}
+
+echo "== run token: $TOKEN =="
+mkdir -p "$EVID"
+
+echo "== host doctor x3 (each run: exit + report copy + doctor_complete +1) =="
 for i in 1 2 3; do
-  "$REPO/mac-host/.build/debug/remote-display-host" --doctor > "$EVID/r3b-host-doctor-$i.json" 2>/dev/null
-  echo "host doctor run $i: exit=$?"
-  [ ${PIPESTATUS[0]:-$?} -ne 0 ] 2>/dev/null && FAIL=1
+  BEFORE=$(grep -c doctor_complete "$HOST_LOG" 2>/dev/null || echo 0)
+  "$REPO/mac-host/.build/debug/remote-display-host" --doctor > "$EVID/$TOKEN-host-doctor-$i.log" 2>&1
+  EXIT=$?
+  [ $EXIT -eq 0 ] || flag "host doctor run $i exit=$EXIT"
+  cp "$HOME/Library/Logs/RESC/doctor_host.json" "$EVID/$TOKEN-host-doctor-$i.json" \
+    || die "host doctor run $i: doctor_host.json missing"
+  OK=$(json_field "$EVID/$TOKEN-host-doctor-$i.json" "r.get('exit_code')")
+  [ "$OK" = "0" ] || flag "host doctor run $i report exit_code=$OK"
+  AFTER=$(grep -c doctor_complete "$HOST_LOG" 2>/dev/null || echo 0)
+  [ $((AFTER - BEFORE)) -eq 1 ] || flag "host doctor run $i doctor_complete delta $((AFTER - BEFORE)) != 1"
+  echo "host doctor run $i: exit=$EXIT report_exit=$OK delta=+$((AFTER - BEFORE))"
 done
-H1=$(grep -c doctor_complete ~/Library/Logs/RESC/host.jsonl)
-echo "host doctor_complete: $H0 -> $H1 (expect +3)"
 
-echo "== client doctor x3 (sw1-lowdelay, selected backend) =="
-C0=$(ssh "$BOX" 'grep -c doctor_complete ~/.local/state/resc/client.jsonl 2>/dev/null || echo 0' </dev/null)
+echo "== client doctor x3 (isolated RESC_LOG_DIR per run) =="
 for i in 1 2 3; do
-  ssh "$BOX" 'cd ~/resc/remote_extended_screen/ubuntu-client && \
-    env LD_LIBRARY_PATH=$HOME/ffmpeg7/lib SDL_VIDEODRIVER=dummy \
+  RDIR="/tmp/$TOKEN-cd$i"
+  ssh "$BOX" "cd ~/resc/remote_extended_screen/ubuntu-client && \
+    env RESC_LOG_DIR=$RDIR LD_LIBRARY_PATH=\$HOME/ffmpeg7/lib SDL_VIDEODRIVER=dummy \
     ./target/release/remote-display-client --doctor --doctor-backend sw1-lowdelay \
-      --sample /home/wan/resc/sample_1080x1920.h265 > /tmp/r3b-client-doctor-'$i'.json 2>/dev/null; echo "client doctor run '$i': exit=$?"' </dev/null
+      --sample /home/wan/resc/sample_1080x1920.h265 > /tmp/$TOKEN-cd$i.json 2>/tmp/$TOKEN-cd$i.log" </dev/null
+  EXIT=$?
+  [ $EXIT -eq 0 ] || flag "client doctor run $i ssh/doctor exit=$EXIT"
+  CC=$(ssh "$BOX" "grep -c doctor_complete $RDIR/client.jsonl 2>/dev/null || echo 0" </dev/null)
+  [ "$CC" = "1" ] || flag "client doctor run $i isolated doctor_complete count $CC != 1"
+  scp -q "$BOX:/tmp/$TOKEN-cd$i.json" "$EVID/$TOKEN-client-doctor-$i.json" \
+    || die "client doctor run $i report copy failed"
+  echo "client doctor run $i: exit=$EXIT doctor_complete=$CC"
 done
-C1=$(ssh "$BOX" 'grep -c doctor_complete ~/.local/state/resc/client.jsonl 2>/dev/null || echo 0' </dev/null)
-echo "client doctor_complete: $C0 -> $C1 (expect +3)"
-scp -q "$BOX":/tmp/r3b-client-doctor-{1,2,3}.json "$EVID/" </dev/null
 
-echo "== harness pair x3 (10s each, window 1) =="
+echo "== harness pair x3 (receiver exit captured via exit-file wrapper) =="
 for i in 1 2 3; do
-  ssh "$BOX" 'cd ~/resc/remote_extended_screen/ubuntu-client && \
-    nohup env LD_LIBRARY_PATH=$HOME/ffmpeg7/lib \
+  # The launch ssh is itself backgrounded and its liveness verified by a
+  # separate probe: a foreground ssh whose remote command backgrounds a
+  # process lingers indefinitely despite full fd redirection (the bug that
+  # wedged both early live-gate runs AND this script's own first run on
+  # 2026-08-05 — same class tools/r4_live_gate.sh fixed). Process matching
+  # is by bare name, never pkill/pgrep -f (the ssh'd shell's argv contains
+  # the pattern text and self-matches).
+  ssh "$BOX" "cd ~/resc/remote_extended_screen/ubuntu-client && rm -f /tmp/$TOKEN-recv-$i.exit && \
+    nohup bash -c 'env LD_LIBRARY_PATH=\$HOME/ffmpeg7/lib \
       ./target/release/harness-receiver --listen 0.0.0.0:9871 --backend sw1-lowdelay \
-      --json-out /tmp/r3b-recv-'$i'.json < /dev/null > /tmp/r3b-recv-'$i'.log 2>&1 &' </dev/null >/dev/null 2>&1 &
+      --json-out /tmp/$TOKEN-recv-$i.json > /tmp/$TOKEN-recv-$i.log 2>&1; \
+      echo \$? > /tmp/$TOKEN-recv-$i.exit' < /dev/null > /dev/null 2>&1 &" \
+    </dev/null >/dev/null 2>&1 &
   sleep 3
+  ssh "$BOX" "pgrep harness-receive >/dev/null" </dev/null \
+    || die "harness run $i: receiver not running after launch"
   "$REPO/mac-host/.build/debug/resc-harness-sender" --connect 192.168.50.47 --port 9871 \
-      --seconds 10 --json-out "$EVID/r3b-send-$i.json" > /tmp/r3b-send-$i.log 2>&1
+      --seconds 10 --json-out "$EVID/$TOKEN-send-$i.json" > "$EVID/$TOKEN-send-$i.log" 2>&1
   SEND_EXIT=$?
-  echo "harness run $i: sender exit=$SEND_EXIT"
-  [ $SEND_EXIT -ne 0 ] && FAIL=1
-  sleep 3
-  ssh "$BOX" 'pkill -f harness-receiver 2>/dev/null; true' </dev/null
+  [ $SEND_EXIT -eq 0 ] || flag "harness run $i sender exit=$SEND_EXIT"
+  # Receiver exits on its own after the sender disconnects (EOF/tail); wait
+  # for its exit file rather than killing it.
+  RECV_EXIT=""
+  for _ in $(seq 1 20); do
+    RECV_EXIT=$(ssh "$BOX" "cat /tmp/$TOKEN-recv-$i.exit 2>/dev/null" </dev/null)
+    [ -n "$RECV_EXIT" ] && break
+    sleep 1
+  done
+  [ -n "$RECV_EXIT" ] || die "harness run $i: receiver never wrote its exit file"
+  [ "$RECV_EXIT" = "0" ] || flag "harness run $i receiver exit=$RECV_EXIT"
+  scp -q "$BOX:/tmp/$TOKEN-recv-$i.json" "$EVID/$TOKEN-recv-$i.json" \
+    || die "harness run $i receiver report copy failed"
+  echo "harness run $i: sender exit=$SEND_EXIT receiver exit=$RECV_EXIT"
 done
-scp -q "$BOX":/tmp/r3b-recv-{1,2,3}.json "$EVID/" </dev/null || echo "recv report scp incomplete"
 
-echo "== predicate summary =="
-python3 - <<'EOF'
-import json, glob, sys
-fail = 0
-for f in sorted(glob.glob("/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/a00/wip/r3b-send-*.json")):
-    r = json.load(open(f))
-    print(f, "sustained_60hz:", r.get("sustained_60hz"), "sent:", r.get("frames_sent"), "acked:", r.get("frames_acked"),
-          "order_viol:", r.get("ack_order_violation"), "write_errors:", r.get("write_errors"))
-    if not r.get("sustained_60hz"): fail = 1
-for f in sorted(glob.glob("/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/a00/wip/r3b-recv-*.json")):
-    r = json.load(open(f))
-    print(f, "pass:", r.get("pass"), "report_v:", r.get("report_v"))
-    if not r.get("pass"): fail = 1
-sys.exit(fail)
-EOF
-PRED=$?
-[ $PRED -ne 0 ] && FAIL=1
-echo "R3B RESULT: $([ $FAIL -eq 0 ] && echo ALL GREEN || echo FAILURES)"
-exit $FAIL
+echo "== predicate validation (this run's artifacts only) =="
+for i in 1 2 3; do
+  S="$EVID/$TOKEN-send-$i.json"
+  [ "$(json_field "$S" "r.get('sender_integrity_pass')")" = "True" ] \
+    || flag "send-$i sender_integrity_pass != true"
+  [ "$(json_field "$S" "r.get('harness_report_v')")" = "2" ] || flag "send-$i not v2"
+  R="$EVID/$TOKEN-recv-$i.json"
+  [ "$(json_field "$R" "r.get('pass')")" = "True" ] || flag "recv-$i pass != true"
+  [ "$(json_field "$R" "r.get('report_v')")" = "2" ] || flag "recv-$i not report_v 2"
+done
+
+echo "== result =="
+if [ $FAILURES -eq 0 ]; then
+  echo "R3B ($TOKEN): ALL GREEN"
+  exit 0
+fi
+echo "R3B ($TOKEN): $FAILURES FAILURE(S)"
+exit 1

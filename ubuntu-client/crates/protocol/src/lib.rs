@@ -12,7 +12,8 @@ pub mod resc_input {
 }
 
 /// Protocol v3 (IMPLEMENTATION_PLAN_V11.md §4 + CONTRACT_ERRATA.md).
-/// Stage-1 frozen; coexists with v1 until T1 deletes the v1 wire.
+/// Stage-1 candidate (freeze pending the A0.0 gates and independent
+/// re-review); coexists with v1 until T1 deletes the v1 wire.
 pub mod resc_v3 {
     include!(concat!(env!("OUT_DIR"), "/resc.v3.rs"));
 }

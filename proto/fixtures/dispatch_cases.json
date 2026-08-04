@@ -40,7 +40,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -53,7 +55,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -66,7 +70,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -79,7 +85,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -92,7 +100,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -105,7 +115,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -118,7 +130,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -131,7 +145,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -144,7 +160,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -157,7 +175,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:video_ack_accepted"
@@ -170,7 +190,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -183,7 +205,9 @@
       "fields": {
         "warm_strength": 0.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:active"
@@ -198,7 +222,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -213,7 +239,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -228,7 +256,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -243,7 +273,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -258,7 +290,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -273,7 +307,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -288,7 +324,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -303,7 +341,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -318,7 +358,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -333,7 +375,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -348,7 +392,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:active"
@@ -363,7 +409,9 @@
         "is_down": true,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -379,7 +427,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -395,7 +445,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:announced:learn"
@@ -411,7 +463,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -427,7 +481,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -443,7 +499,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -459,7 +517,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -475,7 +535,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -491,7 +553,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -507,7 +571,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -523,7 +589,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -539,7 +607,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -555,7 +625,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -574,7 +646,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -593,7 +667,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -612,7 +688,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:profile_accepted"
@@ -631,7 +709,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -650,7 +730,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -669,7 +751,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -688,7 +772,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -707,7 +793,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -726,7 +814,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -745,7 +835,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -764,7 +856,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -783,7 +877,9 @@
         "reject_code": 0,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -796,7 +892,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -809,7 +907,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -822,7 +922,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -835,7 +937,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -848,7 +952,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -861,7 +967,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -874,7 +982,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -887,7 +997,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -900,7 +1012,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:video_ack_accepted"
@@ -913,7 +1027,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -926,7 +1042,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:active"
@@ -939,7 +1057,9 @@
       "fields": {
         "frame_ordinal": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 1,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -956,7 +1076,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -973,7 +1095,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -990,7 +1114,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1007,7 +1133,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1024,7 +1152,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1041,7 +1171,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1058,7 +1190,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1075,7 +1209,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1092,7 +1228,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1109,7 +1247,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1126,7 +1266,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:active"
@@ -1143,7 +1285,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1157,7 +1301,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1171,7 +1317,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1185,7 +1333,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1199,7 +1349,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1213,7 +1365,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1227,7 +1381,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1241,7 +1397,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1255,7 +1413,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1269,7 +1429,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1283,7 +1445,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1297,7 +1461,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:active"
@@ -1311,7 +1477,9 @@
         "dx": 1,
         "dy": -1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1325,7 +1493,9 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1339,7 +1509,9 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1353,7 +1525,9 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1367,7 +1541,9 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1381,10 +1557,12 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:profile_accepted"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_profile_accepted_clock_ping",
@@ -1395,10 +1573,12 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:profile_accepted"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_profile_rejected_clock_ping",
@@ -1409,7 +1589,9 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1423,7 +1605,9 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1437,10 +1621,12 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:video_ack_accepted"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_video_ack_accepted_clock_ping",
@@ -1451,10 +1637,12 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:video_ack_accepted"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_active_clock_ping",
@@ -1465,10 +1653,12 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:active"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_active_clock_ping",
@@ -1479,10 +1669,12 @@
         "t1_mono_us": 1,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:active"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_bootstrap_clock_pong",
@@ -1495,7 +1687,9 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1511,7 +1705,9 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1527,7 +1723,9 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1543,7 +1741,9 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1559,10 +1759,12 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:profile_accepted"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_profile_accepted_clock_pong",
@@ -1575,10 +1777,12 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:profile_accepted"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_profile_rejected_clock_pong",
@@ -1591,7 +1795,9 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1607,7 +1813,9 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1623,10 +1831,12 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:video_ack_accepted"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_video_ack_accepted_clock_pong",
@@ -1639,10 +1849,12 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:video_ack_accepted"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_active_clock_pong",
@@ -1655,10 +1867,12 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:active"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_active_clock_pong",
@@ -1671,10 +1885,12 @@
         "t3_mono_us": 3,
         "seq": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:active"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_bootstrap_fatal_report",
@@ -1688,7 +1904,9 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1705,10 +1923,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:bootstrap:learn"
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_announced_fatal_report",
@@ -1722,10 +1942,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:announced"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "client_announced_fatal_report",
@@ -1739,10 +1961,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:announced"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "host_profile_accepted_fatal_report",
@@ -1756,10 +1980,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:profile_accepted"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "client_profile_accepted_fatal_report",
@@ -1773,10 +1999,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:profile_accepted"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "host_profile_rejected_fatal_report",
@@ -1790,10 +2018,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:profile_rejected"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "client_profile_rejected_fatal_report",
@@ -1807,10 +2037,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:profile_rejected"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "host_video_ack_accepted_fatal_report",
@@ -1824,10 +2056,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:video_ack_accepted"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "client_video_ack_accepted_fatal_report",
@@ -1841,10 +2075,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:video_ack_accepted"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "host_active_fatal_report",
@@ -1858,10 +2094,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:active"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "client_active_fatal_report",
@@ -1875,10 +2113,12 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:active"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "host_bootstrap_release_input",
@@ -1886,7 +2126,9 @@
       "phase": "bootstrap",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1897,7 +2139,9 @@
       "phase": "bootstrap",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1908,7 +2152,9 @@
       "phase": "announced",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1919,7 +2165,9 @@
       "phase": "announced",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1930,7 +2178,9 @@
       "phase": "profile_accepted",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1941,7 +2191,9 @@
       "phase": "profile_accepted",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1952,7 +2204,9 @@
       "phase": "profile_rejected",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1963,7 +2217,9 @@
       "phase": "profile_rejected",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1974,7 +2230,9 @@
       "phase": "video_ack_accepted",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1985,7 +2243,9 @@
       "phase": "video_ack_accepted",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -1996,7 +2256,9 @@
       "phase": "active",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:active"
@@ -2007,7 +2269,9 @@
       "phase": "active",
       "payload": "release_input",
       "fields": {},
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2020,7 +2284,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2033,7 +2299,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2046,7 +2314,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2059,7 +2329,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2072,7 +2344,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2085,7 +2359,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2098,7 +2374,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2111,7 +2389,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2124,7 +2404,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2137,7 +2419,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:active"
@@ -2150,7 +2434,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:active"
@@ -2163,7 +2449,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:active"
@@ -2176,7 +2464,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 2,
       "verdict": "VERSION_MISMATCH"
@@ -2189,7 +2479,9 @@
       "fields": {
         "t_mono_us": 1
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 153,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2205,7 +2497,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2221,7 +2515,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2237,7 +2533,9 @@
         "build_commit": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         "build_dirty": false
       },
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2253,7 +2551,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:announced:learn"
@@ -2270,7 +2570,9 @@
         "native_code": 0,
         "summary": "y"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "RECORD_CAP_VIOLATION"
@@ -2287,7 +2589,9 @@
         "native_code": 0,
         "summary": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "RECORD_CAP_VIOLATION"
@@ -2304,10 +2608,12 @@
         "native_code": 0,
         "summary": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
-      "verdict": "accept:active"
+      "verdict": "remote_fatal:deterministic"
     },
     {
       "name": "special_profile_canonical_4097_bytes",
@@ -2320,7 +2626,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "RECORD_CAP_VIOLATION"
@@ -2336,7 +2644,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "RECORD_CAP_VIOLATION"
@@ -2352,7 +2662,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "RECORD_CAP_VIOLATION"
@@ -2369,7 +2681,9 @@
         "y_px": 1,
         "modifiers": 0
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2382,7 +2696,9 @@
       "fields": {
         "warm_strength": 1.5
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2395,7 +2711,9 @@
       "fields": {
         "warm_strength": "NaN"
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2414,7 +2732,9 @@
         "reject_code": 8,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2433,7 +2753,9 @@
         "reject_code": 8,
         "video_listener_ready": true
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "PROTOCOL_VIOLATION"
@@ -2449,7 +2771,9 @@
         "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "build_dirty": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "RECORD_CAP_VIOLATION"
@@ -2468,7 +2792,9 @@
         "reject_code": 8,
         "video_listener_ready": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:profile_rejected"
@@ -2487,10 +2813,818 @@
         "reject_code": 1,
         "video_listener_ready": false
       },
-      "expected_run_id": 72623859790382856,
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "env_run_id": 72623859790382856,
       "env_version": 3,
       "verdict": "accept:profile_rejected"
+    },
+    {
+      "name": "special_zero_run_id_host_active_heartbeat",
+      "role": "host",
+      "phase": "active",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 0,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_zero_run_id_client_video_ack_display_settings",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "display_settings",
+      "fields": {
+        "warm_strength": 0.5
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 0,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_zero_run_id_announce",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 0,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_valid_announce_learning_from_no_run",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:announced:learn"
+    },
+    {
+      "name": "special_announce_when_run_already_candidate",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "host_profile_announce",
+      "fields": {
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false
+      },
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_candidate_id_mismatch",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": true,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": true
+      },
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 153,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_inconsistent_facts_bootstrap_active_run",
+      "role": "host",
+      "phase": "bootstrap",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_inconsistent_facts_active_phase_candidate_run",
+      "role": "client",
+      "phase": "active",
+      "payload": "heartbeat",
+      "fields": {
+        "t_mono_us": 1
+      },
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_frame_ack_ordinal_match",
+      "role": "host",
+      "phase": "active",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 7
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 7,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_frame_ack_ordinal_mismatch",
+      "role": "host",
+      "phase": "active",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 7
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": 5,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_frame_ack_no_outstanding",
+      "role": "host",
+      "phase": "active",
+      "payload": "frame_ack",
+      "fields": {
+        "frame_ordinal": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_fatal_code_zero",
+      "role": "host",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 0,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_fatal_code_unknown_99",
+      "role": "host",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 99,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_fatal_code_deterministic_8",
+      "role": "host",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "remote_fatal:deterministic"
+    },
+    {
+      "name": "special_fatal_code_transient_10",
+      "role": "host",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 10,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "remote_fatal:transient"
+    },
+    {
+      "name": "special_fatal_code_terminal_19",
+      "role": "host",
+      "phase": "active",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 19,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "remote_fatal:terminal"
+    },
+    {
+      "name": "special_fatal_report_client_bootstrap_rejected",
+      "role": "client",
+      "phase": "bootstrap",
+      "payload": "fatal_report",
+      "fields": {
+        "code": 8,
+        "component": "x",
+        "native_domain": "",
+        "native_code": 0,
+        "summary": "y"
+      },
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_profile_result_rejected_code_zero",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": false,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 0,
+        "video_listener_ready": false
+      },
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_profile_result_rejected_code_unknown",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": false,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 99,
+        "video_listener_ready": false
+      },
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_profile_result_rejected_code_transient",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": false,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 10,
+        "video_listener_ready": false
+      },
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_profile_result_rejected_code_terminal",
+      "role": "host",
+      "phase": "announced",
+      "payload": "profile_result",
+      "fields": {
+        "accepted": false,
+        "profile_canonical_hex": "4141414141414141414141414141414141414141",
+        "profile_hash_hex": "0102030405060708",
+        "build_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "build_dirty": false,
+        "reject_code": 19,
+        "video_listener_ready": false
+      },
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_host_profile_accepted_clock_ping_normal",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_host_profile_accepted_clock_ping_trace_or_doctor",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "special_clock_host_profile_accepted_clock_pong_normal",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_host_profile_accepted_clock_pong_trace_or_doctor",
+      "role": "host",
+      "phase": "profile_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "special_clock_host_video_ack_accepted_clock_ping_normal",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_host_video_ack_accepted_clock_ping_trace_or_doctor",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "special_clock_host_video_ack_accepted_clock_pong_normal",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_host_video_ack_accepted_clock_pong_trace_or_doctor",
+      "role": "host",
+      "phase": "video_ack_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "special_clock_host_active_clock_ping_normal",
+      "role": "host",
+      "phase": "active",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_host_active_clock_ping_trace_or_doctor",
+      "role": "host",
+      "phase": "active",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_clock_host_active_clock_pong_normal",
+      "role": "host",
+      "phase": "active",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_host_active_clock_pong_trace_or_doctor",
+      "role": "host",
+      "phase": "active",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_clock_client_profile_accepted_clock_ping_normal",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_client_profile_accepted_clock_ping_trace_or_doctor",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "special_clock_client_profile_accepted_clock_pong_normal",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_client_profile_accepted_clock_pong_trace_or_doctor",
+      "role": "client",
+      "phase": "profile_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:profile_accepted"
+    },
+    {
+      "name": "special_clock_client_video_ack_accepted_clock_ping_normal",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_client_video_ack_accepted_clock_ping_trace_or_doctor",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "special_clock_client_video_ack_accepted_clock_pong_normal",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_client_video_ack_accepted_clock_pong_trace_or_doctor",
+      "role": "client",
+      "phase": "video_ack_accepted",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:video_ack_accepted"
+    },
+    {
+      "name": "special_clock_client_active_clock_ping_normal",
+      "role": "client",
+      "phase": "active",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_client_active_clock_ping_trace_or_doctor",
+      "role": "client",
+      "phase": "active",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_clock_client_active_clock_pong_normal",
+      "role": "client",
+      "phase": "active",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_clock_client_active_clock_pong_trace_or_doctor",
+      "role": "client",
+      "phase": "active",
+      "payload": "clock_pong",
+      "fields": {
+        "t1_mono_us": 1,
+        "t2_mono_us": 2,
+        "t3_mono_us": 3,
+        "seq": 1
+      },
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_clock_trace_or_doctor_wrong_phase_still_violates",
+      "role": "host",
+      "phase": "announced",
+      "payload": "clock_ping",
+      "fields": {
+        "t1_mono_us": 1,
+        "seq": 1
+      },
+      "run": "candidate:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "env_run_id": 72623859790382856,
+      "env_version": 3,
+      "verdict": "PROTOCOL_VIOLATION"
     }
   ],
   "raw": [
@@ -2499,7 +3633,9 @@
       "file": "dispatch/unknown_only_oneof.bin",
       "role": "host",
       "phase": "active",
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2507,7 +3643,9 @@
       "file": "dispatch/empty_envelope.bin",
       "role": "host",
       "phase": "active",
-      "expected_run_id": 72623859790382856,
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "VERSION_MISMATCH"
     },
     {
@@ -2515,7 +3653,9 @@
       "file": "dispatch/empty_envelope.bin",
       "role": "client",
       "phase": "bootstrap",
-      "expected_run_id": null,
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "VERSION_MISMATCH"
     }
   ],
@@ -2525,6 +3665,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "host_profile_announce",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:announced"
     },
     {
@@ -2532,6 +3675,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "host_profile_announce",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2539,6 +3685,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "host_profile_announce",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2546,6 +3695,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "host_profile_announce",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2553,6 +3705,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "host_profile_announce",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2560,6 +3715,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "host_profile_announce",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2567,6 +3725,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "host_profile_announce",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2574,6 +3735,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "host_profile_announce",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2581,6 +3745,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "host_profile_announce",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2588,6 +3755,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "host_profile_announce",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2595,6 +3765,9 @@
       "role": "host",
       "phase": "active",
       "kind": "host_profile_announce",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2602,6 +3775,9 @@
       "role": "client",
       "phase": "active",
       "kind": "host_profile_announce",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2609,6 +3785,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "profile_result_accepted",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2616,6 +3795,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "profile_result_accepted",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2623,6 +3805,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "profile_result_accepted",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2630,6 +3815,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "profile_result_accepted",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:profile_accepted"
     },
     {
@@ -2637,6 +3825,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "profile_result_accepted",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2644,6 +3835,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "profile_result_accepted",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2651,6 +3845,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "profile_result_accepted",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2658,6 +3855,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "profile_result_accepted",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2665,6 +3865,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "profile_result_accepted",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2672,6 +3875,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "profile_result_accepted",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2679,6 +3885,9 @@
       "role": "host",
       "phase": "active",
       "kind": "profile_result_accepted",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2686,6 +3895,9 @@
       "role": "client",
       "phase": "active",
       "kind": "profile_result_accepted",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2693,6 +3905,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "profile_result_rejected",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2700,6 +3915,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "profile_result_rejected",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2707,6 +3925,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "profile_result_rejected",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2714,6 +3935,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "profile_result_rejected",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:profile_rejected"
     },
     {
@@ -2721,6 +3945,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "profile_result_rejected",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2728,6 +3955,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "profile_result_rejected",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2735,6 +3965,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "profile_result_rejected",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2742,6 +3975,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "profile_result_rejected",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2749,6 +3985,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "profile_result_rejected",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2756,6 +3995,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "profile_result_rejected",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2763,6 +4005,9 @@
       "role": "host",
       "phase": "active",
       "kind": "profile_result_rejected",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2770,6 +4015,9 @@
       "role": "client",
       "phase": "active",
       "kind": "profile_result_rejected",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2777,6 +4025,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "frame_ack",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2784,6 +4035,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "frame_ack",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2791,6 +4045,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "frame_ack",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2798,6 +4055,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "frame_ack",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2805,6 +4065,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "frame_ack",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2812,6 +4075,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "frame_ack",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2819,6 +4085,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "frame_ack",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2826,6 +4095,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "frame_ack",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2833,6 +4105,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "frame_ack",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2840,6 +4115,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "frame_ack",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:video_ack_accepted"
     },
     {
@@ -2847,6 +4125,9 @@
       "role": "host",
       "phase": "active",
       "kind": "frame_ack",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2854,6 +4135,9 @@
       "role": "client",
       "phase": "active",
       "kind": "frame_ack",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -2861,6 +4145,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "key_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2868,6 +4155,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "key_event",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2875,6 +4165,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "key_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2882,6 +4175,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "key_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2889,6 +4185,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "key_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2896,6 +4195,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "key_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2903,6 +4205,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "key_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2910,6 +4215,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "key_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2917,6 +4225,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "key_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2924,6 +4235,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "key_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2931,6 +4245,9 @@
       "role": "host",
       "phase": "active",
       "kind": "key_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2938,6 +4255,9 @@
       "role": "client",
       "phase": "active",
       "kind": "key_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -2945,6 +4265,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "button_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2952,6 +4275,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "button_event",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2959,6 +4285,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "button_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2966,6 +4295,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "button_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2973,6 +4305,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "button_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2980,6 +4315,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "button_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2987,6 +4325,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "button_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -2994,6 +4335,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "button_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3001,6 +4345,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "button_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3008,6 +4355,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "button_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3015,6 +4365,9 @@
       "role": "host",
       "phase": "active",
       "kind": "button_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3022,6 +4375,9 @@
       "role": "client",
       "phase": "active",
       "kind": "button_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -3029,6 +4385,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "scroll_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3036,6 +4395,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "scroll_event",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3043,6 +4405,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "scroll_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3050,6 +4415,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "scroll_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3057,6 +4425,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "scroll_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3064,6 +4435,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "scroll_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3071,6 +4445,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "scroll_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3078,6 +4455,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "scroll_event",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3085,6 +4465,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "scroll_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3092,6 +4475,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "scroll_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3099,6 +4485,9 @@
       "role": "host",
       "phase": "active",
       "kind": "scroll_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3106,6 +4495,9 @@
       "role": "client",
       "phase": "active",
       "kind": "scroll_event",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -3113,6 +4505,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "release_input",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3120,6 +4515,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "release_input",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3127,6 +4525,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "release_input",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3134,6 +4535,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "release_input",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3141,6 +4545,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "release_input",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3148,6 +4555,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "release_input",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3155,6 +4565,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "release_input",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3162,6 +4575,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "release_input",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3169,6 +4585,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "release_input",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3176,6 +4595,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "release_input",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3183,6 +4605,9 @@
       "role": "host",
       "phase": "active",
       "kind": "release_input",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3190,6 +4615,9 @@
       "role": "client",
       "phase": "active",
       "kind": "release_input",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -3197,6 +4625,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "heartbeat",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3204,6 +4635,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "heartbeat",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3211,6 +4645,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "heartbeat",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3218,6 +4655,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "heartbeat",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3225,6 +4665,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "heartbeat",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3232,6 +4675,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "heartbeat",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3239,6 +4685,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "heartbeat",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3246,6 +4695,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "heartbeat",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3253,6 +4705,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "heartbeat",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -3260,6 +4715,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "heartbeat",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3267,6 +4725,9 @@
       "role": "host",
       "phase": "active",
       "kind": "heartbeat",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -3274,6 +4735,9 @@
       "role": "client",
       "phase": "active",
       "kind": "heartbeat",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -3281,6 +4745,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "clock_ping",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3288,6 +4755,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "clock_ping",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3295,6 +4765,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "clock_ping",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3302,6 +4775,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "clock_ping",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3309,20 +4785,29 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "clock_ping",
-      "verdict": "accept:profile_accepted"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_profile_accepted_clock_ping",
       "role": "client",
       "phase": "profile_accepted",
       "kind": "clock_ping",
-      "verdict": "accept:profile_accepted"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_profile_rejected_clock_ping",
       "role": "host",
       "phase": "profile_rejected",
       "kind": "clock_ping",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3330,6 +4815,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "clock_ping",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3337,34 +4825,49 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "clock_ping",
-      "verdict": "accept:video_ack_accepted"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_video_ack_accepted_clock_ping",
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "clock_ping",
-      "verdict": "accept:video_ack_accepted"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_active_clock_ping",
       "role": "host",
       "phase": "active",
       "kind": "clock_ping",
-      "verdict": "accept:active"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_active_clock_ping",
       "role": "client",
       "phase": "active",
       "kind": "clock_ping",
-      "verdict": "accept:active"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_bootstrap_clock_pong",
       "role": "host",
       "phase": "bootstrap",
       "kind": "clock_pong",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3372,6 +4875,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "clock_pong",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3379,6 +4885,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "clock_pong",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3386,6 +4895,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "clock_pong",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3393,20 +4905,29 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "clock_pong",
-      "verdict": "accept:profile_accepted"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_profile_accepted_clock_pong",
       "role": "client",
       "phase": "profile_accepted",
       "kind": "clock_pong",
-      "verdict": "accept:profile_accepted"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_profile_rejected_clock_pong",
       "role": "host",
       "phase": "profile_rejected",
       "kind": "clock_pong",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3414,6 +4935,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "clock_pong",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3421,34 +4945,49 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "clock_pong",
-      "verdict": "accept:video_ack_accepted"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_video_ack_accepted_clock_pong",
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "clock_pong",
-      "verdict": "accept:video_ack_accepted"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_active_clock_pong",
       "role": "host",
       "phase": "active",
       "kind": "clock_pong",
-      "verdict": "accept:active"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "client_active_clock_pong",
       "role": "client",
       "phase": "active",
       "kind": "clock_pong",
-      "verdict": "accept:active"
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
     },
     {
       "name": "host_bootstrap_display_settings",
       "role": "host",
       "phase": "bootstrap",
       "kind": "display_settings",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3456,6 +4995,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "display_settings",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3463,6 +5005,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "display_settings",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3470,6 +5015,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "display_settings",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3477,6 +5025,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "display_settings",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3484,6 +5035,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "display_settings",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3491,6 +5045,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "display_settings",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3498,6 +5055,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "display_settings",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3505,6 +5065,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "display_settings",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:video_ack_accepted"
     },
     {
@@ -3512,6 +5075,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "display_settings",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3519,6 +5085,9 @@
       "role": "host",
       "phase": "active",
       "kind": "display_settings",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -3526,6 +5095,9 @@
       "role": "client",
       "phase": "active",
       "kind": "display_settings",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3533,6 +5105,9 @@
       "role": "host",
       "phase": "bootstrap",
       "kind": "fatal_report",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:bootstrap"
     },
     {
@@ -3540,6 +5115,9 @@
       "role": "client",
       "phase": "bootstrap",
       "kind": "fatal_report",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "PROTOCOL_VIOLATION"
     },
     {
@@ -3547,6 +5125,9 @@
       "role": "host",
       "phase": "announced",
       "kind": "fatal_report",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:announced"
     },
     {
@@ -3554,6 +5135,9 @@
       "role": "client",
       "phase": "announced",
       "kind": "fatal_report",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:announced"
     },
     {
@@ -3561,6 +5145,9 @@
       "role": "host",
       "phase": "profile_accepted",
       "kind": "fatal_report",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:profile_accepted"
     },
     {
@@ -3568,6 +5155,9 @@
       "role": "client",
       "phase": "profile_accepted",
       "kind": "fatal_report",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:profile_accepted"
     },
     {
@@ -3575,6 +5165,9 @@
       "role": "host",
       "phase": "profile_rejected",
       "kind": "fatal_report",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:profile_rejected"
     },
     {
@@ -3582,6 +5175,9 @@
       "role": "client",
       "phase": "profile_rejected",
       "kind": "fatal_report",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:profile_rejected"
     },
     {
@@ -3589,6 +5185,9 @@
       "role": "host",
       "phase": "video_ack_accepted",
       "kind": "fatal_report",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:video_ack_accepted"
     },
     {
@@ -3596,6 +5195,9 @@
       "role": "client",
       "phase": "video_ack_accepted",
       "kind": "fatal_report",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:video_ack_accepted"
     },
     {
@@ -3603,6 +5205,9 @@
       "role": "host",
       "phase": "active",
       "kind": "fatal_report",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
     },
     {
@@ -3610,7 +5215,110 @@
       "role": "client",
       "phase": "active",
       "kind": "fatal_report",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
       "verdict": "accept:active"
+    },
+    {
+      "name": "special_outbound_host_clock_ping_send_normal_violates",
+      "role": "host",
+      "phase": "active",
+      "kind": "clock_ping",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_outbound_host_clock_ping_send_trace_or_doctor_ok",
+      "role": "host",
+      "phase": "active",
+      "kind": "clock_ping",
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_outbound_host_clock_pong_send_normal_violates",
+      "role": "host",
+      "phase": "active",
+      "kind": "clock_pong",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_outbound_host_clock_pong_send_trace_or_doctor_ok",
+      "role": "host",
+      "phase": "active",
+      "kind": "clock_pong",
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_outbound_client_clock_ping_send_normal_violates",
+      "role": "client",
+      "phase": "active",
+      "kind": "clock_ping",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_outbound_client_clock_ping_send_trace_or_doctor_ok",
+      "role": "client",
+      "phase": "active",
+      "kind": "clock_ping",
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_outbound_client_clock_pong_send_normal_violates",
+      "role": "client",
+      "phase": "active",
+      "kind": "clock_pong",
+      "run": "active:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_outbound_client_clock_pong_send_trace_or_doctor_ok",
+      "role": "client",
+      "phase": "active",
+      "kind": "clock_pong",
+      "run": "active:0102030405060708",
+      "diagnostics": "trace_or_doctor",
+      "oldest_outstanding": null,
+      "verdict": "accept:active"
+    },
+    {
+      "name": "special_outbound_fatal_send_client_no_run_err",
+      "role": "client",
+      "phase": "bootstrap",
+      "kind": "fatal_report",
+      "run": "no_run",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "PROTOCOL_VIOLATION"
+    },
+    {
+      "name": "special_outbound_fatal_send_client_candidate_ok",
+      "role": "client",
+      "phase": "announced",
+      "kind": "fatal_report",
+      "run": "candidate:0102030405060708",
+      "diagnostics": "normal",
+      "oldest_outstanding": null,
+      "verdict": "accept:announced"
     }
   ],
   "video_ack": [

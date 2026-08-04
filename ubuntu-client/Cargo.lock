@@ -1320,6 +1320,7 @@ dependencies = [
  "anyhow",
  "ffmpeg-next",
  "ffmpeg-sys-next",
+ "libc",
  "log",
 ]
 

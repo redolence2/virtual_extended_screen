@@ -252,12 +252,26 @@ private final class CaptureRunOutput: NSObject, SCStreamOutput {
         let uncertaintyUs: UInt64
 
         let pts = sampleBuffer.presentationTimeStamp
-        if CMTIME_IS_VALID(pts), pts != .zero, let cal = calibration {
-            // SCK's sample-buffer PTS is already expressed in the host
-            // (mach_absolute_time) domain on macOS, so no CMSyncConvertTime
-            // call is needed here — just read it as seconds and bridge
-            // through the cached calibration anchor.
-            let hostTimeUs = UInt64(CMTimeGetSeconds(pts) * 1_000_000)
+        // V11 §10's literal SCK pipeline, restored here (C3 — reverts the
+        // prior "PTS is already host-domain" shortcut that skipped
+        // CMSyncConvertTime entirely. That shortcut shipped without a dated
+        // CONTRACT_ERRATA.md entry and was rejected in
+        // A00_COMPLETION_REPORT_AMENDED_review.md finding 4.1 — no erratum
+        // authorizes deviating from the contracted conversion):
+        // stream.synchronizationClock → CMSyncConvertTime(pts, from:, to:
+        // CMClockGetHostTimeClock()) → bridge into our continuous domain via
+        // the cached bracketed calibration. A nil sync clock, an
+        // invalid/zero sample PTS, an invalid conversion result, or no
+        // calibration ever having succeeded all fall through to the same
+        // labeled callbackFallback path below — V11 §10's nil-clock rule:
+        // never silently mix a fallback sample in as a true SCK-PTS one.
+        var hostPts = CMTime.invalid
+        if let sync = stream.synchronizationClock, CMTIME_IS_VALID(pts), pts != .zero {
+            hostPts = CMSyncConvertTime(pts, from: sync, to: CMClockGetHostTimeClock())
+        }
+
+        if CMTIME_IS_VALID(hostPts), let cal = calibration {
+            let hostTimeUs = UInt64(CMTimeGetSeconds(hostPts) * 1_000_000)
             captureTsUs = RescClockBridge.hostTimeToContinuousUs(hostTimeUs, calibration: cal)
             tsSource = .sckPts
             uncertaintyUs = cal.uncertaintyUs

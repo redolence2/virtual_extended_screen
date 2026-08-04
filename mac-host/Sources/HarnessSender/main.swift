@@ -513,16 +513,20 @@ encoder.stop()
 let snap = pump.snapshot()
 let outstandingAtEnd = pump.outstandingCount
 let achievedFps = Double(snap.framesSent) / Double(seconds)
-// F6 predicate hardening (A00_REMEDIATION_PLAN.md §5 R3a): sustained_60hz is
-// no longer an achieved-fps threshold — it is the pure HarnessVerdict.evaluate
-// predicate (RescCore/HarnessVerdict.swift), true only if every confirmed-sent
-// frame was acked, nothing is left outstanding, the ACK reader saw zero
-// order violations, and no socket write ever failed. achieved_fps is still
-// reported below as an informational metric.
-let sustained60Hz = HarnessVerdict.evaluate(sent: snap.framesSent, acked: snap.framesAcked,
-                                             outstanding: outstandingAtEnd,
-                                             orderViolations: snap.ackOrderViolation,
-                                             writeErrors: snap.writeErrors)
+// F6 predicate hardening (A00_REMEDIATION_PLAN.md §5 R3a): the pure
+// HarnessVerdict.evaluate predicate (RescCore/HarnessVerdict.swift) — true
+// only if every confirmed-sent frame was acked, nothing is left outstanding,
+// the ACK reader saw zero order violations, and no socket write ever failed.
+// C5 naming correction (A00_COMPLETION_REPORT_AMENDED_review.md finding 6):
+// the report's canonical field is `sender_integrity_pass`; `sustained_60hz`
+// is kept as a LEGACY MISNOMER alias of the same value — it never was, and
+// is not, an achieved-rate threshold (the formal 60 Hz window decision is
+// A0 work). achieved_fps stays informational.
+let senderIntegrityPass = HarnessVerdict.evaluate(sent: snap.framesSent, acked: snap.framesAcked,
+                                                   outstanding: outstandingAtEnd,
+                                                   orderViolations: snap.ackOrderViolation,
+                                                   writeErrors: snap.writeErrors)
+let sustained60Hz = senderIntegrityPass
 
 func percentiles(_ samples: [Double]) -> [String: Double] {
     guard !samples.isEmpty else { return ["p50": 0, "p95": 0, "max": 0] }
@@ -553,6 +557,7 @@ let report: [String: Any] = [
     "rtt_ms": percentiles(snap.rttMs),
     "encode_ms": percentiles(snap.encodeMs),
     "bytes": percentiles(snap.bytes),
+    "sender_integrity_pass": senderIntegrityPass,
     "sustained_60hz": sustained60Hz,
 ]
 

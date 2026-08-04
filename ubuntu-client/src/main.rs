@@ -5,8 +5,9 @@ use clap::Parser;
 use jitter_buffer::AssembledFrame;
 use protocol::binary::{CursorUpdate, PacketPrefix};
 use protocol::constants::*;
+use std::collections::HashMap;
 use std::sync::mpsc;
-use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -17,6 +18,161 @@ use std::time::Duration;
 fn default_sample_path() -> String {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
     format!("{home}/resc/sample_1080x1920.h265")
+}
+
+/// Set (relaxed store only — the only thing safe to do from a signal
+/// handler) by [`handle_sigterm`]; polled by the decode-render loop to
+/// trigger the trace-mode clean-shutdown sequence
+/// (`A00_COMPLETION_REPORT_AMENDED_response_review.md` amendment 3 /
+/// `A00_COMPLETION_REPORT_AMENDED_response.md` v2 §2 F4.3). Kept
+/// dependency-free (`libc::signal` + `AtomicBool`, no `signal-hook`) per the
+/// FROZEN DESIGN — without this, SIGTERM keeps its default disposition
+/// (instant kill), which is exactly why `tools/r4_live_gate.sh`'s old
+/// `pkill`/`kill` termination used to truncate the trace file mid-write.
+static SIGTERM_RECEIVED: AtomicBool = AtomicBool::new(false);
+
+extern "C" fn handle_sigterm(_sig: libc::c_int) {
+    SIGTERM_RECEIVED.store(true, Ordering::Relaxed);
+}
+
+/// True only while the decode-render thread's main loop could actually be
+/// polling `SIGTERM_RECEIVED` itself (once per ~1ms iteration) — i.e. while
+/// a [`DecodeLoopAliveGuard`] is alive. False before that loop starts
+/// (still resolving mDNS/connecting/negotiating — none of those network
+/// calls have a built-in timeout, so they can block indefinitely) and after
+/// it ends (e.g. the SDL window was closed, or a decoder-init failure
+/// returned early). This is not part of the FROZEN DESIGN's trace-mode
+/// shutdown sequence itself; it exists because installing a SIGTERM handler
+/// at all (required so that sequence can run) overrides SIGTERM's default
+/// kill-immediately disposition for the *whole* process lifetime — without
+/// this flag plus the fallback watchdog task in `main()`, a client stuck in
+/// one of those windows would become unkillable short of SIGKILL, which is
+/// strictly worse than pre-C3 behavior in a window the FROZEN DESIGN never
+/// actually needed to change (there is no ledger/trace state to gracefully
+/// flush in either window — nothing has started yet, or the loop's own exit
+/// path already ran).
+static DECODE_LOOP_ALIVE: AtomicBool = AtomicBool::new(false);
+
+/// RAII handle for [`DECODE_LOOP_ALIVE`]: sets it true on construction, and
+/// — critically — resets it to false on every exit from the decode-render
+/// loop's scope, including an early `return` (SDL quit / Ctrl+Alt+Q) or an
+/// unexpected panic unwind, not just normal completion. A manual reset at
+/// each return site would miss any path added later; `Drop` cannot.
+struct DecodeLoopAliveGuard;
+
+impl DecodeLoopAliveGuard {
+    fn new() -> Self {
+        DECODE_LOOP_ALIVE.store(true, Ordering::Relaxed);
+        DecodeLoopAliveGuard
+    }
+}
+
+impl Drop for DecodeLoopAliveGuard {
+    fn drop(&mut self) {
+        DECODE_LOOP_ALIVE.store(false, Ordering::Relaxed);
+    }
+}
+
+/// Hard cap on the decode-side receipt ledger (below). A capacity overflow
+/// is an identity failure, never a silent evict.
+const IDENTITY_LEDGER_CAP: usize = 1024;
+
+/// Decode-side receipt ledger (`A00_COMPLETION_REPORT_AMENDED_review.md`
+/// finding 1 / `A00_COMPLETION_REPORT_AMENDED_response_review.md` amendment
+/// 2): submits one admitted frame's `frame_id -> recv_ts_us` receipt
+/// immediately before it reaches the decoder. `recv_ts_us` itself stays
+/// stamped at assembly completion in `net-transport`'s `VideoReceiver`
+/// (untouched here) — this ledger only remembers that stamp long enough for
+/// the emission that eventually recovers `frame_id`'s PTS to look it back
+/// up by identity, rather than inheriting whatever frame_id happened to
+/// trigger the `decode()` call that emitted it (the exact bug the review
+/// caught: "Frame 0 is paired with frame 4's assembly-completion
+/// timestamp"). A duplicate wire `frame_id` already pending, or a full
+/// ledger, is an identity failure (counted and traced) rather than a silent
+/// overwrite/evict — the run is invalidated via the trace footer, never by
+/// exiting mid-loop. Queue-dropped frames (the intentional non-keyframe
+/// drop in `video_receiver.rs`) never reach this function at all, so they
+/// never create a ledger entry. No-op when tracing is disabled — non-trace
+/// mode pays no bookkeeping cost and its behavior is unchanged.
+fn ledger_submit(
+    ledger: &mut HashMap<u64, u64>,
+    trace: &diagnostics::trace::ClientTrace,
+    identity_failures: &mut u64,
+    assembled: &AssembledFrame,
+) {
+    if !trace.enabled() {
+        return;
+    }
+    let key = assembled.frame_id as u64;
+    if ledger.contains_key(&key) {
+        *identity_failures += 1;
+        trace.identity_failure(serde_json::json!({
+            "reason": "duplicate_submit",
+            "wire_frame_id": assembled.frame_id,
+            "recovered_frame_id": null,
+        }));
+    } else if ledger.len() >= IDENTITY_LEDGER_CAP {
+        *identity_failures += 1;
+        trace.identity_failure(serde_json::json!({
+            "reason": "cap_overflow",
+            "wire_frame_id": assembled.frame_id,
+            "recovered_frame_id": null,
+        }));
+    } else {
+        ledger.insert(key, assembled.recv_ts_us);
+    }
+}
+
+/// Resolves one emitted decoded frame's receipt from the ledger populated by
+/// [`ledger_submit`] and writes its trace record. The `frame` record's
+/// `ts_recv_us` is the LEDGER value keyed by this emission's OWN
+/// `recovered_frame_id` — never `decode_trigger_frame_id` (the current
+/// `decode()` call's input id, carried through informationally only; a
+/// record whose trigger differs from its recovered identity still joins
+/// with its ledger-correct `ts_recv_us` — see `tools/join_trace.py`'s
+/// `--selftest`). A missing `recovered_frame_id`, or one absent from the
+/// ledger (already resolved, or never submitted), is an identity failure —
+/// counted and traced instead of a `frame` record, so a mismatched pairing
+/// can never silently appear as a normal join. No-op when tracing is
+/// disabled.
+fn ledger_resolve(
+    ledger: &mut HashMap<u64, u64>,
+    trace: &diagnostics::trace::ClientTrace,
+    identity_failures: &mut u64,
+    decode_trigger_frame_id: u32,
+    recovered_frame_id: Option<u64>,
+) {
+    if !trace.enabled() {
+        return;
+    }
+    match recovered_frame_id {
+        None => {
+            *identity_failures += 1;
+            trace.identity_failure(serde_json::json!({
+                "reason": "unrecovered_pts",
+                "wire_frame_id": decode_trigger_frame_id,
+                "recovered_frame_id": null,
+            }));
+        }
+        Some(rid) => match ledger.remove(&rid) {
+            Some(ts_recv_us) => {
+                trace.frame(serde_json::json!({
+                    "recovered_frame_id": rid,
+                    "decode_trigger_frame_id": decode_trigger_frame_id,
+                    "ts_recv_us": ts_recv_us,
+                    "ts_decode_done_us": diagnostics::mono_us(),
+                }));
+            }
+            None => {
+                *identity_failures += 1;
+                trace.identity_failure(serde_json::json!({
+                    "reason": "missing_ledger_entry",
+                    "wire_frame_id": decode_trigger_frame_id,
+                    "recovered_frame_id": rid,
+                }));
+            }
+        },
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -86,6 +242,31 @@ async fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     protocol::constants::log_and_verify();
 
+    // Install the SIGTERM handler before anything else, so a graceful-
+    // termination request (tools/r4_live_gate.sh) is never lost to the
+    // default kill-immediately disposition — see SIGTERM_RECEIVED's doc
+    // comment. A bare flag set; the decode-render loop polls it and does
+    // the actual shutdown work.
+    unsafe {
+        libc::signal(libc::SIGTERM, handle_sigterm as *const () as libc::sighandler_t);
+    }
+
+    // Fallback watchdog for DECODE_LOOP_ALIVE's two uncovered windows (see
+    // its doc comment): if SIGTERM arrives while nothing else is polling
+    // it, exit immediately — matching the pre-C3 default disposition —
+    // rather than leaving the process unkillable short of SIGKILL now that
+    // installing the handler above has overridden that default. Runs for
+    // the process lifetime; negligible cost (one atomic load per 100ms)
+    // once the decode-render loop is up and handling SIGTERM itself.
+    tokio::spawn(async {
+        loop {
+            if SIGTERM_RECEIVED.load(Ordering::Relaxed) && !DECODE_LOOP_ALIVE.load(Ordering::Relaxed) {
+                std::process::exit(0);
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    });
+
     let log = diagnostics::RescLog::global();
     diagnostics::environment::emit(log);
     if !diagnostics::instance_lock::acquire("moyunfei-desk-1") {
@@ -148,6 +329,11 @@ async fn main() -> Result<()> {
     // Shared stats — receiver updates atomics in real-time, stats reporter reads them
     let recv_stats = Arc::new(SharedReceiverStats::default());
     let recv_stats_reader = recv_stats.clone();
+    // A third handle for the decode thread's trace-mode shutdown footer's
+    // `queue_drops` field (below): accessible via this same Arc-clone
+    // pattern the stats reporter already uses, so included rather than
+    // omitted — see the footer-building comment for exactly what it counts.
+    let recv_stats_for_decode = recv_stats.clone();
 
     let _recv_handle = std::thread::Builder::new()
         .name("video-recv".into())
@@ -399,6 +585,26 @@ async fn main() -> Result<()> {
             // crates/diagnostics/src/trace.rs). Cheap no-op otherwise.
             let trace = diagnostics::trace::ClientTrace::global();
 
+            // C3 decode-side receipt ledger + counters (see `ledger_submit`/
+            // `ledger_resolve`'s doc comments): all trace-mode-only
+            // bookkeeping, kept alongside the identity-bearing state above.
+            let mut ledger: HashMap<u64, u64> = HashMap::new();
+            let mut identity_failures: u64 = 0;
+            let mut decode_submitted: u64 = 0;
+            let mut presents: u64 = 0;
+            let mut render_failures: u64 = 0;
+            // Last frame_id actually submitted to the decoder — used only as
+            // `decode_trigger_frame_id` for tail frames recovered by
+            // `decoder.flush()` during shutdown, which (being triggered by
+            // EOF, not a fresh wire packet) has no input id of its own.
+            let mut last_submitted_frame_id: u32 = 0;
+
+            // From here on, this loop itself is polling SIGTERM_RECEIVED
+            // every ~1ms (below) — hand shutdown-watch duty over from
+            // main()'s fallback task for as long as that remains true. See
+            // DECODE_LOOP_ALIVE's doc comment.
+            let _decode_loop_alive_guard = DecodeLoopAliveGuard::new();
+
             loop {
                 new_video_frame = false;
 
@@ -411,6 +617,7 @@ async fn main() -> Result<()> {
                 // Collect ALL available frames from queue, DECODE all (maintains
                 // HEVC reference chain), but only RENDER the last good one.
                 let mut frames_to_decode: Vec<AssembledFrame> = Vec::new();
+                let mut shutting_down = false;
                 match frame_rx.recv_timeout(Duration::from_millis(1)) {
                     Ok(frame) => {
                         frames_to_decode.push(frame);
@@ -421,7 +628,97 @@ async fn main() -> Result<()> {
                     Err(mpsc::RecvTimeoutError::Timeout) => {}
                     Err(mpsc::RecvTimeoutError::Disconnected) => {
                         log::info!("Frame channel disconnected");
-                        break;
+                        shutting_down = true;
+                    }
+                }
+                if SIGTERM_RECEIVED.load(Ordering::Relaxed) {
+                    shutting_down = true;
+                }
+
+                // C3 trace-mode clean/aborted shutdown protocol
+                // (A00_COMPLETION_REPORT_AMENDED_response_review.md
+                // amendment 3 / A00_COMPLETION_REPORT_AMENDED_response.md v2
+                // §2 F4.3): triggered by SIGTERM or the frame channel
+                // disconnecting. Stop taking new frames, drain whatever is
+                // already admitted, flush the decoder's tail through the
+                // same ledger/emission path, then seal the trace with a
+                // clean/aborted footer. Exits the process directly — SIGTERM
+                // handling here bypasses main()'s SIGINT-only
+                // `ctrl_c().await`, so this thread returning on its own
+                // would leave the rest of the process running. Non-trace
+                // mode's observable behavior is unchanged (prompt
+                // termination, no draining/flush/footer) even though the
+                // mechanism is now this explicit exit rather than the
+                // (now-overridden) default SIGTERM disposition.
+                if shutting_down {
+                    if trace.enabled() {
+                        log::info!("Trace-mode clean shutdown: draining admitted queue");
+                        // Whatever recv_timeout already pulled this
+                        // iteration (if any) is the start of "whatever is
+                        // already admitted"; drain the rest non-blockingly —
+                        // never wait for a frame that hasn't arrived yet.
+                        while let Ok(more) = frame_rx.try_recv() {
+                            frames_to_decode.push(more);
+                        }
+                        for assembled in &frames_to_decode {
+                            decode_submitted += 1;
+                            last_submitted_frame_id = assembled.frame_id;
+                            ledger_submit(&mut ledger, trace, &mut identity_failures, assembled);
+                            match decoder.decode(
+                                &assembled.data, assembled.frame_id, assembled.timestamp_us, assembled.is_keyframe,
+                            ) {
+                                Ok(decoded_frames) => {
+                                    for decoded in &decoded_frames {
+                                        if decoded.planes[0].is_empty() { continue; }
+                                        frame_count += 1;
+                                        ledger_resolve(
+                                            &mut ledger, trace, &mut identity_failures,
+                                            assembled.frame_id, decoded.recovered_frame_id,
+                                        );
+                                    }
+                                }
+                                Err(e) => log::warn!("Shutdown drain decode error: {}", e),
+                            }
+                        }
+
+                        log::info!("Trace-mode clean shutdown: decoder EOF/tail flush");
+                        match decoder.flush() {
+                            Ok(tail_frames) => {
+                                for decoded in &tail_frames {
+                                    if decoded.planes[0].is_empty() { continue; }
+                                    frame_count += 1;
+                                    ledger_resolve(
+                                        &mut ledger, trace, &mut identity_failures,
+                                        last_submitted_frame_id, decoded.recovered_frame_id,
+                                    );
+                                }
+                            }
+                            Err(e) => log::warn!("Decoder flush failed: {}", e),
+                        }
+
+                        let pending_identities = ledger.len() as u64;
+                        let status = if pending_identities == 0 && identity_failures == 0 { "clean" } else { "aborted" };
+                        trace.finish(status, serde_json::json!({
+                            "pending_identities": pending_identities,
+                            "identity_failures": identity_failures,
+                            // Aggregate assembler-level drop count (timeout/
+                            // oversize/eviction) PLUS the queue-full drop —
+                            // net-transport/jitter-buffer (out of C3's
+                            // touch scope) expose only this combined
+                            // counter, not a queue-specific one.
+                            "queue_drops": recv_stats_for_decode.frames_dropped.load(Ordering::Relaxed),
+                            "decode_submitted": decode_submitted,
+                            "decode_emitted": frame_count,
+                            "presents": presents,
+                        }));
+                        log::info!(
+                            "Trace-mode shutdown complete: status={} pending_identities={} identity_failures={} render_failures={}",
+                            status, pending_identities, identity_failures, render_failures
+                        );
+                        std::process::exit(if status == "clean" { 0 } else { 1 });
+                    } else {
+                        log::info!("Decode/render stopped (shutdown signal): {} frames", frame_count);
+                        std::process::exit(0);
                     }
                 }
 
@@ -435,6 +732,15 @@ async fn main() -> Result<()> {
                             use std::io::Write;
                             f.write_all(&assembled.data).ok();
                         }
+
+                        // Decode-side receipt ledger (A00_COMPLETION_REPORT_AMENDED_review.md
+                        // finding 1 / A00_COMPLETION_REPORT_AMENDED_response_review.md
+                        // amendment 2): the ledger entry for THIS admitted
+                        // frame goes in immediately before it reaches the
+                        // decoder — see ledger_submit's doc comment.
+                        decode_submitted += 1;
+                        last_submitted_frame_id = assembled.frame_id;
+                        ledger_submit(&mut ledger, trace, &mut identity_failures, assembled);
 
                         let decode_start = std::time::Instant::now();
                         match decoder.decode(&assembled.data, assembled.frame_id, assembled.timestamp_us, assembled.is_keyframe) {
@@ -456,12 +762,29 @@ async fn main() -> Result<()> {
                                     frame_count += 1;
                                     has_frame = true;
 
-                                    // Only render the LAST frame in the batch (latest content)
+                                    // Only render the LAST frame in the batch (latest content).
+                                    // A00_COMPLETION_REPORT_AMENDED_review.md finding 1
+                                    // (presentation-identity bug): new_video_frame and
+                                    // last_uploaded_recovered_id advance ONLY on a
+                                    // successful upload — the present record must never
+                                    // claim a frame whose upload failed.
                                     if is_last {
-                                        new_video_frame = true;
                                         if let Some(ref mut r) = renderer_opt {
-                                            let _ = r.update_frame(decoded);
-                                            last_uploaded_recovered_id = decoded.recovered_frame_id;
+                                            match r.update_frame(decoded) {
+                                                Ok(()) => {
+                                                    new_video_frame = true;
+                                                    last_uploaded_recovered_id = decoded.recovered_frame_id;
+                                                }
+                                                Err(e) => {
+                                                    render_failures += 1;
+                                                    log::warn!("Frame upload failed: {}", e);
+                                                    if trace.enabled() {
+                                                        trace.render_failure(serde_json::json!({
+                                                            "recovered_frame_id": decoded.recovered_frame_id,
+                                                        }));
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
 
@@ -472,21 +795,16 @@ async fn main() -> Result<()> {
                                         );
                                     }
 
-                                    // A00_REMEDIATION_PLAN.md §4 items 6-7 (schema
-                                    // FROZEN, field names exact): one record per
-                                    // EMITTED decoded frame — not per decode() call
-                                    // — each recovering its OWN identity.
-                                    // ts_recv_us is now the assembly-completion
-                                    // stamp carried on the frame itself (item 6),
-                                    // not a channel-pull-time hack.
-                                    if trace.enabled() {
-                                        trace.frame(serde_json::json!({
-                                            "wire_frame_id": assembled.frame_id,
-                                            "recovered_frame_id": decoded.recovered_frame_id,
-                                            "ts_recv_us": assembled.recv_ts_us,
-                                            "ts_decode_done_us": diagnostics::mono_us(),
-                                        }));
-                                    }
+                                    // A00_COMPLETION_REPORT_AMENDED_review.md finding 1
+                                    // (schema corrected): one record per EMITTED decoded
+                                    // frame, each resolving its OWN identity from the
+                                    // receipt ledger — never the current decode() call's
+                                    // input id, carried through separately as
+                                    // decode_trigger_frame_id.
+                                    ledger_resolve(
+                                        &mut ledger, trace, &mut identity_failures,
+                                        assembled.frame_id, decoded.recovered_frame_id,
+                                    );
                                 }
                             }
                             Err(e) => {
@@ -620,6 +938,7 @@ async fn main() -> Result<()> {
                             // written as-is when identity recovery failed —
                             // the joiner counts that as a rejected sample.
                             if new_video_frame && trace.enabled() {
+                                presents += 1;
                                 trace.present(serde_json::json!({
                                     "recovered_frame_id": last_uploaded_recovered_id,
                                     "ts_present_us": diagnostics::mono_us(),
@@ -629,7 +948,12 @@ async fn main() -> Result<()> {
                     }
                 }
             }
-            log::info!("Decode/render stopped: {} frames", frame_count);
+            // No trailing "Decode/render stopped" log here: every path out
+            // of the loop above is now either `return` (SDL quit — logged
+            // at that call site if ever needed) or `std::process::exit`
+            // (the C3 shutdown block, which logs its own status) — the loop
+            // itself no longer has a `break`, so code after it is
+            // unreachable.
         })?;
 
     log::info!("Streaming active. Press Ctrl+C to stop.");

@@ -1,8 +1,9 @@
 import Foundation
 
 /// Fixed-width binary wire records (docs/WIRE.md §2 VideoHello/VideoHelloAck,
-/// §4 frame header, §5 UDP move/cursor). Stage-1 frozen; any change to a
-/// layout or validation rule here requires a dated CONTRACT_ERRATA.md entry
+/// §4 frame header, §5 UDP move/cursor). Stage-1 candidate (freeze pending
+/// the A0.0 gates and independent re-review); any change to a layout or
+/// validation rule here requires a dated CONTRACT_ERRATA.md entry
 /// first. Every fixed-width integer/float on the wire is little-endian
 /// (docs/WIRE.md global rule 1) — this file assembles values byte-by-byte
 /// rather than binding a possibly-misaligned pointer to a typed load.

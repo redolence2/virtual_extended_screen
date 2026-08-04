@@ -1,10 +1,17 @@
-//! RESC protocol v3 two-layer inbound dispatch (remediation item R5).
+//! RESC protocol v3 two-layer inbound dispatch (remediation item R5; C1
+//! extends this with `DispatchFacts` — corrective-cycle item closing review
+//! finding F2).
 //!
 //! Normative sources: `docs/WIRE.md` §1 "Control framing" (length-prefix
 //! gate, per-field caps, oneof semantics, direction/state table);
+//! `IMPLEMENTATION_PLAN_V11.md` §4 (nonzero run ids; `FatalReport` needs a
+//! known candidate run and a known code; `FrameAck` names the oldest
+//! outstanding ordinal; `ClockPing`/`ClockPong` are trace/doctor-only;
+//! rejected `ProfileResult` needs a known deterministic `reject_code`);
 //! `CONTRACT_ERRATA.md` ERR-01 (cross-TCP activation barrier — the reason
 //! host-bound input/heartbeats require `Phase::Active` specifically, not
-//! merely "post-video-Ack").
+//! merely "post-video-Ack"). `DispatchFacts` and the checks below implement
+//! these EXISTING rules; they are not a contract change.
 //!
 //! Two independent, pure layers:
 //!
@@ -12,8 +19,10 @@
 //!   no allocation — a pure function of 4 bytes. The caller allocates a
 //!   body buffer only after this returns `Ok`.
 //! - Layer 2 ([`validate_inbound`], [`note_outbound`], [`note_video_ack`]):
-//!   the typed phase/direction validator and router. No sockets, no
-//!   logging, no side effects — a pure function of (role, phase, envelope).
+//!   the typed phase/direction validator and router, gated by
+//!   [`DispatchFacts`] on both the inbound and outbound paths. No sockets,
+//!   no logging, no side effects — a pure function of (role, phase, facts,
+//!   envelope-or-kind).
 //!
 //! This module is INACTIVE: nothing under `ubuntu-client/src/` wires it up
 //! yet. The Swift twin lives at `mac-host/Sources/RescCore/V3Dispatch.swift`;
@@ -21,6 +30,7 @@
 //! `proto/fixtures/dispatch_cases.json` (see `tools/gen_dispatch_fixtures.py`,
 //! which encodes the tables below exactly once as the ground truth).
 
+use crate::v3wire::{classify, FailureClass};
 use crate::resc_v3;
 
 // ===========================================================================
@@ -49,7 +59,7 @@ pub fn frame_body_len(prefix: [u8; 4]) -> Result<usize, resc_v3::FatalCode> {
 
 // ===========================================================================
 // Layer 2 — typed validator/router (docs/WIRE.md §1 direction/state table;
-// CONTRACT_ERRATA.md ERR-01)
+// IMPLEMENTATION_PLAN_V11.md §4; CONTRACT_ERRATA.md ERR-01)
 // ===========================================================================
 
 /// The receiving endpoint for [`validate_inbound`] — i.e. "who is
@@ -63,7 +73,9 @@ pub enum Role {
 /// Session phase shared by both roles (docs/WIRE.md §1; CONTRACT_ERRATA.md
 /// ERR-01 for the `VideoAckAccepted` -> `Active` activation-barrier step).
 /// Canonical vector strings (used by the shared JSON fixtures) are noted
-/// per variant.
+/// per variant. Remote-fatal dispositions ([`FailureClass`], routed via
+/// [`Dispatch::RemoteFatal`]) are lifecycle outcomes the session actor maps
+/// to `Failed`/`Backoff` — they are deliberately NOT phases here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Phase {
     /// "bootstrap" — control TCP connected, announce not yet exchanged.
@@ -80,37 +92,124 @@ pub enum Phase {
     Active,
 }
 
-/// Result of a successful [`validate_inbound`] call.
+/// Nonzero run-identity fact carried by [`DispatchFacts::run`]
+/// (IMPLEMENTATION_PLAN_V11.md §4 "run ids nonzero"). `Candidate`/`Active`
+/// ids are nonzero by construction — every constructor in this module and
+/// its callers is expected to hold that invariant — but [`validate_inbound`]
+/// and [`note_outbound`] re-check it defensively at the facts<->phase
+/// consistency boundary anyway (a zero id inside `Candidate`/`Active` is
+/// treated as inconsistent facts, not trusted).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Accepted {
-    pub next: Phase,
-    /// Set only when `expected_run_id` was `None` and the envelope's id
-    /// became the candidate (docs/WIRE.md §1: legal only for the two
-    /// client-bootstrap cases where no run id is known yet).
-    pub learned_run_id: Option<u64>,
+pub enum RunFact {
+    /// No run id known yet — legal only at `(Role::Client, Phase::Bootstrap)`
+    /// (the host owns its id from process start, so it is never `NoRun`).
+    NoRun,
+    /// A run id learned from an inbound `HostProfileAnnounce` but not yet
+    /// confirmed by a `ProfileResult` — legal at `Announced`/`ProfileRejected`.
+    Candidate(u64),
+    /// A run id confirmed by an accepted `ProfileResult` — legal at
+    /// `ProfileAccepted`/`VideoAckAccepted`/`Active`.
+    Active(u64),
+}
+
+/// Diagnostics-mode fact gating `ClockPing`/`ClockPong` (docs/WIRE.md §1:
+/// "trace/doctor mode after profile acceptance").
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiagMode {
+    Normal,
+    TraceOrDoctor,
+}
+
+/// Pure context consumed by BOTH [`validate_inbound`] and [`note_outbound`]
+/// (review finding F2: inbound-only enforcement would leave normal-mode
+/// clock sends and unknown-run fatal sends legal). Carries exactly the
+/// facts the direction/phase table cannot express on its own: which run id
+/// is current, whether trace/doctor diagnostics are active, and the oldest
+/// outstanding frame ordinal a `FrameAck` must name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DispatchFacts {
+    pub run: RunFact,
+    pub diagnostics: DiagMode,
+    pub oldest_outstanding_ordinal: Option<u64>,
+}
+
+/// Result of a [`validate_inbound`] call that did not return a `FatalCode`.
+/// A fully-valid `FatalReport` is [`Dispatch::RemoteFatal`] rather than an
+/// [`Dispatch::Accepted`] phase transition — see step 7 in
+/// [`validate_inbound`]'s doc comment. `Failed`/`Backoff` are lifecycle
+/// dispositions the session actor derives from the carried
+/// [`FailureClass`]; they are not protocol phases.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Dispatch {
+    Accepted {
+        next: Phase,
+        /// Set only when `facts.run` was `RunFact::NoRun` and the
+        /// envelope's id became the candidate (docs/WIRE.md §1: legal only
+        /// for the client-bootstrap `HostProfileAnnounce` case where no run
+        /// id is known yet).
+        learned_candidate: Option<u64>,
+    },
+    RemoteFatal(FailureClass),
+}
+
+/// Step 0 (both [`validate_inbound`] and [`note_outbound`]): does
+/// `facts.run` match the RunFact variant required for `(role, phase)`,
+/// checked before any other field? Bootstrap is the only phase where a run
+/// id may be unknown, and only at the client.
+fn facts_consistent(role: Role, phase: Phase, facts: &DispatchFacts) -> bool {
+    use Phase::*;
+    match phase {
+        Bootstrap => match role {
+            Role::Client => matches!(facts.run, RunFact::NoRun),
+            Role::Host => matches!(facts.run, RunFact::Candidate(id) if id != 0),
+        },
+        Announced | ProfileRejected => matches!(facts.run, RunFact::Candidate(id) if id != 0),
+        ProfileAccepted | VideoAckAccepted | Active => matches!(facts.run, RunFact::Active(id) if id != 0),
+    }
 }
 
 /// Validate one inbound `Envelope` against the receiver's current
-/// `(role, phase)`, per the fixed 6-step order below (vectors in
-/// `proto/fixtures/dispatch_cases.json` depend on this exact order):
+/// `(role, phase)` and [`DispatchFacts`], per the fixed 8-step order below
+/// (vectors in `proto/fixtures/dispatch_cases.json` depend on this exact
+/// order):
 ///
+/// 0. Facts<->phase consistency (above) -> [`resc_v3::FatalCode::ProtocolViolation`].
 /// 1. `protocol_version != 3` -> [`resc_v3::FatalCode::VersionMismatch`].
-/// 2. Run id: `expected_run_id` mismatch -> `ProtocolViolation`; if
-///    `expected_run_id` is `None`, the envelope's id is learned instead.
+/// 2. Run id (IMPLEMENTATION_PLAN_V11.md §4 nonzero rule): `env.
+///    session_run_id == 0` -> `ProtocolViolation` always; if `facts.run` is
+///    `Candidate`/`Active`, the envelope's id must equal it -> else
+///    `ProtocolViolation`; if `NoRun`, no comparison is made and the id is
+///    tentatively the learned candidate (surfaced only if the payload
+///    reaches step 7 as an accepted `HostProfileAnnounce` — every other
+///    payload dies at step 5 in `Bootstrap`).
 /// 3. Absent `payload` (unknown-only oneof decodes as absent — the
 ///    generated decoder's unknown-field ignoring and last-one-wins oneof
 ///    resolution are accepted as-is, no raw scanner) -> `ProtocolViolation`.
 /// 4. Per-field caps -> `RecordCapViolation`.
-/// 5. Direction/phase legality (docs/WIRE.md §1 table, ERR-01 refinement)
-///    -> `ProtocolViolation`.
-/// 6. Semantic ranges -> `ProtocolViolation`.
+/// 5. Direction/phase legality (docs/WIRE.md §1 table, ERR-01 refinement),
+///    amended: `ClockPing`/`ClockPong` additionally require
+///    `facts.diagnostics == TraceOrDoctor`; inbound `FatalReport` at the
+///    client additionally excludes `Bootstrap` (WIRE permits `FatalReport`
+///    only once a candidate run id is known) -> `ProtocolViolation`.
+/// 6. Semantic ranges, amended: `FrameAck.frame_ordinal` must equal
+///    `facts.oldest_outstanding_ordinal`; a rejected `ProfileResult.
+///    reject_code` must classify as [`FailureClass::Deterministic`];
+///    `FatalReport.code` must be a known `FatalCode` -> `ProtocolViolation`.
+/// 7. Routing: a fully-valid `FatalReport` returns
+///    [`Dispatch::RemoteFatal`] (phase does not advance) instead of
+///    [`Dispatch::Accepted`].
 pub fn validate_inbound(
     role: Role,
     phase: Phase,
+    facts: &DispatchFacts,
     env: &resc_v3::Envelope,
-    expected_run_id: Option<u64>,
-) -> Result<Accepted, resc_v3::FatalCode> {
+) -> Result<Dispatch, resc_v3::FatalCode> {
     use resc_v3::FatalCode;
+
+    // 0. facts<->phase consistency, before any envelope field.
+    if !facts_consistent(role, phase, facts) {
+        return Err(FatalCode::ProtocolViolation);
+    }
 
     // 1. protocol version.
     if env.protocol_version != 3 {
@@ -118,14 +217,17 @@ pub fn validate_inbound(
     }
 
     // 2. run id.
-    let learned_run_id = match expected_run_id {
-        Some(id) => {
+    if env.session_run_id == 0 {
+        return Err(FatalCode::ProtocolViolation);
+    }
+    let learned_candidate = match facts.run {
+        RunFact::Candidate(id) | RunFact::Active(id) => {
             if env.session_run_id != id {
                 return Err(FatalCode::ProtocolViolation);
             }
             None
         }
-        None => Some(env.session_run_id),
+        RunFact::NoRun => Some(env.session_run_id),
     };
 
     // 3. payload presence.
@@ -136,23 +238,35 @@ pub fn validate_inbound(
 
     // 5. direction/phase legality.
     let next = match role {
-        Role::Client => client_transition(phase, payload),
-        Role::Host => host_transition(phase, payload),
+        Role::Client => client_transition(phase, payload, facts.diagnostics),
+        Role::Host => host_transition(phase, payload, facts.diagnostics),
     }
     .ok_or(FatalCode::ProtocolViolation)?;
 
     // 6. semantic ranges.
-    check_semantic(payload)?;
+    check_semantic(payload, facts.oldest_outstanding_ordinal)?;
 
-    Ok(Accepted { next, learned_run_id })
+    // 7. routing: a fully-valid FatalReport is a remote-fatal disposition,
+    // not a phase transition.
+    if let resc_v3::envelope::Payload::FatalReport(p) = payload {
+        let class = classify(p.code).expect("step 6 validated a known FatalCode");
+        return Ok(Dispatch::RemoteFatal(class));
+    }
+
+    Ok(Dispatch::Accepted { next, learned_candidate })
 }
 
 /// Step 5 for `role = Client` (docs/WIRE.md §1 table). `HostProfileAnnounce`
-/// is legal only as the first bootstrap message; `FatalReport` is legal in
-/// every phase (the run id becomes known there via the `expected_run_id =
-/// None` learn path in `Bootstrap`). Every other payload kind is
+/// is legal only as the first bootstrap message; `FatalReport` is legal
+/// once a candidate run id is known (every phase except `Bootstrap`, where
+/// `facts.run` is always `NoRun`); `ClockPing`/`ClockPong` additionally
+/// require `diagnostics == TraceOrDoctor`. Every other payload kind is
 /// wrong-direction at the client and never legal inbound.
-fn client_transition(phase: Phase, payload: &resc_v3::envelope::Payload) -> Option<Phase> {
+fn client_transition(
+    phase: Phase,
+    payload: &resc_v3::envelope::Payload,
+    diagnostics: DiagMode,
+) -> Option<Phase> {
     use resc_v3::envelope::Payload::*;
     use Phase::*;
     match payload {
@@ -166,23 +280,31 @@ fn client_transition(phase: Phase, payload: &resc_v3::envelope::Payload) -> Opti
             _ => None,
         },
         ClockPing(_) | ClockPong(_) => {
+            if diagnostics != DiagMode::TraceOrDoctor {
+                return None;
+            }
             matches!(phase, ProfileAccepted | VideoAckAccepted | Active).then_some(phase)
         }
-        FatalReport(_) => Some(phase),
+        FatalReport(_) => (phase != Bootstrap).then_some(phase),
         // ProfileResult, FrameAck, KeyEvent, ButtonEvent, ScrollEvent,
         // ReleaseInput: client->host only, never legal inbound at client.
         _ => None,
     }
 }
 
-/// Step 5 for `role = Host` (docs/WIRE.md §1 table). `expected_run_id` is
-/// always `Some` at the host, so `FatalReport` excludes `Bootstrap` (no
-/// client can legitimately know the host's run id before the announce).
-/// ERR-01: `KeyEvent`/`ButtonEvent`/`ScrollEvent`/`ReleaseInput`/`Heartbeat`
+/// Step 5 for `role = Host` (docs/WIRE.md §1 table). `facts.run` is never
+/// `NoRun` at the host (it owns its id from process start), so `FatalReport`
+/// excludes only `Bootstrap`, same as the client. ERR-01:
+/// `KeyEvent`/`ButtonEvent`/`ScrollEvent`/`ReleaseInput`/`Heartbeat`
 /// require `Phase::Active` specifically — the host has sent its activation
 /// Heartbeat (which is what moved it to `Active`) before any input is
-/// legal; pre-Ack input is never injected.
-fn host_transition(phase: Phase, payload: &resc_v3::envelope::Payload) -> Option<Phase> {
+/// legal; pre-Ack input is never injected. `ClockPing`/`ClockPong`
+/// additionally require `diagnostics == TraceOrDoctor`.
+fn host_transition(
+    phase: Phase,
+    payload: &resc_v3::envelope::Payload,
+    diagnostics: DiagMode,
+) -> Option<Phase> {
     use resc_v3::envelope::Payload::*;
     use Phase::*;
     match payload {
@@ -198,6 +320,9 @@ fn host_transition(phase: Phase, payload: &resc_v3::envelope::Payload) -> Option
         }
         Heartbeat(_) => (phase == Active).then_some(Active),
         ClockPing(_) | ClockPong(_) => {
+            if diagnostics != DiagMode::TraceOrDoctor {
+                return None;
+            }
             matches!(phase, ProfileAccepted | VideoAckAccepted | Active).then_some(phase)
         }
         FatalReport(_) => (phase != Bootstrap).then_some(phase),
@@ -255,10 +380,20 @@ fn check_caps(payload: &resc_v3::envelope::Payload) -> Result<(), resc_v3::Fatal
 
 /// Step 6: semantic ranges. `ButtonEvent.button` in `{0,1,2}`;
 /// `DisplaySettings.warm_strength` finite and in `[0.0, 1.0]`;
-/// `ProfileResult.reject_code == FATAL_UNSPECIFIED` iff `accepted`,
-/// `video_listener_ready == true` iff `accepted`; `build_commit` (both
-/// messages) exactly 40 lowercase hex chars.
-fn check_semantic(payload: &resc_v3::envelope::Payload) -> Result<(), resc_v3::FatalCode> {
+/// `FrameAck.frame_ordinal` must equal `oldest_outstanding_ordinal`
+/// (IMPLEMENTATION_PLAN_V11.md §4 / docs/WIRE.md §1: FrameAck names the
+/// oldest outstanding ordinal; nothing outstanding is always a violation);
+/// `ProfileResult.reject_code == FATAL_UNSPECIFIED` iff `accepted`, and a
+/// rejected result's `reject_code` must additionally classify as
+/// [`FailureClass::Deterministic`]; `video_listener_ready == true` iff
+/// `accepted`; `build_commit` (both messages) exactly 40 lowercase hex
+/// chars; `FatalReport.code` must be a known `FatalCode` (0 or an unknown
+/// numeric is a violation here, before step 7's routing ever runs
+/// `classify` again to pick the `FailureClass`).
+fn check_semantic(
+    payload: &resc_v3::envelope::Payload,
+    oldest_outstanding_ordinal: Option<u64>,
+) -> Result<(), resc_v3::FatalCode> {
     use resc_v3::envelope::Payload::*;
     use resc_v3::FatalCode::ProtocolViolation;
     match payload {
@@ -272,9 +407,17 @@ fn check_semantic(payload: &resc_v3::envelope::Payload) -> Result<(), resc_v3::F
                 return Err(ProtocolViolation);
             }
         }
+        FrameAck(p) => {
+            if oldest_outstanding_ordinal != Some(p.frame_ordinal) {
+                return Err(ProtocolViolation);
+            }
+        }
         ProfileResult(p) => {
             let unspecified = p.reject_code == resc_v3::FatalCode::FatalUnspecified as i32;
             if unspecified != p.accepted {
+                return Err(ProtocolViolation);
+            }
+            if !p.accepted && classify(p.reject_code) != Some(FailureClass::Deterministic) {
                 return Err(ProtocolViolation);
             }
             if p.video_listener_ready != p.accepted {
@@ -286,6 +429,11 @@ fn check_semantic(payload: &resc_v3::envelope::Payload) -> Result<(), resc_v3::F
         }
         HostProfileAnnounce(p) => {
             if !build_commit_valid(&p.build_commit) {
+                return Err(ProtocolViolation);
+            }
+        }
+        FatalReport(p) => {
+            if classify(p.code).is_none() {
                 return Err(ProtocolViolation);
             }
         }
@@ -320,14 +468,32 @@ pub enum OutboundKind {
     FatalReport,
 }
 
-/// Advance `phase` for an endpoint about to *send* `kind` (the mirror image
-/// of [`validate_inbound`]'s direction/phase table, from the sender's
-/// side). ERR-01: `Heartbeat` sent by the host while `VideoAckAccepted` is
-/// the activation send (-> `Active`); client input/heartbeats are legal to
-/// send only once the client is already `Active`.
-pub fn note_outbound(role: Role, phase: Phase, kind: OutboundKind) -> Result<Phase, resc_v3::FatalCode> {
+/// Advance `phase` for an endpoint about to *send* `kind`, gated by
+/// [`DispatchFacts`] the same way [`validate_inbound`] is (review finding
+/// F2: inbound-only enforcement would leave normal-mode clock sends and
+/// unknown-run fatal sends legal) — the mirror image of
+/// [`validate_inbound`]'s direction/phase table, from the sender's side.
+/// ERR-01: `Heartbeat` sent by the host while `VideoAckAccepted` is the
+/// activation send (-> `Active`); client input/heartbeats are legal to
+/// send only once the client is already `Active`. `ClockPing`/`ClockPong`
+/// sends require `facts.diagnostics == TraceOrDoctor`; a client
+/// `FatalReport` send requires `facts.run != NoRun` (client `Bootstrap`
+/// can't report — no candidate run yet); the host is unaffected (it is
+/// never `NoRun`).
+pub fn note_outbound(
+    role: Role,
+    phase: Phase,
+    facts: &DispatchFacts,
+    kind: OutboundKind,
+) -> Result<Phase, resc_v3::FatalCode> {
     use OutboundKind::*;
     use Phase::*;
+
+    // 0. facts<->phase consistency (same rule as validate_inbound).
+    if !facts_consistent(role, phase, facts) {
+        return Err(resc_v3::FatalCode::ProtocolViolation);
+    }
+
     let next = match role {
         Role::Host => match kind {
             HostProfileAnnounce => (phase == Bootstrap).then_some(Announced),
@@ -338,7 +504,11 @@ pub fn note_outbound(role: Role, phase: Phase, kind: OutboundKind) -> Result<Pha
                 _ => None,
             },
             ClockPing | ClockPong => {
-                matches!(phase, ProfileAccepted | VideoAckAccepted | Active).then_some(phase)
+                if facts.diagnostics != DiagMode::TraceOrDoctor {
+                    None
+                } else {
+                    matches!(phase, ProfileAccepted | VideoAckAccepted | Active).then_some(phase)
+                }
             }
             FatalReport => Some(phase),
             ProfileResultAccepted | ProfileResultRejected | FrameAck | KeyEvent | ButtonEvent
@@ -352,9 +522,13 @@ pub fn note_outbound(role: Role, phase: Phase, kind: OutboundKind) -> Result<Pha
             // ERR-01: client heartbeats armed only post-activation.
             Heartbeat => (phase == Active).then_some(Active),
             ClockPing | ClockPong => {
-                matches!(phase, ProfileAccepted | VideoAckAccepted | Active).then_some(phase)
+                if facts.diagnostics != DiagMode::TraceOrDoctor {
+                    None
+                } else {
+                    matches!(phase, ProfileAccepted | VideoAckAccepted | Active).then_some(phase)
+                }
             }
-            FatalReport => (phase != Bootstrap).then_some(phase),
+            FatalReport => (facts.run != RunFact::NoRun).then_some(phase),
             HostProfileAnnounce | DisplaySettings => None,
         },
     };
@@ -363,7 +537,7 @@ pub fn note_outbound(role: Role, phase: Phase, kind: OutboundKind) -> Result<Pha
 
 /// Video handshake completion: `ProfileAccepted -> VideoAckAccepted`, the
 /// only legal transition (docs/WIRE.md §2/§3; host accepts the Ack /
-/// client sends it).
+/// client sends it). Unchanged by C1 — `note_video_ack` takes no facts.
 pub fn note_video_ack(phase: Phase) -> Result<Phase, resc_v3::FatalCode> {
     match phase {
         Phase::ProfileAccepted => Ok(Phase::VideoAckAccepted),
@@ -403,7 +577,7 @@ mod tests {
 
     // Shared by `dispatch_fixtures` (validate_inbound) and `outbound`
     // (note_outbound / note_video_ack) — both consume rows shaped by the
-    // same role/phase/verdict vocabulary.
+    // same role/phase/facts/verdict vocabulary.
 
     fn parse_role(s: &str) -> Role {
         match s {
@@ -425,9 +599,53 @@ mod tests {
         }
     }
 
+    /// `run` fact string ("no_run" | "candidate:<hex16>" | "active:<hex16>")
+    /// -> `RunFact`, per `tools/gen_dispatch_fixtures.py`'s encoding.
+    fn parse_run_fact(s: &str) -> RunFact {
+        if s == "no_run" {
+            return RunFact::NoRun;
+        }
+        let (kind, hexid) = s.split_once(':').unwrap_or_else(|| panic!("bad run fact {s}"));
+        let id = u64::from_str_radix(hexid, 16).unwrap_or_else(|e| panic!("bad run fact {s}: {e}"));
+        match kind {
+            "candidate" => RunFact::Candidate(id),
+            "active" => RunFact::Active(id),
+            other => panic!("unknown run fact kind {other} in {s}"),
+        }
+    }
+
+    fn parse_diagnostics(s: &str) -> DiagMode {
+        match s {
+            "normal" => DiagMode::Normal,
+            "trace_or_doctor" => DiagMode::TraceOrDoctor,
+            other => panic!("unknown diagnostics mode {other}"),
+        }
+    }
+
+    /// Builds the `DispatchFacts` a state/raw/outbound row was graded
+    /// against from its flattened `run`/`diagnostics`/`oldest_outstanding`
+    /// fields.
+    fn parse_facts(case: &serde_json::Value) -> DispatchFacts {
+        DispatchFacts {
+            run: parse_run_fact(case["run"].as_str().unwrap()),
+            diagnostics: parse_diagnostics(case["diagnostics"].as_str().unwrap()),
+            oldest_outstanding_ordinal: case["oldest_outstanding"].as_u64(),
+        }
+    }
+
     enum ExpectedVerdict {
         Accept { next: Phase, learn: bool },
+        RemoteFatal(FailureClass),
         Error(resc_v3::FatalCode),
+    }
+
+    fn parse_failure_class(s: &str) -> FailureClass {
+        match s {
+            "deterministic" => FailureClass::Deterministic,
+            "transient" => FailureClass::Transient,
+            "terminal" => FailureClass::Terminal,
+            other => panic!("unknown FailureClass name {other}"),
+        }
     }
 
     fn parse_verdict(s: &str) -> ExpectedVerdict {
@@ -436,6 +654,8 @@ mod tests {
             let phase_name = parts.next().unwrap();
             let learn = parts.next() == Some("learn");
             ExpectedVerdict::Accept { next: parse_phase(phase_name), learn }
+        } else if let Some(class_name) = s.strip_prefix("remote_fatal:") {
+            ExpectedVerdict::RemoteFatal(parse_failure_class(class_name))
         } else {
             let code = resc_v3::FatalCode::from_str_name(s)
                 .unwrap_or_else(|| panic!("unknown FatalCode name {s}"));
@@ -662,18 +882,22 @@ mod tests {
             name: &str,
             role: Role,
             phase: Phase,
+            facts: &DispatchFacts,
             env: &resc_v3::Envelope,
-            expected_run_id: Option<u64>,
             verdict: &str,
         ) {
-            let result = validate_inbound(role, phase, env, expected_run_id);
+            let result = validate_inbound(role, phase, facts, env);
             match parse_verdict(verdict) {
-                ExpectedVerdict::Accept { next, learn } => {
-                    let accepted =
-                        result.unwrap_or_else(|e| panic!("{name}: expected accept, got Err({e:?})"));
-                    assert_eq!(accepted.next, next, "{name}: next phase");
-                    let expected_learned = if learn { Some(env.session_run_id) } else { None };
-                    assert_eq!(accepted.learned_run_id, expected_learned, "{name}: learned_run_id");
+                ExpectedVerdict::Accept { next, learn } => match result {
+                    Ok(Dispatch::Accepted { next: got_next, learned_candidate }) => {
+                        assert_eq!(got_next, next, "{name}: next phase");
+                        let expected_learned = if learn { Some(env.session_run_id) } else { None };
+                        assert_eq!(learned_candidate, expected_learned, "{name}: learned_candidate");
+                    }
+                    other => panic!("{name}: expected accept, got {other:?}"),
+                },
+                ExpectedVerdict::RemoteFatal(class) => {
+                    assert_eq!(result, Ok(Dispatch::RemoteFatal(class)), "{name}");
                 }
                 ExpectedVerdict::Error(code) => {
                     assert_eq!(result, Err(code), "{name}");
@@ -685,11 +909,12 @@ mod tests {
         fn state_matrix_and_special_rows() {
             let v = read_fixture_json("dispatch_cases.json");
             let cases = v["state"].as_array().expect("state must be an array");
-            assert_eq!(cases.len(), 164, "expected 144 matrix + 20 special rows");
+            assert_eq!(cases.len(), 210, "expected 144 matrix + 66 special rows");
             for case in cases {
                 let name = case["name"].as_str().unwrap();
                 let role = parse_role(case["role"].as_str().unwrap());
                 let phase = parse_phase(case["phase"].as_str().unwrap());
+                let facts = parse_facts(case);
                 let kind = case["payload"].as_str().unwrap();
                 let payload = build_payload(kind, &case["fields"]);
                 let env = resc_v3::Envelope {
@@ -697,8 +922,7 @@ mod tests {
                     protocol_version: u_field(case, "env_version") as u32,
                     payload: Some(payload),
                 };
-                let expected_run_id = case["expected_run_id"].as_u64();
-                assert_case(name, role, phase, &env, expected_run_id, case["verdict"].as_str().unwrap());
+                assert_case(name, role, phase, &facts, &env, case["verdict"].as_str().unwrap());
             }
         }
 
@@ -716,8 +940,8 @@ mod tests {
                     .unwrap_or_else(|e| panic!("{name}: {file} failed to decode: {e}"));
                 let role = parse_role(case["role"].as_str().unwrap());
                 let phase = parse_phase(case["phase"].as_str().unwrap());
-                let expected_run_id = case["expected_run_id"].as_u64();
-                assert_case(name, role, phase, &env, expected_run_id, case["verdict"].as_str().unwrap());
+                let facts = parse_facts(case);
+                assert_case(name, role, phase, &facts, &env, case["verdict"].as_str().unwrap());
             }
         }
     }
@@ -742,10 +966,29 @@ mod tests {
             Phase::VideoAckAccepted,
         ];
 
+        /// `Client`, `Active`, run confirmed — the facts every pre-`Active`
+        /// row below pairs with a `Bootstrap`-only exception (see
+        /// `facts_for`), since `note_outbound`'s step-0 consistency check
+        /// now requires facts that actually match the phase under test.
+        fn facts_for(phase: Phase) -> DispatchFacts {
+            let run = match phase {
+                Phase::Bootstrap => RunFact::NoRun,
+                Phase::Announced | Phase::ProfileRejected => RunFact::Candidate(RUN),
+                Phase::ProfileAccepted | Phase::VideoAckAccepted | Phase::Active => RunFact::Active(RUN),
+            };
+            DispatchFacts { run, diagnostics: DiagMode::Normal, oldest_outstanding_ordinal: None }
+        }
+        const RUN: u64 = 0x0102_0304_0506_0708;
+
         #[test]
         fn host_announce_bootstrap_to_announced() {
+            let facts = DispatchFacts {
+                run: RunFact::Candidate(RUN),
+                diagnostics: DiagMode::Normal,
+                oldest_outstanding_ordinal: None,
+            };
             assert_eq!(
-                note_outbound(Role::Host, Phase::Bootstrap, OutboundKind::HostProfileAnnounce),
+                note_outbound(Role::Host, Phase::Bootstrap, &facts, OutboundKind::HostProfileAnnounce),
                 Ok(Phase::Announced)
             );
         }
@@ -753,30 +996,38 @@ mod tests {
         #[test]
         fn client_input_rejected_in_every_phase_except_active() {
             for &phase in &PRE_ACTIVE_PHASES {
+                let facts = facts_for(phase);
                 for &kind in &ALL_INPUT_KINDS {
                     assert_eq!(
-                        note_outbound(Role::Client, phase, kind),
+                        note_outbound(Role::Client, phase, &facts, kind),
                         Err(resc_v3::FatalCode::ProtocolViolation),
                         "{phase:?} {kind:?}"
                     );
                 }
             }
+            let active_facts = facts_for(Phase::Active);
             for &kind in &ALL_INPUT_KINDS {
-                assert_eq!(note_outbound(Role::Client, Phase::Active, kind), Ok(Phase::Active), "{kind:?}");
+                assert_eq!(
+                    note_outbound(Role::Client, Phase::Active, &active_facts, kind),
+                    Ok(Phase::Active),
+                    "{kind:?}"
+                );
             }
         }
 
         #[test]
         fn client_heartbeat_rejected_pre_active() {
             for &phase in &PRE_ACTIVE_PHASES {
+                let facts = facts_for(phase);
                 assert_eq!(
-                    note_outbound(Role::Client, phase, OutboundKind::Heartbeat),
+                    note_outbound(Role::Client, phase, &facts, OutboundKind::Heartbeat),
                     Err(resc_v3::FatalCode::ProtocolViolation),
                     "{phase:?}"
                 );
             }
+            let active_facts = facts_for(Phase::Active);
             assert_eq!(
-                note_outbound(Role::Client, Phase::Active, OutboundKind::Heartbeat),
+                note_outbound(Role::Client, Phase::Active, &active_facts, OutboundKind::Heartbeat),
                 Ok(Phase::Active)
             );
         }
@@ -785,26 +1036,31 @@ mod tests {
         fn activation_transitions_both_sides() {
             // Host sends its activation Heartbeat while VideoAckAccepted,
             // moving itself to Active (ERR-01 step 2).
+            let host_facts = DispatchFacts {
+                run: RunFact::Active(RUN),
+                diagnostics: DiagMode::Normal,
+                oldest_outstanding_ordinal: None,
+            };
             assert_eq!(
-                note_outbound(Role::Host, Phase::VideoAckAccepted, OutboundKind::Heartbeat),
+                note_outbound(Role::Host, Phase::VideoAckAccepted, &host_facts, OutboundKind::Heartbeat),
                 Ok(Phase::Active)
             );
             // Client, on receiving that Heartbeat, also moves
             // VideoAckAccepted -> Active (ERR-01 step 3, the client's
             // activation signal) via validate_inbound.
             let env = resc_v3::Envelope {
-                session_run_id: 0x0102030405060708,
+                session_run_id: RUN,
                 protocol_version: 3,
                 payload: Some(resc_v3::envelope::Payload::Heartbeat(resc_v3::Heartbeat { t_mono_us: 1 })),
             };
-            let accepted = validate_inbound(
-                Role::Client,
-                Phase::VideoAckAccepted,
-                &env,
-                Some(0x0102030405060708),
-            )
-            .expect("client must accept the host's activation heartbeat");
-            assert_eq!(accepted.next, Phase::Active);
+            let client_facts = DispatchFacts {
+                run: RunFact::Active(RUN),
+                diagnostics: DiagMode::Normal,
+                oldest_outstanding_ordinal: None,
+            };
+            let dispatch = validate_inbound(Role::Client, Phase::VideoAckAccepted, &client_facts, &env)
+                .expect("client must accept the host's activation heartbeat");
+            assert_eq!(dispatch, Dispatch::Accepted { next: Phase::Active, learned_candidate: None });
         }
 
         #[test]
@@ -853,22 +1109,27 @@ mod tests {
         /// note_outbound to be vector-covered like validate_inbound, not
         /// just hand-written spot checks (the tests above stay — they read
         /// well as documentation of specific rules). Covers the full 13
-        /// kinds x 6 phases x 2 roles matrix from the same oracle
+        /// kinds x 6 phases x 2 roles matrix plus the C1 diagnostics/facts.run
+        /// special rows from the same oracle
         /// (tools/gen_dispatch_fixtures.py's `outbound_transition`) the
         /// Swift twin is graded against.
         #[test]
         fn outbound_matrix_from_json() {
             let v = read_fixture_json("dispatch_cases.json");
             let cases = v["outbound"].as_array().expect("outbound must be an array");
-            assert_eq!(cases.len(), 156, "expected 13 kinds x 6 phases x 2 roles");
+            assert_eq!(cases.len(), 166, "expected 156 matrix + 10 special rows");
             for case in cases {
                 let name = case["name"].as_str().unwrap();
                 let role = parse_role(case["role"].as_str().unwrap());
                 let phase = parse_phase(case["phase"].as_str().unwrap());
+                let facts = parse_facts(case);
                 let kind = parse_outbound_kind(case["kind"].as_str().unwrap());
-                let result = note_outbound(role, phase, kind);
+                let result = note_outbound(role, phase, &facts, kind);
                 match parse_verdict(case["verdict"].as_str().unwrap()) {
                     ExpectedVerdict::Accept { next, .. } => assert_eq!(result, Ok(next), "{name}"),
+                    ExpectedVerdict::RemoteFatal(_) => {
+                        panic!("{name}: note_outbound never produces a remote_fatal verdict")
+                    }
                     ExpectedVerdict::Error(code) => assert_eq!(result, Err(code), "{name}"),
                 }
             }
@@ -887,6 +1148,9 @@ mod tests {
                 let result = note_video_ack(phase);
                 match parse_verdict(case["verdict"].as_str().unwrap()) {
                     ExpectedVerdict::Accept { next, .. } => assert_eq!(result, Ok(next), "{name}"),
+                    ExpectedVerdict::RemoteFatal(_) => {
+                        panic!("{name}: note_video_ack never produces a remote_fatal verdict")
+                    }
                     ExpectedVerdict::Error(code) => assert_eq!(result, Err(code), "{name}"),
                 }
             }

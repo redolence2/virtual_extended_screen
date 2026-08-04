@@ -203,7 +203,7 @@ impl VideoDecoder {
     /// decoder packet PTS is set to frameID"). It is *not* the identity of
     /// any particular emitted frame: with B-frames/reordering one `decode()`
     /// call can emit 0, 1, or several frames, and each recovers its own PTS
-    /// independently in the loop below — never this call's `frame_id`.
+    /// independently in [`Self::drain_ready`] — never this call's `frame_id`.
     pub fn decode(&mut self, data: &[u8], frame_id: u32, timestamp_us: u64, is_keyframe: bool) -> Result<Vec<DecodedFrame>> {
         if self.state == DecoderState::WaitingForIDR && !is_keyframe {
             return Ok(Vec::new());
@@ -216,6 +216,83 @@ impl VideoDecoder {
             return Err(anyhow::anyhow!("send_packet failed: {}", e));
         }
 
+        Ok(self.drain_ready(timestamp_us, is_keyframe))
+    }
+
+    /// End-of-stream flush (C3; A00_COMPLETION_REPORT_AMENDED_review.md
+    /// finding 1 correction 4: "add delayed-output, multi-output,
+    /// zero-output-then-later-output ... and unresolved-tail negative
+    /// tests"). Signals EOF (`send_eof`, ffmpeg-next's wrapper for
+    /// `avcodec_send_packet(ctx, NULL)`) and drains every remaining buffered
+    /// frame through the identical [`Self::drain_ready`] path `decode()`
+    /// uses, so a tail emission recovers its own `recovered_frame_id`
+    /// exactly like decode() — never a synthesized or inherited identity.
+    ///
+    /// `send_eof` can itself EAGAIN exactly as `send_packet` can (ffmpeg's
+    /// contract: internal output buffers are full, drain before
+    /// resubmitting) — handled here by draining and retrying, bounded by
+    /// `MAX_EOF_EAGAIN_ATTEMPTS`, mirroring the real, characterized
+    /// retain/drain/resubmit discipline `crates/backend-construct/src/
+    /// loop_engine.rs`'s `flush_tail` already proves against the real
+    /// backends (`decoder-experiment --characterize`). `Err(Error::Eof)`
+    /// from `send_eof` means a prior flush already fully signalled EOF —
+    /// treated as accepted (idempotent), matching `flush_tail`'s handling.
+    /// Used only by the client's trace-mode clean-shutdown path
+    /// (`ubuntu-client/src/main.rs`).
+    pub fn flush(&mut self) -> Result<Vec<DecodedFrame>> {
+        // Matches decoder-experiment's MAX_EAGAIN_CYCLES discipline
+        // (crates/backend-construct/src/loop_engine.rs) — bounded so a
+        // backend that never converges is a fatal Err, not a true hang.
+        const MAX_EOF_EAGAIN_ATTEMPTS: u32 = 64;
+
+        let mut frames = Vec::new();
+        let mut eagain_attempts: u32 = 0;
+        loop {
+            match self.decoder.send_eof() {
+                Ok(()) => break,
+                Err(ffmpeg_next::Error::Other { errno }) if errno == libc::EAGAIN => {
+                    eagain_attempts += 1;
+                    if eagain_attempts > MAX_EOF_EAGAIN_ATTEMPTS {
+                        anyhow::bail!(
+                            "send_eof EAGAIN did not converge after {} attempts",
+                            eagain_attempts
+                        );
+                    }
+                    // No wire packet at EOF: is_keyframe=false (see
+                    // drain_ready's doc comment).
+                    frames.extend(self.drain_ready(0, false));
+                    // loop back and retry the identical EOF signal
+                }
+                Err(ffmpeg_next::Error::Eof) => break, // already flushed; idempotent
+                Err(e) => anyhow::bail!("send_eof failed: {}", e),
+            }
+        }
+
+        frames.extend(self.drain_ready(0, false));
+        Ok(frames)
+    }
+
+    /// Drains every frame currently ready from `receive_frame()`, applying
+    /// the exact same per-emission processing decode calls always have:
+    /// GPU→CPU transfer / corrupt-frame rejection, gray-frame detection, the
+    /// IDR-recovery state machine, and independent PTS recovery per emission
+    /// (never inherited from whatever call triggered the drain). Shared by
+    /// [`Self::decode`] and [`Self::flush`] — required by
+    /// A00_COMPLETION_REPORT_AMENDED_review.md finding 1's "each with its
+    /// own recovered_frame_id exactly like decode()" — so the two paths can
+    /// never drift apart.
+    ///
+    /// `timestamp_us`/`is_keyframe` feed [`DecodedFrame::timestamp_us`] and
+    /// the per-emission state-machine check below exactly as `decode()`
+    /// always has. `flush()` has no corresponding wire packet at EOF, so it
+    /// passes `timestamp_us=0` (unused by the identity ledger/trace path,
+    /// which keys exclusively off `recovered_frame_id`) and
+    /// `is_keyframe=false` (there is no new keyframe at EOF — only
+    /// already-buffered output draining out; this only means a stray
+    /// `WaitingForIDR` state can't be flipped to `Recovering` by a tail
+    /// emission, which is the conservative choice for a path that runs only
+    /// immediately before process exit).
+    fn drain_ready(&mut self, timestamp_us: u64, is_keyframe: bool) -> Vec<DecodedFrame> {
         let mut frames = Vec::new();
         let mut decoded = ffmpeg_next::frame::Video::empty();
 
@@ -307,7 +384,7 @@ impl VideoDecoder {
             frames.push(frame);
         }
 
-        Ok(frames)
+        frames
     }
 
     /// Extract YUV420P planes from decoded frame.

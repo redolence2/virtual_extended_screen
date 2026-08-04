@@ -10,8 +10,9 @@
 
 // RESC protocol v3 — the fixed personal-profile contract.
 // Normative source: IMPLEMENTATION_PLAN_V11.md §4 + CONTRACT_ERRATA.md.
-// This file is the Stage-1 frozen schema. It coexists with the legacy v1
-// control.proto until T1 deletes the v1 wire; do not modify without a dated
+// This file is the Stage-1 CANDIDATE schema (freeze pending the A0.0 gates
+// and independent re-review). It coexists with the legacy v1 control.proto
+// until T1 deletes the v1 wire; do not modify without a dated
 // CONTRACT_ERRATA.md entry.
 
 #if canImport(FoundationEssentials)

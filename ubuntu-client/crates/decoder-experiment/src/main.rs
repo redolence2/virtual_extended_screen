@@ -13,7 +13,7 @@
 //! this binary and `harness-receiver` no longer duplicate that state
 //! machine.
 //!
-//! Three modes, selected by CLI flag:
+//! Four modes, selected by CLI flag:
 //! - **default** (no flag; optionally `--stall-every`/`--stall-ms` for an
 //!   induced-delay run) — the original ERR-03 evidence run.
 //! - **`--characterize`** — the `A00_REMEDIATION_PLAN.md` §3 D2 *bounded*
@@ -26,9 +26,27 @@
 //! - **`--clean`** — Phase C: a stall-free full-sample run measuring
 //!   per-frame submit→emit lag and output latency (p50/p95/p99) for the
 //!   `decoder_lag_bound`/`output_deadline_ms` freeze inputs.
+//! - **`--force-zero-output`** — a bounded REAL zero-output-packet forcing
+//!   attempt on the selected backend's exact `open_decoder` configuration
+//!   (`A00_COMPLETION_REPORT_AMENDED_review.md` finding 5 /
+//!   `..._response_review.md` amendment 5; ERR-03 / §3 D2's escape hatch).
+//!   R6 (`evidence/a00/wip/r6-summary.md`) recorded zero real zero-output
+//!   packets on either backend under ordinary streaming submission — this
+//!   sample has no B-frames, so every accepted AU's own post-accept drain
+//!   already emits a frame. Rather than accept the scripted `MockDecoder`
+//!   double for that branch without either a forced real case or a dated
+//!   equivalence erratum, this mode crafts a parameter-set-only packet (no
+//!   VCL data at all — see `annexb::extract_param_sets`) and submits it
+//!   through the real decoder, falling back to an immediate first-AU drain
+//!   check if that crafted packet is rejected outright. Exit 0 iff exact
+//!   ordinal coverage / exactly-once / no-phantom-ordinal-0 hold,
+//!   regardless of whether forcing itself succeeded — `strategy_used:
+//!   "not_forced"` with clean invariants is a valid, honest outcome.
 //!
 //! This binary has no dependency on the `protocol` crate and is not wired
 //! into the main client binary — it is standalone A0.0 measurement tooling.
+
+mod annexb;
 
 use anyhow::{bail, Context, Result};
 use std::collections::{HashMap, HashSet};
@@ -75,10 +93,17 @@ struct Args {
     characterize: bool,
     /// `--clean`: §3 D2 Phase C, stall-free full-sample latency baseline.
     clean: bool,
-    /// Phase A bound: max packets submitted while forcing, default 480 (the
-    /// fixed sample's full AU count).
+    /// `--force-zero-output`: bounded REAL zero-output-packet forcing
+    /// attempt on the selected backend (`A00_COMPLETION_REPORT_AMENDED_
+    /// review.md` finding 5 / `..._response_review.md` amendment 5; ERR-03).
+    force_zero_output: bool,
+    /// Bound shared by `--characterize`/`--force-zero-output`: max packets
+    /// submitted, default 480 (the fixed sample's full AU count).
     max_packets: u64,
-    /// Phase A bound: wall-clock ceiling in seconds, default 90.
+    /// Bound shared by `--characterize`/`--force-zero-output`: wall-clock
+    /// ceiling in seconds — default 90 for `--characterize` (pre-existing),
+    /// 60 for `--force-zero-output`, resolved in [`parse_args`] once the
+    /// active mode is known.
     timeout_secs: u64,
 }
 
@@ -95,8 +120,13 @@ fn parse_args() -> Result<Args> {
     let mut json_out: Option<PathBuf> = None;
     let mut characterize = false;
     let mut clean = false;
+    let mut force_zero_output = false;
     let mut max_packets: u64 = 480;
-    let mut timeout_secs: u64 = 90;
+    // Default depends on mode, resolved after parsing once `force_zero_output`
+    // is known: 90s for `--characterize` (pre-existing), 60s for
+    // `--force-zero-output` (A00_COMPLETION_REPORT_AMENDED_review.md
+    // finding 5 / ..._response_review.md amendment 5).
+    let mut timeout_secs: Option<u64> = None;
 
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
@@ -123,23 +153,28 @@ fn parse_args() -> Result<Args> {
             "--json-out" => json_out = Some(PathBuf::from(next_val(&mut it, "--json-out")?)),
             "--characterize" => characterize = true,
             "--clean" => clean = true,
+            "--force-zero-output" => force_zero_output = true,
             "--max-packets" => {
                 max_packets = next_val(&mut it, "--max-packets")?
                     .parse()
                     .context("--max-packets must be a non-negative integer")?
             }
             "--timeout-secs" => {
-                timeout_secs = next_val(&mut it, "--timeout-secs")?
-                    .parse()
-                    .context("--timeout-secs must be a non-negative integer")?
+                timeout_secs = Some(
+                    next_val(&mut it, "--timeout-secs")?
+                        .parse()
+                        .context("--timeout-secs must be a non-negative integer")?,
+                )
             }
             other => bail!("unknown argument: {other}"),
         }
     }
 
-    if characterize && clean {
-        bail!("--characterize and --clean are mutually exclusive (A00_REMEDIATION_PLAN.md §3 D2 Phase C is a separate invocation)");
+    if characterize as u8 + clean as u8 + force_zero_output as u8 > 1 {
+        bail!("--characterize, --clean, and --force-zero-output are mutually exclusive (each is a separate invocation)");
     }
+
+    let timeout_secs = timeout_secs.unwrap_or(if force_zero_output { 60 } else { 90 });
 
     Ok(Args {
         input: input.context("--input is required")?,
@@ -150,6 +185,7 @@ fn parse_args() -> Result<Args> {
         json_out,
         characterize,
         clean,
+        force_zero_output,
         max_packets,
         timeout_secs,
     })
@@ -160,6 +196,8 @@ fn mode_name(args: &Args) -> &'static str {
         "characterize"
     } else if args.clean {
         "clean"
+    } else if args.force_zero_output {
+        "force_zero_output"
     } else {
         "default"
     }
@@ -328,6 +366,38 @@ fn init_failure_report_characterize(args: &Args, failing_call: &str, detail: &st
         "error_code": "REQUIRED_NATIVE_API",
         "failing_call": failing_call,
     })
+}
+
+/// Init-failure report for `--force-zero-output` — mirrors
+/// `init_failure_report_characterize`'s shape (bounds + environment are
+/// meaningful even on an init failure); `strategy_used` is always
+/// `"not_forced"` here since nothing was ever submitted.
+fn init_failure_report_force_zero_output(args: &Args, failing_call: &str, detail: &str) -> serde_json::Value {
+    serde_json::json!({
+        "mode": "force_zero_output",
+        "backend": args.backend.id(),
+        "pass": false,
+        "strategy_used": "not_forced",
+        "bounds": { "max_packets": args.max_packets, "timeout_secs": args.timeout_secs },
+        "environment": environment_report(),
+        "fail_reasons": [format!("{failing_call} failed: {detail}")],
+        "error_code": "REQUIRED_NATIVE_API",
+        "failing_call": failing_call,
+    })
+}
+
+/// Dispatches to the right init-failure report shape for the active mode —
+/// used by all three of `main`'s early-exit sites (decoder open,
+/// `avformat_open_input`, `av_find_best_stream`) so a third mode only needs
+/// a third arm here, not a third arm at every call site.
+fn init_failure_report_for_mode(args: &Args, failing_call: &str, detail: &str) -> serde_json::Value {
+    if args.characterize {
+        init_failure_report_characterize(args, failing_call, detail)
+    } else if args.force_zero_output {
+        init_failure_report_force_zero_output(args, failing_call, detail)
+    } else {
+        init_failure_report(args.backend, failing_call, detail)
+    }
 }
 
 fn classify_open_error(e: &anyhow::Error) -> (String, String) {
@@ -782,6 +852,364 @@ fn run_characterize(
 }
 
 // ---------------------------------------------------------------------
+// --force-zero-output: bounded REAL zero-output-packet forcing attempt on
+// the selected backend's EXACT `open_decoder` configuration
+// (`A00_COMPLETION_REPORT_AMENDED_review.md` finding 5 /
+// `..._response_review.md` amendment 5; ERR-03 / `A00_REMEDIATION_PLAN.md`
+// §3 D2 escape hatch). R6 (`evidence/a00/wip/r6-summary.md`) recorded zero
+// real zero-output packets on either backend under ordinary streaming
+// submission (this sample has `bframes=0` — no reordering — so every
+// accepted AU's own post-accept drain already emits a frame). The plan's
+// D2 escape hatch forbids substituting the scripted `MockDecoder` double
+// for that branch without either forcing a real case or a dated
+// equivalence erratum, so this mode manufactures a genuine zero-output
+// condition through the real decoder instead of asserting one never
+// occurs:
+//
+// - Strategy A (primary): craft a parameter-set-only packet (VPS/SPS/PPS —
+//   HEVC types 32/33/34, no VCL data at all — `annexb::extract_param_sets`)
+//   from the sample's first AU and submit it as ordinal 0 through the
+//   normal `backend_construct::submit_with_retry` path, then immediately
+//   drain. A packet with no slice data structurally cannot produce a
+//   picture, so an accepted send with an empty immediate drain is genuine
+//   real-backend zero-output evidence.
+// - Strategy B (fallback, only if strategy A's send is REJECTED rather than
+//   accepted-with-zero-output, or AU 1 unexpectedly carries no parameter
+//   sets at all): submit the real first AU and drain immediately, before
+//   any further sends, and record whatever the real backend does.
+//
+// Either way the complete, unmodified sample is then submitted normally as
+// ordinals 1..N (the same AU 1 whose param sets strategy A borrowed is
+// resubmitted in full as ordinal 1 — repeating VPS/SPS/PPS inside a real AU
+// is ordinary, legal HEVC), proving the crafted packet corrupted nothing:
+// exact ordinal coverage of the VCL-bearing submissions, exactly-once
+// acceptance, and ordinal 0 never appearing in any emission. Exit 0 iff
+// those invariants hold, regardless of whether forcing itself succeeded —
+// `strategy_used: "not_forced"` with clean invariants is a valid, honest
+// outcome (per the amended completion report response review's amendment
+// 5, that is the input to a possible future ERR-09, not a failure here).
+// ---------------------------------------------------------------------
+
+/// Accumulated accounting across the whole `--force-zero-output` run,
+/// mirroring [`RunState`]'s role for the streaming modes.
+#[derive(Default)]
+struct ForceZeroOutputState {
+    /// Count of real (VCL-bearing) AUs submitted — the sample's AUs 1..N,
+    /// never the ordinal-0 crafted packet.
+    submitted_vcl: u64,
+    accepted_vcl: u64,
+    /// Every recovered ordinal from every drain across the whole run, in
+    /// receive order (includes whatever — if anything — came out of the
+    /// ordinal-0 crafted packet's own drain).
+    combined_emitted: Vec<Option<i64>>,
+    zero_output_detail: Vec<serde_json::Value>,
+}
+
+/// One zero-output event for the report's `zero_output_detail` list.
+/// `frames_this_drain`/`recovered_pts` are always `0`/`[]` by construction
+/// — a non-empty drain is never pushed here.
+fn zero_output_event(
+    ordinal: i64,
+    context: &'static str,
+    send_outcome: &'static str,
+    drain: &[Option<i64>],
+) -> serde_json::Value {
+    serde_json::json!({
+        "ordinal": ordinal,
+        "context": context,
+        "send_outcome": send_outcome,
+        "frames_this_drain": drain.len(),
+        "recovered_pts": drain,
+    })
+}
+
+fn send_outcome_label(record: &backend_construct::SubmitRecord) -> &'static str {
+    if record.attempts.iter().any(|a| a.again) {
+        "accepted_after_eagain"
+    } else {
+        "accepted"
+    }
+}
+
+/// Submits one real (VCL-bearing) AU as `ordinal` through the normal
+/// `submit_with_retry` path, drains fully, and folds both into `state`.
+/// Returns the `SubmitRecord` (so callers can label the send outcome) plus
+/// this submission's own post-accept drain — callers decide what, if
+/// anything, to record in `zero_output_detail`, since the context label
+/// differs by call site (forced first-AU check vs. ordinary streaming).
+fn submit_vcl_and_drain(
+    handle: &mut backend_construct::DecoderHandle,
+    ordinal: i64,
+    data: &[u8],
+    max_attempts: u32,
+    state: &mut ForceZeroOutputState,
+) -> std::result::Result<(backend_construct::SubmitRecord, Vec<Option<i64>>), String> {
+    let record = backend_construct::submit_with_retry(handle, ordinal, data, max_attempts)?;
+    state.submitted_vcl += 1;
+    state.accepted_vcl += 1;
+    for d in &record.drains {
+        state.combined_emitted.extend(d.iter().copied());
+    }
+    let drain = backend_construct::drain_fully(handle)?;
+    state.combined_emitted.extend(drain.iter().copied());
+    Ok((record, drain))
+}
+
+fn run_force_zero_output(
+    args: &Args,
+    mut handle: backend_construct::DecoderHandle,
+    mut ictx: ffmpeg_next::format::context::Input,
+    video_stream_index: usize,
+) -> Result<bool> {
+    const MAX_EAGAIN_CYCLES: u32 = 64;
+    let start = Instant::now();
+    let timeout = Duration::from_secs(args.timeout_secs);
+
+    let mut packets = ictx.packets();
+
+    // ---- Pull AU 1 (frame 0 is always an IDR keyframe, and
+    // `tools/gen_sample_hevc.sh`'s libx265 encode carries VPS/SPS/PPS on
+    // every AU when muxing to raw Annex-B, so AU 1 definitely has them). ----
+    let mut first_au: Option<Vec<u8>> = None;
+    while let Some((stream, packet)) = packets.next() {
+        if stream.index() != video_stream_index {
+            continue;
+        }
+        first_au = Some(packet.data().context("first AU has no data")?.to_vec());
+        break;
+    }
+    let au1_data = first_au.context("input has no packets on the selected video stream")?;
+
+    let (crafted, crafted_types) = annexb::extract_param_sets(&au1_data);
+
+    let mut state = ForceZeroOutputState::default();
+    let mut notes: Vec<String> = Vec::new();
+    let mut strategy_used: &'static str = "not_forced";
+    let mut fatal_reason: Option<String> = None;
+    let mut au1_submitted = false;
+
+    // ---- Strategy A: crafted parameter-set-only packet as ordinal 0 ----
+    let mut try_strategy_b = false;
+    if crafted.is_empty() {
+        notes.push(format!(
+            "AU 1 carried no VPS/SPS/PPS NAL units (types found: {crafted_types:?}); strategy A unavailable"
+        ));
+        try_strategy_b = true;
+    } else {
+        match backend_construct::submit_with_retry(&mut handle, 0, &crafted, MAX_EAGAIN_CYCLES) {
+            Ok(record) => {
+                for d in &record.drains {
+                    state.combined_emitted.extend(d.iter().copied());
+                }
+                let outcome = send_outcome_label(&record);
+                match backend_construct::drain_fully(&mut handle) {
+                    Ok(drain0) => {
+                        state.combined_emitted.extend(drain0.iter().copied());
+                        if drain0.is_empty() {
+                            strategy_used = "param_set_packet";
+                            state
+                                .zero_output_detail
+                                .push(zero_output_event(0, "forced_param_set_packet", outcome, &drain0));
+                        } else {
+                            notes.push(format!(
+                                "ordinal 0 crafted parameter-set-only packet ({crafted_types:?}) was accepted but its immediate drain emitted {} frame(s) unexpectedly ({drain0:?}); strategy A did not force a zero-output condition",
+                                drain0.len()
+                            ));
+                        }
+                    }
+                    Err(reason) => fatal_reason = Some(format!("ordinal 0 immediate drain: {reason}")),
+                }
+            }
+            Err(reason) => {
+                notes.push(format!("ordinal 0 crafted parameter-set-only packet was REJECTED: {reason}"));
+                try_strategy_b = true;
+            }
+        }
+    }
+
+    // ---- Strategy B fallback: real first AU, immediate drain, before any
+    // further sends (only on strategy A rejection / unavailability). ----
+    if try_strategy_b && fatal_reason.is_none() {
+        match submit_vcl_and_drain(&mut handle, 1, &au1_data, MAX_EAGAIN_CYCLES, &mut state) {
+            Ok((record, drain1)) => {
+                au1_submitted = true;
+                let outcome = send_outcome_label(&record);
+                if drain1.is_empty() {
+                    strategy_used = "first_au_immediate_drain";
+                    state
+                        .zero_output_detail
+                        .push(zero_output_event(1, "first_au_immediate_drain", outcome, &drain1));
+                } else {
+                    notes.push(format!(
+                        "strategy B: ordinal 1 (real first AU) accepted, but its immediate drain emitted {} frame(s) ({drain1:?}) — accepted-no-emit-until-next-send did not hold under an immediate drain",
+                        drain1.len()
+                    ));
+                }
+            }
+            Err(reason) => fatal_reason = Some(format!("ordinal 1 (strategy B real first AU): {reason}")),
+        }
+    }
+
+    // ---- AU 1 as ordinal 1, if not already submitted by strategy B ----
+    // (`au1_submitted` is only ever read above, to decide whether to reach
+    // this block at all — nothing downstream needs it again, so this arm
+    // does not re-assign it.)
+    if fatal_reason.is_none() && !au1_submitted {
+        match submit_vcl_and_drain(&mut handle, 1, &au1_data, MAX_EAGAIN_CYCLES, &mut state) {
+            Ok((_, drain)) => {
+                if drain.is_empty() {
+                    state
+                        .zero_output_detail
+                        .push(zero_output_event(1, "normal_post_accept_drain", "accepted", &drain));
+                }
+            }
+            Err(reason) => fatal_reason = Some(format!("ordinal 1: {reason}")),
+        }
+    }
+
+    // ---- Ordinals 2..N: the rest of the sample, submitted normally ----
+    // `loop_stop_reason` starts "not_entered" so a fatal error during the
+    // AU-1 handling above (which skips this loop entirely) is never
+    // misreported as a clean "end_of_sample".
+    let mut loop_stop_reason = "not_entered";
+    if fatal_reason.is_none() {
+        loop_stop_reason = "end_of_sample";
+        let mut ordinal: i64 = 1;
+        'outer: while let Some((stream, packet)) = packets.next() {
+            if stream.index() != video_stream_index {
+                continue;
+            }
+            if state.submitted_vcl >= args.max_packets {
+                loop_stop_reason = "max_packets_reached";
+                break 'outer;
+            }
+            if start.elapsed() >= timeout {
+                loop_stop_reason = "timeout_reached";
+                break 'outer;
+            }
+            ordinal += 1;
+            let data = match packet.data() {
+                Some(d) => d,
+                None => {
+                    fatal_reason = Some(format!("ordinal {ordinal}: demuxed packet has no data"));
+                    loop_stop_reason = "fatal_error";
+                    break 'outer;
+                }
+            };
+            match submit_vcl_and_drain(&mut handle, ordinal, data, MAX_EAGAIN_CYCLES, &mut state) {
+                Ok((_, drain)) => {
+                    if drain.is_empty() {
+                        state
+                            .zero_output_detail
+                            .push(zero_output_event(ordinal, "normal_post_accept_drain", "accepted", &drain));
+                    }
+                }
+                Err(reason) => {
+                    fatal_reason = Some(format!("ordinal {ordinal}: {reason}"));
+                    loop_stop_reason = "fatal_error";
+                    break 'outer;
+                }
+            }
+        }
+    }
+
+    // ---- Tail / EOF flush ----
+    let mut tail_outputs: usize = 0;
+    if fatal_reason.is_none() {
+        match backend_construct::flush_tail(&mut handle, MAX_EAGAIN_CYCLES) {
+            Ok(tail) => {
+                tail_outputs = tail.recovered.len();
+                state.combined_emitted.extend(tail.recovered.iter().copied());
+            }
+            Err(reason) => fatal_reason = Some(format!("tail flush: {reason}")),
+        }
+    }
+
+    // Derived from `zero_output_detail` itself (rather than a separately
+    // hand-incremented counter) so the two can never diverge — every push
+    // above already covers exactly the events this count should include,
+    // whether they came from the designated forcing attempt or an
+    // incidental zero-output drain elsewhere in the run (e.g. cuvid's
+    // higher lag bound means AU 1's own post-accept drain can legitimately
+    // come back empty too — real evidence, not a bug, if it happens).
+    let zero_output_packets = state.zero_output_detail.len() as u64;
+
+    // ---- Final accounting: exact ordinal coverage of the VCL-bearing
+    // submissions (1..=submitted_vcl), zero unknown/duplicate, and ordinal
+    // 0 (the crafted packet's own PTS, when strategy A ran) never among the
+    // recovered ordinals — proving the injected packet corrupted nothing.
+    let emitted = state.combined_emitted.len() as u64;
+    let unknown_pts = state.combined_emitted.iter().filter(|o| o.is_none()).count() as u64;
+    let mut seen: HashSet<i64> = HashSet::new();
+    let mut duplicates = 0u64;
+    for v in state.combined_emitted.iter().flatten() {
+        if !seen.insert(*v) {
+            duplicates += 1;
+        }
+    }
+    let ordinal_zero_never_emitted = !seen.contains(&0);
+    let expected: HashSet<i64> = (1..=state.submitted_vcl as i64).collect();
+    let ordinal_coverage_exact = fatal_reason.is_none()
+        && unknown_pts == 0
+        && duplicates == 0
+        && ordinal_zero_never_emitted
+        && seen == expected;
+    let exactly_once_ok = fatal_reason.is_none() && state.submitted_vcl == state.accepted_vcl;
+
+    let pass = fatal_reason.is_none() && ordinal_coverage_exact && exactly_once_ok;
+
+    let mut fail_reasons: Vec<String> = Vec::new();
+    if let Some(r) = &fatal_reason {
+        fail_reasons.push(r.clone());
+    }
+    if fatal_reason.is_none() && !ordinal_coverage_exact {
+        fail_reasons.push(format!(
+            "ordinal coverage not exact: submitted_vcl={} accepted_vcl={} emitted={emitted} unknown_pts={unknown_pts} duplicates={duplicates} ordinal_zero_never_emitted={ordinal_zero_never_emitted}",
+            state.submitted_vcl, state.accepted_vcl
+        ));
+    }
+    if fatal_reason.is_none() && !exactly_once_ok {
+        fail_reasons.push(format!(
+            "exactly-once violated: submitted_vcl={} accepted_vcl={}",
+            state.submitted_vcl, state.accepted_vcl
+        ));
+    }
+
+    let report = serde_json::json!({
+        "mode": "force_zero_output",
+        "backend": args.backend.id(),
+        "pass": pass,
+        "strategy_used": strategy_used,
+        "zero_output_packets": zero_output_packets,
+        "zero_output_detail": state.zero_output_detail,
+        "emitted": emitted,
+        "submitted_vcl": state.submitted_vcl,
+        "accepted_vcl": state.accepted_vcl,
+        "unknown_pts": unknown_pts,
+        "duplicates": duplicates,
+        "ordinal_zero_never_emitted": ordinal_zero_never_emitted,
+        "ordinal_coverage_exact": ordinal_coverage_exact,
+        "exactly_once_ok": exactly_once_ok,
+        "tail_outputs": tail_outputs,
+        "loop_stop_reason": loop_stop_reason,
+        "crafted_param_set_nal_types": crafted_types,
+        "environment": environment_report(),
+        "bounds": { "max_packets": args.max_packets, "timeout_secs": args.timeout_secs },
+        "notes": notes,
+        "fail_reasons": fail_reasons,
+    });
+
+    log::info!(
+        "decoder-experiment --force-zero-output done: backend={} pass={pass} strategy_used={strategy_used} zero_output_packets={zero_output_packets} submitted_vcl={} emitted={emitted}",
+        args.backend.id(),
+        state.submitted_vcl
+    );
+
+    write_report(&report, args.json_out.as_ref())?;
+    Ok(pass)
+}
+
+// ---------------------------------------------------------------------
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -801,11 +1229,7 @@ fn main() -> Result<()> {
         Err(e) => {
             let (failing_call, detail) = classify_open_error(&e);
             log::error!("backend init failed: {failing_call}: {detail}");
-            let report = if args.characterize {
-                init_failure_report_characterize(&args, &failing_call, &detail)
-            } else {
-                init_failure_report(args.backend, &failing_call, &detail)
-            };
+            let report = init_failure_report_for_mode(&args, &failing_call, &detail);
             write_report(&report, args.json_out.as_ref())?;
             std::process::exit(1);
         }
@@ -815,11 +1239,7 @@ fn main() -> Result<()> {
         Ok(i) => i,
         Err(e) => {
             log::error!("avformat_open_input failed: {e}");
-            let report = if args.characterize {
-                init_failure_report_characterize(&args, "avformat_open_input", &e.to_string())
-            } else {
-                init_failure_report(args.backend, "avformat_open_input", &e.to_string())
-            };
+            let report = init_failure_report_for_mode(&args, "avformat_open_input", &e.to_string());
             write_report(&report, args.json_out.as_ref())?;
             std::process::exit(1);
         }
@@ -829,11 +1249,7 @@ fn main() -> Result<()> {
         Some(s) => s.index(),
         None => {
             log::error!("av_find_best_stream found no video stream");
-            let report = if args.characterize {
-                init_failure_report_characterize(&args, "av_find_best_stream", "no video stream in input")
-            } else {
-                init_failure_report(args.backend, "av_find_best_stream", "no video stream in input")
-            };
+            let report = init_failure_report_for_mode(&args, "av_find_best_stream", "no video stream in input");
             write_report(&report, args.json_out.as_ref())?;
             std::process::exit(1);
         }
@@ -843,6 +1259,8 @@ fn main() -> Result<()> {
         run_characterize(&args, handle, ictx, video_stream_index)?
     } else if args.clean {
         run_streaming(&args, handle, ictx, video_stream_index, "clean", 0, 0)?
+    } else if args.force_zero_output {
+        run_force_zero_output(&args, handle, ictx, video_stream_index)?
     } else {
         run_streaming(&args, handle, ictx, video_stream_index, "default", args.stall_every, args.stall_ms)?
     };
