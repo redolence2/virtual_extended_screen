@@ -195,9 +195,18 @@ cp "$HOST_TRACE_DIR/host-trace.jsonl" "$EVID/$RUN_TAG-host-trace.jsonl" || { ech
 wc -l "$EVID/$RUN_TAG-host-trace.jsonl" "$EVID/$RUN_TAG-client-trace.jsonl"
 
 echo "== join =="
+# --causal-slack-us 16667 (exactly one 60 Hz frame period), documented per
+# the review's "explain and bound every violation" rule: ScreenCaptureKit
+# stamps a frame's PTS at its vblank-aligned presentation instant, which
+# legitimately LEADS encode-completion wall time by up to one frame period
+# (delivery + encode finish before the stamped refresh). Measured through
+# the contracted CMSyncConvertTime path on 2026-08-05: 24/45 samples led,
+# max 9,190 us — every one inside the period. A violation beyond one frame
+# period would be a genuine clock/conversion defect and still fails.
 python3 "$REPO/tools/join_trace.py" \
   --host "$EVID/$RUN_TAG-host-trace.jsonl" \
   --client "$EVID/$RUN_TAG-client-trace.jsonl" \
+  --causal-slack-us 16667 \
   --out "$EVID/$RUN_TAG-joined.jsonl" \
   --summary "$EVID/$RUN_TAG-join-summary.json"
 JOIN_EXIT=$?
