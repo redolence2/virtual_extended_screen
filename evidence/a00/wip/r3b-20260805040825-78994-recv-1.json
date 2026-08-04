@@ -1,0 +1,29 @@
+{
+  "ack_order_violations": 0,
+  "backend": "sw1-lowdelay",
+  "clean_eof_tail_drain": true,
+  "duplicates": 0,
+  "eagain_retries": 0,
+  "fail_reasons": [],
+  "fatal_decoder_errors": 0,
+  "frames_accepted": 536,
+  "frames_acked": 536,
+  "frames_emitted": 536,
+  "frames_received": 536,
+  "listen": "0.0.0.0:9871",
+  "max_decode_lag_frames": 1,
+  "outstanding_at_exit": 0,
+  "pass": true,
+  "peer": "192.168.50.125:56505",
+  "protocol_errors": 0,
+  "receive_to_ack_latency_ms": {
+    "max": 7.319688,
+    "p50": 3.660631,
+    "p95": 4.242093
+  },
+  "reorders": 0,
+  "report_v": 2,
+  "skips": 0,
+  "torn_down": false,
+  "unknown_pts": 0
+}

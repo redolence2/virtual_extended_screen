@@ -122,18 +122,23 @@ ssh "$BOX" 'pgrep remote-display >/dev/null && echo client-running || echo CLIEN
 echo "== streaming for ${STREAM_SECS:-30}s =="
 sleep "${STREAM_SECS:-30}"
 
-echo "== stop both: SIGTERM, then wait up to ${TERM_TIMEOUT_S}s each for clean exit =="
+echo "== stop: client first (full drain/tail/footer while the host lives), then host =="
 GATE_FAILED=0
 
-# Send both SIGTERMs up front so the two independent shutdown sequences
-# (client trace drain/flush/footer; host's own equivalent) run concurrently
-# in real time — the polling below is sequential bash, not the signaling.
+# Termination ORDER is load-bearing (C7 live-gate finding, 2026-08-05):
+# SIGTERMing both ends concurrently let the host die first, so the client
+# hit its control-channel-EOF exit path before its SIGTERM shutdown
+# sequence ran — no client footer, and the joiner (correctly) refused the
+# truncated trace. The orderly protocol is sequential: the client completes
+# its entire trace-mode shutdown (drain admitted queue -> decoder tail ->
+# clean footer) while the host is still alive, and only then does the host
+# get its SIGTERM. A host that dies mid-trace outside this script still
+# yields a footerless client trace — and that run SHOULD fail the gate.
 if [ -n "$CLIENT_PID" ]; then
   ssh "$BOX" "kill -TERM $CLIENT_PID 2>/dev/null" </dev/null
 else
   ssh "$BOX" 'pkill -TERM remote-display' </dev/null
 fi
-kill -TERM "$HOST_PID" 2>/dev/null
 
 if [ -n "$CLIENT_PID" ]; then
   if wait_for_remote_exit "$CLIENT_PID" "$TERM_TIMEOUT_S"; then
@@ -161,6 +166,8 @@ else
 fi
 ssh "$BOX" 'echo "client log tail:"; tail -8 /tmp/resc-r4-client.log' </dev/null
 
+# Only now — with the client's footer safely on disk — terminate the host.
+kill -TERM "$HOST_PID" 2>/dev/null
 if wait_for_local_exit "$HOST_PID" "$TERM_TIMEOUT_S"; then
   echo "host exited cleanly"
 else

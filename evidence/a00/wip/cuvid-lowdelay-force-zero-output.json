@@ -1,0 +1,49 @@
+{
+  "accepted_vcl": 480,
+  "backend": "cuvid-lowdelay",
+  "bounds": {
+    "max_packets": 480,
+    "timeout_secs": 60
+  },
+  "crafted_param_set_nal_types": [
+    32,
+    33,
+    34
+  ],
+  "duplicates": 0,
+  "emitted": 480,
+  "environment": {
+    "ffmpeg_version": "61.19.101 (raw 4002661)",
+    "kernel_release": "6.8.0-65-generic",
+    "nvidia_driver_version": "570.169"
+  },
+  "exactly_once_ok": true,
+  "fail_reasons": [],
+  "loop_stop_reason": "end_of_sample",
+  "mode": "force_zero_output",
+  "notes": [],
+  "ordinal_coverage_exact": true,
+  "ordinal_zero_never_emitted": true,
+  "pass": true,
+  "strategy_used": "param_set_packet",
+  "submitted_vcl": 480,
+  "tail_outputs": 1,
+  "unknown_pts": 0,
+  "zero_output_detail": [
+    {
+      "context": "forced_param_set_packet",
+      "frames_this_drain": 0,
+      "ordinal": 0,
+      "recovered_pts": [],
+      "send_outcome": "accepted"
+    },
+    {
+      "context": "normal_post_accept_drain",
+      "frames_this_drain": 0,
+      "ordinal": 1,
+      "recovered_pts": [],
+      "send_outcome": "accepted"
+    }
+  ],
+  "zero_output_packets": 2
+}
