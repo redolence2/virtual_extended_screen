@@ -1,0 +1,87 @@
+2026-08-05 13:10:02.779 remote-display-host[13004:100593] [RESC] Set sizeInMillimeters: 299x531
+2026-08-05 13:10:02.779 remote-display-host[13004:100593] [RESC] Descriptor configured: 1080x1920 (sizeInMM follows orientation)
+2026-08-05 13:10:03.148 remote-display-host[13004:100593] [RESC] Virtual display created: displayID=6, vendor=0xE5C, product=0x1, serial=0x52455343, size=1080x1920@60Hz
+2026-08-05 13:10:03.356 remote-display-host[13004:100593] [RESC] Display 6 in CG online list: YES, total displays: 3
+2026-08-05 13:11:17.899 remote-display-host[13004:102066] [RESC] Destroying virtual display: displayID=6
+[RESC] Remote Extended Screen Host starting...
+[RESC] Protocol constants v1:
+[RESC]   PACKET_PREFIX_BYTES      = 6
+[RESC]   VIDEO_CHUNK_HEADER_BYTES  = 36
+[RESC]   VIDEO_TOTAL_HEADER_BYTES  = 42
+[RESC]   MAX_VIDEO_PAYLOAD_BYTES   = 1358
+[RESC]   CURSOR_TOTAL_PACKET_BYTES = 35
+[RESC]   INPUT_TOTAL_PACKET_BYTES  = 28
+[RESC] macOS build: 26A5388g
+[RESC] Mode: 1080x1920@60Hz, control port: 9870
+[RESC] WARNING: OS build 26A5388g unknown, proceeding.
+[RESC] WARNING: Unknown macOS build 26A5388g — attempting virtual display creation
+[RESC] Display identity [creation]: displayID=6, vendor=3676/model=1/serial=1380275011, size=1080x1920
+[RESC] Virtual display: displayID=6
+[RESC] Codec: HEVC, bitrate: 20Mbps
+[RESC] Night Shift monitor started
+[RESC] mDNS: advertising _remotedisplay._tcp. on port 9870
+[RESC] Session: idle → waitingForClient
+[RESC] Host session started, waiting for client on port 9870
+[RESC] Running. Press Ctrl+C to stop.
+[RESC] Control channel listening on port 9870
+[RESC] FramePacer started: forcing 60fps compositor updates on display 6
+[RESC] Encoder started: HEVC 1080x1920, 20Mbps
+[RESC] Capture started: displayID=6, 1080x1920@60fps, NV12
+[RESC] First frame pixel format: NV12
+[RESC] mDNS: published as 'Remote Extended Screen' on port 9870
+[RESC] Capture FPS: 57.0 (frames=285, dropped=0)
+[RESC] Encode: 300 frames, 10 KF, avg 6.7ms [HEVC]
+[RESC] Control client connected: 192.168.50.47:42648
+[RESC] Client connected from 192.168.50.47:42648
+[RESC] Session: waitingForClient → negotiating
+[RESC] Sending ModeConfirm: 1080x1920, stream=1137287256, config=1, video_port=9871
+[RESC] Waiting for StreamingReady from client...
+[RESC] StreamingReady received, starting video
+[RESC] Session: negotiating → streaming
+[RESC] Video UDP sender ready → 192.168.50.47:9871
+[RESC] Video sender → 192.168.50.47:9871
+[RESC] CursorTracker started → 192.168.50.47:9873 (120Hz)
+[RESC] Input receiver listening on UDP port 9872
+[RESC] Forced keyframe for streaming start
+[RESC] Streaming started: stream=1137287256, config=1
+[RESC] First keyframe sent to client (410KB)
+[RESC] Night Shift: ON (strength 50%)
+[RESC] Night Shift → client (warm=0.5)
+[RESC] Capture FPS: 57.8 (frames=574, dropped=0)
+[RESC] Encode: 600 frames, 21 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 57.6 (frames=862, dropped=1)
+[RESC] Encode: 900 frames, 31 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 58.0 (frames=1153, dropped=1)
+[RESC] Encode: 1200 frames, 41 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 58.2 (frames=1444, dropped=1)
+[RESC] Encode: 1500 frames, 51 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 58.1 (frames=1735, dropped=1)
+[RESC] Encode: 1800 frames, 61 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 58.0 (frames=2026, dropped=1)
+[RESC] Encode: 2100 frames, 71 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 58.0 (frames=2317, dropped=1)
+[RESC] Encode: 2400 frames, 81 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 58.2 (frames=2608, dropped=1)
+[RESC] Encode: 2700 frames, 91 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 57.9 (frames=2898, dropped=1)
+[RESC] Encode: 3000 frames, 101 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 57.7 (frames=3187, dropped=1)
+[RESC] Encode: 3300 frames, 111 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 57.7 (frames=3476, dropped=1)
+[RESC] Encode: 3600 frames, 121 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 57.7 (frames=3765, dropped=1)
+[RESC] Encode: 3900 frames, 131 KF, avg 6.7ms [HEVC]
+[RESC] Capture FPS: 57.8 (frames=4055, dropped=1)
+[RESC] Encode: 4200 frames, 141 KF, avg 6.7ms [HEVC]
+[RESC] Control connection closed by peer
+
+[RESC] SIGTERM received (trace mode) — shutting down...
+[RESC] Encoder stopped: 4285 frames, 144 KF, avg 6.7ms [HEVC]
+[RESC] CursorTracker stopped (seq=0)
+[RESC] Input receiver: 0 packets
+[RESC] Video sender: 44042 packets, 56703KB sent
+[RESC] Video sender: 44042 packets, 56703KB sent
+[RESC] Control connection closed
+[RESC] Capture stopped. Total frames: 4286, dropped: 1
+[RESC] Virtual display destroyed
+[RESC] Final: 4285 frames, 144 KF, avg 6.7ms

@@ -1,0 +1,4 @@
+2026-08-05 12:54:20.368 remote-display-host[12041:86389] [RESC] Set sizeInMillimeters: 531x299
+2026-08-05 12:54:20.368 remote-display-host[12041:86389] [RESC] Descriptor configured: 1920x1080, sizeInMM=531x299
+2026-08-05 12:54:20.793 remote-display-host[12041:86389] [RESC] Virtual display created: displayID=4, vendor=0xE5C, product=0x1, serial=0x52455343, size=1920x1080@60Hz
+2026-08-05 12:54:21.037 remote-display-host[12041:86389] [RESC] Display 4 in CG online list: YES, total displays: 3

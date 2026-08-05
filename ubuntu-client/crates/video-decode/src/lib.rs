@@ -116,6 +116,13 @@ impl VideoDecoder {
 
         unsafe {
             (*context.as_mut_ptr()).hw_device_ctx = ffmpeg_sys_next::av_buffer_ref(hw_device_ctx);
+            // LOW_DELAY before open zeroes CUVID's default 4-frame display
+            // queue (ulMaxDisplayDelay) — measured as a 67ms standing
+            // latency (99.8% of frames at exactly gap 4 in the 2026-08-05
+            // demo trace). Mirrors backend-construct's characterized
+            // cuvid-lowdelay configuration, extra_hw_frames included.
+            (*context.as_mut_ptr()).flags |= ffmpeg_sys_next::AV_CODEC_FLAG_LOW_DELAY as i32;
+            (*context.as_mut_ptr()).extra_hw_frames = 8;
         }
 
         let decoder = context.decoder().video()

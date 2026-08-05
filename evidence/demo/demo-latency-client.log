@@ -1,0 +1,512 @@
+[2026-08-05T04:10:10Z INFO  protocol::constants] Protocol constants v1:
+[2026-08-05T04:10:10Z INFO  protocol::constants]   PACKET_PREFIX_BYTES      = 6
+[2026-08-05T04:10:10Z INFO  protocol::constants]   VIDEO_CHUNK_HEADER_BYTES  = 36
+[2026-08-05T04:10:10Z INFO  protocol::constants]   VIDEO_TOTAL_HEADER_BYTES  = 42
+[2026-08-05T04:10:10Z INFO  protocol::constants]   MAX_VIDEO_PAYLOAD_BYTES   = 1358
+[2026-08-05T04:10:10Z INFO  protocol::constants]   CURSOR_TOTAL_PACKET_BYTES = 35
+[2026-08-05T04:10:10Z INFO  protocol::constants]   INPUT_TOTAL_PACKET_BYTES  = 28
+[2026-08-05T04:10:11Z INFO  remote_display_client] Connecting to 192.168.50.125:9870
+[2026-08-05T04:10:11Z INFO  net_transport::control_channel] Control channel connected to 192.168.50.125:9870
+[2026-08-05T04:10:11Z INFO  net_transport::control_channel] Sent ModeRequest: 1920x1080@60000mHz
+[2026-08-05T04:10:11Z INFO  net_transport::control_channel] ModeConfirm: 1080x1920, stream_id=1137287256, config_id=1, codec=1
+[2026-08-05T04:10:11Z INFO  net_transport::control_channel] StreamingReady sent
+[2026-08-05T04:10:11Z INFO  net_transport::video_receiver] Video receiver listening on UDP port 9871
+[2026-08-05T04:10:11Z INFO  remote_display_client] Streaming active. Press Ctrl+C to stop.
+[2026-08-05T04:10:11Z INFO  remote_display_client] Cursor receiver listening on UDP port 9873
+[2026-08-05T04:10:11Z INFO  net_transport::video_receiver] First video packet: frame_id=0, chunk_id=0, size=1358B, stream_id=1137287256
+[2026-08-05T04:10:11Z INFO  net_transport::video_receiver]   Frame meta: 1080x1920, total_chunks=310, total_bytes=420822, keyframe=true
+[2026-08-05T04:10:11Z INFO  net_transport::video_receiver] Recv stats: 100 packets, 0 dropped, 0 assembled, 0 frame_drops
+[2026-08-05T04:10:11Z INFO  net_transport::video_receiver] Recv stats: 200 packets, 0 dropped, 0 assembled, 0 frame_drops
+[2026-08-05T04:10:11Z INFO  net_transport::video_receiver] Recv stats: 300 packets, 0 dropped, 0 assembled, 0 frame_drops
+[hevc_cuvid @ 0x7cf564953600] Invalid pkt_timebase, passing timestamps as-is.
+[2026-08-05T04:10:11Z INFO  video_decode] HEVC CUVID decoder initialized (NVDEC hardware, RTX GPU)
+[2026-08-05T04:10:11Z INFO  renderer] SDL2 displays: 1
+[2026-08-05T04:10:11Z INFO  renderer]   Display 0: 'LS32D70xE 32"' at 1080x1920+0+0
+[2026-08-05T04:10:11Z INFO  renderer] Flash test on display 0 for 2 seconds...
+[2026-08-05T04:10:11Z INFO  remote_display_client] Night Shift: warm_strength=50%
+[2026-08-05T04:10:11Z INFO  net_transport::video_receiver] Recv stats: 400 packets, 0 dropped, 30 assembled, 26 frame_drops
+[2026-08-05T04:10:11Z INFO  net_transport::video_receiver] Recv stats: 500 packets, 0 dropped, 30 assembled, 26 frame_drops
+[2026-08-05T04:10:11Z INFO  net_transport::video_receiver] Recv stats: 600 packets, 0 dropped, 30 assembled, 26 frame_drops
+[2026-08-05T04:10:12Z INFO  net_transport::video_receiver] Recv stats: 700 packets, 0 dropped, 59 assembled, 56 frame_drops
+[2026-08-05T04:10:12Z INFO  net_transport::video_receiver] Recv stats: 800 packets, 0 dropped, 59 assembled, 56 frame_drops
+[2026-08-05T04:10:12Z INFO  net_transport::video_receiver] Recv stats: 900 packets, 0 dropped, 59 assembled, 56 frame_drops
+[2026-08-05T04:10:13Z INFO  renderer] Renderer ready on display 0 (1080x1920)
+[2026-08-05T04:10:13Z INFO  input_capture] Input sender → 192.168.50.125:9872
+[2026-08-05T04:10:13Z INFO  net_transport::video_receiver] Recv stats: 1000 packets, 0 dropped, 84 assembled, 77 frame_drops
+[2026-08-05T04:10:13Z INFO  remote_display_client] First decoded frame: 1080x1920, decode 5.1ms
+[2026-08-05T04:10:13Z INFO  renderer] Texture cache: created 1080x1920
+[2026-08-05T04:10:13Z INFO  net_transport::video_receiver] Recv stats: 1100 packets, 0 dropped, 100 assembled, 86 frame_drops
+[2026-08-05T04:10:13Z INFO  net_transport::video_receiver] Recv stats: 1200 packets, 0 dropped, 100 assembled, 86 frame_drops
+[2026-08-05T04:10:13Z INFO  net_transport::video_receiver] Recv stats: 1300 packets, 0 dropped, 100 assembled, 86 frame_drops
+[2026-08-05T04:10:13Z INFO  net_transport::video_receiver] Recv stats: 1400 packets, 0 dropped, 118 assembled, 86 frame_drops
+[2026-08-05T04:10:14Z INFO  net_transport::video_receiver] Recv stats: 1500 packets, 0 dropped, 130 assembled, 86 frame_drops
+[2026-08-05T04:10:14Z INFO  net_transport::video_receiver] Recv stats: 1600 packets, 0 dropped, 130 assembled, 86 frame_drops
+[2026-08-05T04:10:14Z INFO  net_transport::video_receiver] Recv stats: 1700 packets, 0 dropped, 130 assembled, 86 frame_drops
+[2026-08-05T04:10:14Z INFO  remote_display_client] Decoded: 60 frames, 59.1 fps, avg decode 2.3ms
+[2026-08-05T04:10:14Z INFO  net_transport::video_receiver] Recv stats: 1800 packets, 0 dropped, 160 assembled, 86 frame_drops
+[2026-08-05T04:10:14Z INFO  net_transport::video_receiver] Recv stats: 1900 packets, 0 dropped, 160 assembled, 86 frame_drops
+[2026-08-05T04:10:14Z INFO  net_transport::video_receiver] Recv stats: 2000 packets, 0 dropped, 160 assembled, 86 frame_drops
+[2026-08-05T04:10:15Z INFO  net_transport::video_receiver] Recv stats: 2100 packets, 0 dropped, 190 assembled, 86 frame_drops
+[2026-08-05T04:10:15Z INFO  net_transport::video_receiver] Recv stats: 2200 packets, 0 dropped, 190 assembled, 86 frame_drops
+[2026-08-05T04:10:15Z INFO  net_transport::video_receiver] Recv stats: 2300 packets, 0 dropped, 190 assembled, 86 frame_drops
+[2026-08-05T04:10:15Z INFO  net_transport::video_receiver] Recv stats: 2400 packets, 0 dropped, 191 assembled, 86 frame_drops
+[2026-08-05T04:10:15Z INFO  remote_display_client] Decoded: 120 frames, 57.3 fps, avg decode 2.0ms
+[2026-08-05T04:10:15Z INFO  net_transport::video_receiver] Recv stats: 2500 packets, 0 dropped, 220 assembled, 86 frame_drops
+[2026-08-05T04:10:15Z INFO  net_transport::video_receiver] Recv stats: 2600 packets, 0 dropped, 220 assembled, 86 frame_drops
+[2026-08-05T04:10:15Z INFO  net_transport::video_receiver] Recv stats: 2700 packets, 0 dropped, 220 assembled, 86 frame_drops
+[2026-08-05T04:10:16Z INFO  net_transport::video_receiver] Recv stats: 2800 packets, 0 dropped, 250 assembled, 86 frame_drops
+[2026-08-05T04:10:16Z INFO  net_transport::video_receiver] Recv stats: 2900 packets, 0 dropped, 250 assembled, 86 frame_drops
+[2026-08-05T04:10:16Z INFO  net_transport::video_receiver] Recv stats: 3000 packets, 0 dropped, 250 assembled, 86 frame_drops
+[2026-08-05T04:10:16Z INFO  remote_display_client] Decoded: 180 frames, 57.5 fps, avg decode 1.7ms
+[2026-08-05T04:10:16Z INFO  net_transport::video_receiver] Recv stats: 3100 packets, 0 dropped, 273 assembled, 86 frame_drops
+[2026-08-05T04:10:16Z INFO  net_transport::video_receiver] Recv stats: 3200 packets, 0 dropped, 280 assembled, 86 frame_drops
+[2026-08-05T04:10:16Z INFO  net_transport::video_receiver] Recv stats: 3300 packets, 0 dropped, 280 assembled, 86 frame_drops
+[2026-08-05T04:10:16Z INFO  net_transport::video_receiver] Recv stats: 3400 packets, 0 dropped, 280 assembled, 86 frame_drops
+[2026-08-05T04:10:17Z INFO  net_transport::video_receiver] Recv stats: 3500 packets, 0 dropped, 310 assembled, 86 frame_drops
+[2026-08-05T04:10:17Z INFO  net_transport::video_receiver] Recv stats: 3600 packets, 0 dropped, 310 assembled, 86 frame_drops
+[2026-08-05T04:10:17Z INFO  net_transport::video_receiver] Recv stats: 3700 packets, 0 dropped, 310 assembled, 86 frame_drops
+[2026-08-05T04:10:17Z INFO  remote_display_client] Decoded: 240 frames, 57.4 fps, avg decode 1.6ms
+[2026-08-05T04:10:17Z INFO  net_transport::video_receiver] Recv stats: 3800 packets, 0 dropped, 340 assembled, 86 frame_drops
+[2026-08-05T04:10:17Z INFO  net_transport::video_receiver] Recv stats: 3900 packets, 0 dropped, 340 assembled, 86 frame_drops
+[2026-08-05T04:10:17Z INFO  net_transport::video_receiver] Recv stats: 4000 packets, 0 dropped, 340 assembled, 86 frame_drops
+[2026-08-05T04:10:17Z INFO  net_transport::video_receiver] Recv stats: 4100 packets, 0 dropped, 346 assembled, 86 frame_drops
+[2026-08-05T04:10:18Z INFO  net_transport::video_receiver] Recv stats: 4200 packets, 0 dropped, 370 assembled, 86 frame_drops
+[2026-08-05T04:10:18Z INFO  net_transport::video_receiver] Recv stats: 4300 packets, 0 dropped, 370 assembled, 86 frame_drops
+[2026-08-05T04:10:18Z INFO  net_transport::video_receiver] Recv stats: 4400 packets, 0 dropped, 370 assembled, 86 frame_drops
+[2026-08-05T04:10:18Z INFO  remote_display_client] Decoded: 300 frames, 57.5 fps, avg decode 1.6ms
+[2026-08-05T04:10:18Z INFO  net_transport::video_receiver] Recv stats: 4500 packets, 0 dropped, 400 assembled, 86 frame_drops
+[2026-08-05T04:10:18Z INFO  net_transport::video_receiver] Recv stats: 4600 packets, 0 dropped, 400 assembled, 86 frame_drops
+[2026-08-05T04:10:18Z INFO  net_transport::video_receiver] Recv stats: 4700 packets, 0 dropped, 400 assembled, 86 frame_drops
+[2026-08-05T04:10:19Z INFO  net_transport::video_receiver] Recv stats: 4800 packets, 0 dropped, 428 assembled, 86 frame_drops
+[2026-08-05T04:10:19Z INFO  net_transport::video_receiver] Recv stats: 4900 packets, 0 dropped, 430 assembled, 86 frame_drops
+[2026-08-05T04:10:19Z INFO  net_transport::video_receiver] Recv stats: 5000 packets, 0 dropped, 430 assembled, 86 frame_drops
+[2026-08-05T04:10:19Z INFO  net_transport::video_receiver] Recv stats: 5100 packets, 0 dropped, 430 assembled, 86 frame_drops
+[2026-08-05T04:10:19Z INFO  remote_display_client] Decoded: 360 frames, 57.6 fps, avg decode 1.5ms
+[2026-08-05T04:10:19Z INFO  net_transport::video_receiver] Recv stats: 5200 packets, 0 dropped, 460 assembled, 86 frame_drops
+[2026-08-05T04:10:19Z INFO  net_transport::video_receiver] Recv stats: 5300 packets, 0 dropped, 460 assembled, 86 frame_drops
+[2026-08-05T04:10:19Z INFO  net_transport::video_receiver] Recv stats: 5400 packets, 0 dropped, 460 assembled, 86 frame_drops
+[2026-08-05T04:10:20Z INFO  net_transport::video_receiver] Recv stats: 5500 packets, 0 dropped, 490 assembled, 86 frame_drops
+[2026-08-05T04:10:20Z INFO  net_transport::video_receiver] Recv stats: 5600 packets, 0 dropped, 490 assembled, 86 frame_drops
+[2026-08-05T04:10:20Z INFO  net_transport::video_receiver] Recv stats: 5700 packets, 0 dropped, 490 assembled, 86 frame_drops
+[2026-08-05T04:10:20Z INFO  net_transport::video_receiver] Recv stats: 5800 packets, 0 dropped, 501 assembled, 86 frame_drops
+[2026-08-05T04:10:20Z INFO  remote_display_client] Decoded: 420 frames, 57.7 fps, avg decode 1.5ms
+[2026-08-05T04:10:20Z INFO  net_transport::video_receiver] Recv stats: 5900 packets, 0 dropped, 520 assembled, 86 frame_drops
+[2026-08-05T04:10:20Z INFO  net_transport::video_receiver] Recv stats: 6000 packets, 0 dropped, 520 assembled, 86 frame_drops
+[2026-08-05T04:10:20Z INFO  net_transport::video_receiver] Recv stats: 6100 packets, 0 dropped, 520 assembled, 86 frame_drops
+[2026-08-05T04:10:21Z INFO  net_transport::video_receiver] Recv stats: 6200 packets, 0 dropped, 550 assembled, 86 frame_drops
+[2026-08-05T04:10:21Z INFO  net_transport::video_receiver] Recv stats: 6300 packets, 0 dropped, 550 assembled, 86 frame_drops
+[2026-08-05T04:10:21Z INFO  net_transport::video_receiver] Recv stats: 6400 packets, 0 dropped, 550 assembled, 86 frame_drops
+[2026-08-05T04:10:21Z INFO  remote_display_client] Decoded: 480 frames, 57.6 fps, avg decode 1.5ms
+[2026-08-05T04:10:21Z INFO  net_transport::video_receiver] Recv stats: 6500 packets, 0 dropped, 580 assembled, 86 frame_drops
+[2026-08-05T04:10:21Z INFO  net_transport::video_receiver] Recv stats: 6600 packets, 0 dropped, 580 assembled, 86 frame_drops
+[2026-08-05T04:10:21Z INFO  net_transport::video_receiver] Recv stats: 6700 packets, 0 dropped, 580 assembled, 86 frame_drops
+[2026-08-05T04:10:21Z INFO  net_transport::video_receiver] Recv stats: 6800 packets, 0 dropped, 580 assembled, 86 frame_drops
+[2026-08-05T04:10:22Z INFO  net_transport::video_receiver] Recv stats: 6900 packets, 0 dropped, 610 assembled, 86 frame_drops
+[2026-08-05T04:10:22Z INFO  net_transport::video_receiver] Recv stats: 7000 packets, 0 dropped, 610 assembled, 86 frame_drops
+[2026-08-05T04:10:22Z INFO  net_transport::video_receiver] Recv stats: 7100 packets, 0 dropped, 610 assembled, 86 frame_drops
+[2026-08-05T04:10:22Z INFO  remote_display_client] Decoded: 540 frames, 57.8 fps, avg decode 1.4ms
+[2026-08-05T04:10:23Z INFO  net_transport::video_receiver] Recv stats: 7200 packets, 0 dropped, 640 assembled, 86 frame_drops
+[2026-08-05T04:10:23Z INFO  net_transport::video_receiver] Recv stats: 7300 packets, 0 dropped, 640 assembled, 86 frame_drops
+[2026-08-05T04:10:23Z INFO  net_transport::video_receiver] Recv stats: 7400 packets, 0 dropped, 640 assembled, 86 frame_drops
+[2026-08-05T04:10:23Z INFO  net_transport::video_receiver] Recv stats: 7500 packets, 0 dropped, 656 assembled, 86 frame_drops
+[2026-08-05T04:10:23Z INFO  net_transport::video_receiver] Recv stats: 7600 packets, 0 dropped, 670 assembled, 86 frame_drops
+[2026-08-05T04:10:23Z INFO  net_transport::video_receiver] Recv stats: 7700 packets, 0 dropped, 670 assembled, 86 frame_drops
+[2026-08-05T04:10:23Z INFO  net_transport::video_receiver] Recv stats: 7800 packets, 0 dropped, 670 assembled, 86 frame_drops
+[2026-08-05T04:10:23Z INFO  remote_display_client] Decoded: 600 frames, 57.8 fps, avg decode 1.4ms
+[2026-08-05T04:10:24Z INFO  net_transport::video_receiver] Recv stats: 7900 packets, 0 dropped, 700 assembled, 86 frame_drops
+[2026-08-05T04:10:24Z INFO  net_transport::video_receiver] Recv stats: 8000 packets, 0 dropped, 700 assembled, 86 frame_drops
+[2026-08-05T04:10:24Z INFO  net_transport::video_receiver] Recv stats: 8100 packets, 0 dropped, 700 assembled, 86 frame_drops
+[2026-08-05T04:10:24Z INFO  net_transport::video_receiver] Recv stats: 8200 packets, 0 dropped, 730 assembled, 86 frame_drops
+[2026-08-05T04:10:24Z INFO  net_transport::video_receiver] Recv stats: 8300 packets, 0 dropped, 730 assembled, 86 frame_drops
+[2026-08-05T04:10:24Z INFO  net_transport::video_receiver] Recv stats: 8400 packets, 0 dropped, 730 assembled, 86 frame_drops
+[2026-08-05T04:10:24Z INFO  net_transport::video_receiver] Recv stats: 8500 packets, 0 dropped, 730 assembled, 86 frame_drops
+[2026-08-05T04:10:24Z INFO  remote_display_client] Decoded: 660 frames, 57.8 fps, avg decode 1.4ms
+[2026-08-05T04:10:25Z INFO  net_transport::video_receiver] Recv stats: 8600 packets, 0 dropped, 760 assembled, 86 frame_drops
+[2026-08-05T04:10:25Z INFO  net_transport::video_receiver] Recv stats: 8700 packets, 0 dropped, 760 assembled, 86 frame_drops
+[2026-08-05T04:10:25Z INFO  net_transport::video_receiver] Recv stats: 8800 packets, 0 dropped, 760 assembled, 86 frame_drops
+[2026-08-05T04:10:25Z INFO  net_transport::video_receiver] Recv stats: 8900 packets, 0 dropped, 790 assembled, 86 frame_drops
+[2026-08-05T04:10:25Z INFO  net_transport::video_receiver] Recv stats: 9000 packets, 0 dropped, 790 assembled, 86 frame_drops
+[2026-08-05T04:10:25Z INFO  net_transport::video_receiver] Recv stats: 9100 packets, 0 dropped, 790 assembled, 86 frame_drops
+[2026-08-05T04:10:25Z INFO  remote_display_client] Decoded: 720 frames, 57.8 fps, avg decode 1.4ms
+[2026-08-05T04:10:25Z INFO  net_transport::video_receiver] Recv stats: 9200 packets, 0 dropped, 811 assembled, 86 frame_drops
+[2026-08-05T04:10:26Z INFO  net_transport::video_receiver] Recv stats: 9300 packets, 0 dropped, 820 assembled, 86 frame_drops
+[2026-08-05T04:10:26Z INFO  net_transport::video_receiver] Recv stats: 9400 packets, 0 dropped, 820 assembled, 86 frame_drops
+[2026-08-05T04:10:26Z INFO  net_transport::video_receiver] Recv stats: 9500 packets, 0 dropped, 820 assembled, 86 frame_drops
+[2026-08-05T04:10:26Z INFO  net_transport::video_receiver] Recv stats: 9600 packets, 0 dropped, 850 assembled, 86 frame_drops
+[2026-08-05T04:10:26Z INFO  net_transport::video_receiver] Recv stats: 9700 packets, 0 dropped, 850 assembled, 86 frame_drops
+[2026-08-05T04:10:26Z INFO  net_transport::video_receiver] Recv stats: 9800 packets, 0 dropped, 850 assembled, 86 frame_drops
+[2026-08-05T04:10:26Z INFO  remote_display_client] Decoded: 780 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:27Z INFO  net_transport::video_receiver] Recv stats: 9900 packets, 0 dropped, 880 assembled, 86 frame_drops
+[2026-08-05T04:10:27Z INFO  net_transport::video_receiver] Recv stats: 10000 packets, 0 dropped, 880 assembled, 86 frame_drops
+[2026-08-05T04:10:27Z INFO  net_transport::video_receiver] Recv stats: 10100 packets, 0 dropped, 880 assembled, 86 frame_drops
+[2026-08-05T04:10:27Z INFO  net_transport::video_receiver] Recv stats: 10200 packets, 0 dropped, 884 assembled, 86 frame_drops
+[2026-08-05T04:10:27Z INFO  net_transport::video_receiver] Recv stats: 10300 packets, 0 dropped, 910 assembled, 86 frame_drops
+[2026-08-05T04:10:27Z INFO  net_transport::video_receiver] Recv stats: 10400 packets, 0 dropped, 910 assembled, 86 frame_drops
+[2026-08-05T04:10:27Z INFO  net_transport::video_receiver] Recv stats: 10500 packets, 0 dropped, 910 assembled, 86 frame_drops
+[2026-08-05T04:10:27Z INFO  remote_display_client] Decoded: 840 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:28Z INFO  net_transport::video_receiver] Recv stats: 10600 packets, 0 dropped, 940 assembled, 86 frame_drops
+[2026-08-05T04:10:28Z INFO  net_transport::video_receiver] Recv stats: 10700 packets, 0 dropped, 940 assembled, 86 frame_drops
+[2026-08-05T04:10:28Z INFO  net_transport::video_receiver] Recv stats: 10800 packets, 0 dropped, 940 assembled, 86 frame_drops
+[2026-08-05T04:10:28Z INFO  net_transport::video_receiver] Recv stats: 10900 packets, 0 dropped, 966 assembled, 86 frame_drops
+[2026-08-05T04:10:28Z INFO  net_transport::video_receiver] Recv stats: 11000 packets, 0 dropped, 970 assembled, 86 frame_drops
+[2026-08-05T04:10:28Z INFO  net_transport::video_receiver] Recv stats: 11100 packets, 0 dropped, 970 assembled, 86 frame_drops
+[2026-08-05T04:10:28Z INFO  net_transport::video_receiver] Recv stats: 11200 packets, 0 dropped, 970 assembled, 86 frame_drops
+[2026-08-05T04:10:28Z INFO  remote_display_client] Decoded: 900 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:29Z INFO  net_transport::video_receiver] Recv stats: 11300 packets, 0 dropped, 1000 assembled, 86 frame_drops
+[2026-08-05T04:10:29Z INFO  net_transport::video_receiver] Recv stats: 11400 packets, 0 dropped, 1000 assembled, 86 frame_drops
+[2026-08-05T04:10:29Z INFO  net_transport::video_receiver] Recv stats: 11500 packets, 0 dropped, 1029 assembled, 87 frame_drops
+[2026-08-05T04:10:29Z INFO  net_transport::video_receiver] Recv stats: 11600 packets, 0 dropped, 1029 assembled, 87 frame_drops
+[2026-08-05T04:10:29Z INFO  net_transport::video_receiver] Recv stats: 11700 packets, 0 dropped, 1029 assembled, 87 frame_drops
+[2026-08-05T04:10:29Z INFO  net_transport::video_receiver] Recv stats: 11800 packets, 0 dropped, 1030 assembled, 87 frame_drops
+[2026-08-05T04:10:30Z INFO  remote_display_client] Decoded: 960 frames, 57.8 fps, avg decode 1.4ms
+[2026-08-05T04:10:30Z INFO  net_transport::video_receiver] Recv stats: 11900 packets, 0 dropped, 1059 assembled, 87 frame_drops
+[2026-08-05T04:10:30Z INFO  net_transport::video_receiver] Recv stats: 12000 packets, 0 dropped, 1059 assembled, 87 frame_drops
+[2026-08-05T04:10:30Z INFO  net_transport::video_receiver] Recv stats: 12100 packets, 0 dropped, 1059 assembled, 87 frame_drops
+[2026-08-05T04:10:30Z INFO  net_transport::video_receiver] Recv stats: 12200 packets, 0 dropped, 1089 assembled, 87 frame_drops
+[2026-08-05T04:10:30Z INFO  net_transport::video_receiver] Recv stats: 12300 packets, 0 dropped, 1089 assembled, 87 frame_drops
+[2026-08-05T04:10:30Z INFO  net_transport::video_receiver] Recv stats: 12400 packets, 0 dropped, 1089 assembled, 87 frame_drops
+[2026-08-05T04:10:31Z INFO  remote_display_client] Decoded: 1020 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:31Z INFO  net_transport::video_receiver] Recv stats: 12500 packets, 0 dropped, 1112 assembled, 87 frame_drops
+[2026-08-05T04:10:31Z INFO  net_transport::video_receiver] Recv stats: 12600 packets, 0 dropped, 1119 assembled, 87 frame_drops
+[2026-08-05T04:10:31Z INFO  net_transport::video_receiver] Recv stats: 12700 packets, 0 dropped, 1119 assembled, 87 frame_drops
+[2026-08-05T04:10:31Z INFO  net_transport::video_receiver] Recv stats: 12800 packets, 0 dropped, 1119 assembled, 87 frame_drops
+[2026-08-05T04:10:31Z INFO  net_transport::video_receiver] Recv stats: 12900 packets, 0 dropped, 1149 assembled, 87 frame_drops
+[2026-08-05T04:10:31Z INFO  net_transport::video_receiver] Recv stats: 13000 packets, 0 dropped, 1149 assembled, 87 frame_drops
+[2026-08-05T04:10:31Z INFO  net_transport::video_receiver] Recv stats: 13100 packets, 0 dropped, 1149 assembled, 87 frame_drops
+[2026-08-05T04:10:32Z INFO  remote_display_client] Decoded: 1080 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:32Z INFO  net_transport::video_receiver] Recv stats: 13200 packets, 0 dropped, 1179 assembled, 87 frame_drops
+[2026-08-05T04:10:32Z INFO  net_transport::video_receiver] Recv stats: 13300 packets, 0 dropped, 1179 assembled, 87 frame_drops
+[2026-08-05T04:10:32Z INFO  net_transport::video_receiver] Recv stats: 13400 packets, 0 dropped, 1179 assembled, 87 frame_drops
+[2026-08-05T04:10:32Z INFO  net_transport::video_receiver] Recv stats: 13500 packets, 0 dropped, 1185 assembled, 87 frame_drops
+[2026-08-05T04:10:32Z INFO  net_transport::video_receiver] Recv stats: 13600 packets, 0 dropped, 1209 assembled, 87 frame_drops
+[2026-08-05T04:10:32Z INFO  net_transport::video_receiver] Recv stats: 13700 packets, 0 dropped, 1209 assembled, 87 frame_drops
+[2026-08-05T04:10:32Z INFO  net_transport::video_receiver] Recv stats: 13800 packets, 0 dropped, 1209 assembled, 87 frame_drops
+[2026-08-05T04:10:33Z INFO  remote_display_client] Decoded: 1140 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:33Z INFO  net_transport::video_receiver] Recv stats: 13900 packets, 0 dropped, 1239 assembled, 87 frame_drops
+[2026-08-05T04:10:33Z INFO  net_transport::video_receiver] Recv stats: 14000 packets, 0 dropped, 1239 assembled, 87 frame_drops
+[2026-08-05T04:10:33Z INFO  net_transport::video_receiver] Recv stats: 14100 packets, 0 dropped, 1239 assembled, 87 frame_drops
+[2026-08-05T04:10:33Z INFO  net_transport::video_receiver] Recv stats: 14200 packets, 0 dropped, 1267 assembled, 87 frame_drops
+[2026-08-05T04:10:33Z INFO  net_transport::video_receiver] Recv stats: 14300 packets, 0 dropped, 1269 assembled, 87 frame_drops
+[2026-08-05T04:10:33Z INFO  net_transport::video_receiver] Recv stats: 14400 packets, 0 dropped, 1269 assembled, 87 frame_drops
+[2026-08-05T04:10:33Z INFO  net_transport::video_receiver] Recv stats: 14500 packets, 0 dropped, 1269 assembled, 87 frame_drops
+[2026-08-05T04:10:34Z INFO  remote_display_client] Decoded: 1200 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:34Z INFO  net_transport::video_receiver] Recv stats: 14600 packets, 0 dropped, 1299 assembled, 87 frame_drops
+[2026-08-05T04:10:34Z INFO  net_transport::video_receiver] Recv stats: 14700 packets, 0 dropped, 1299 assembled, 87 frame_drops
+[2026-08-05T04:10:34Z INFO  net_transport::video_receiver] Recv stats: 14800 packets, 0 dropped, 1299 assembled, 87 frame_drops
+[2026-08-05T04:10:34Z INFO  net_transport::video_receiver] Recv stats: 14900 packets, 0 dropped, 1329 assembled, 87 frame_drops
+[2026-08-05T04:10:34Z INFO  net_transport::video_receiver] Recv stats: 15000 packets, 0 dropped, 1329 assembled, 87 frame_drops
+[2026-08-05T04:10:34Z INFO  net_transport::video_receiver] Recv stats: 15100 packets, 0 dropped, 1329 assembled, 87 frame_drops
+[2026-08-05T04:10:35Z INFO  net_transport::video_receiver] Recv stats: 15200 packets, 0 dropped, 1340 assembled, 87 frame_drops
+[2026-08-05T04:10:35Z INFO  remote_display_client] Decoded: 1260 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:35Z INFO  net_transport::video_receiver] Recv stats: 15300 packets, 0 dropped, 1359 assembled, 87 frame_drops
+[2026-08-05T04:10:35Z INFO  net_transport::video_receiver] Recv stats: 15400 packets, 0 dropped, 1359 assembled, 87 frame_drops
+[2026-08-05T04:10:35Z INFO  net_transport::video_receiver] Recv stats: 15500 packets, 0 dropped, 1359 assembled, 87 frame_drops
+[2026-08-05T04:10:35Z INFO  net_transport::video_receiver] Recv stats: 15600 packets, 0 dropped, 1389 assembled, 87 frame_drops
+[2026-08-05T04:10:35Z INFO  net_transport::video_receiver] Recv stats: 15700 packets, 0 dropped, 1389 assembled, 87 frame_drops
+[2026-08-05T04:10:35Z INFO  net_transport::video_receiver] Recv stats: 15800 packets, 0 dropped, 1389 assembled, 87 frame_drops
+[2026-08-05T04:10:36Z INFO  remote_display_client] Decoded: 1320 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:36Z INFO  net_transport::video_receiver] Recv stats: 15900 packets, 0 dropped, 1419 assembled, 87 frame_drops
+[2026-08-05T04:10:36Z INFO  net_transport::video_receiver] Recv stats: 16000 packets, 0 dropped, 1419 assembled, 87 frame_drops
+[2026-08-05T04:10:36Z INFO  net_transport::video_receiver] Recv stats: 16100 packets, 0 dropped, 1419 assembled, 87 frame_drops
+[2026-08-05T04:10:36Z INFO  net_transport::video_receiver] Recv stats: 16200 packets, 0 dropped, 1419 assembled, 87 frame_drops
+[2026-08-05T04:10:36Z INFO  net_transport::video_receiver] Recv stats: 16300 packets, 0 dropped, 1449 assembled, 87 frame_drops
+[2026-08-05T04:10:36Z INFO  net_transport::video_receiver] Recv stats: 16400 packets, 0 dropped, 1449 assembled, 87 frame_drops
+[2026-08-05T04:10:36Z INFO  net_transport::video_receiver] Recv stats: 16500 packets, 0 dropped, 1449 assembled, 87 frame_drops
+[2026-08-05T04:10:37Z INFO  remote_display_client] Decoded: 1380 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:37Z INFO  net_transport::video_receiver] Recv stats: 16600 packets, 0 dropped, 1479 assembled, 87 frame_drops
+[2026-08-05T04:10:37Z INFO  net_transport::video_receiver] Recv stats: 16700 packets, 0 dropped, 1479 assembled, 87 frame_drops
+[2026-08-05T04:10:37Z INFO  net_transport::video_receiver] Recv stats: 16800 packets, 0 dropped, 1479 assembled, 87 frame_drops
+[2026-08-05T04:10:37Z INFO  net_transport::video_receiver] Recv stats: 16900 packets, 0 dropped, 1495 assembled, 87 frame_drops
+[2026-08-05T04:10:37Z INFO  net_transport::video_receiver] Recv stats: 17000 packets, 0 dropped, 1509 assembled, 87 frame_drops
+[2026-08-05T04:10:37Z INFO  net_transport::video_receiver] Recv stats: 17100 packets, 0 dropped, 1509 assembled, 87 frame_drops
+[2026-08-05T04:10:37Z INFO  net_transport::video_receiver] Recv stats: 17200 packets, 0 dropped, 1509 assembled, 87 frame_drops
+[2026-08-05T04:10:38Z INFO  remote_display_client] Decoded: 1440 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:38Z INFO  net_transport::video_receiver] Recv stats: 17300 packets, 0 dropped, 1539 assembled, 87 frame_drops
+[2026-08-05T04:10:38Z INFO  net_transport::video_receiver] Recv stats: 17400 packets, 0 dropped, 1539 assembled, 87 frame_drops
+[2026-08-05T04:10:38Z INFO  net_transport::video_receiver] Recv stats: 17500 packets, 0 dropped, 1539 assembled, 87 frame_drops
+[2026-08-05T04:10:39Z INFO  net_transport::video_receiver] Recv stats: 17600 packets, 0 dropped, 1569 assembled, 87 frame_drops
+[2026-08-05T04:10:39Z INFO  net_transport::video_receiver] Recv stats: 17700 packets, 0 dropped, 1569 assembled, 87 frame_drops
+[2026-08-05T04:10:39Z INFO  net_transport::video_receiver] Recv stats: 17800 packets, 0 dropped, 1569 assembled, 87 frame_drops
+[2026-08-05T04:10:39Z INFO  net_transport::video_receiver] Recv stats: 17900 packets, 0 dropped, 1569 assembled, 87 frame_drops
+[2026-08-05T04:10:39Z INFO  remote_display_client] Decoded: 1500 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:39Z INFO  net_transport::video_receiver] Recv stats: 18000 packets, 0 dropped, 1599 assembled, 87 frame_drops
+[2026-08-05T04:10:39Z INFO  net_transport::video_receiver] Recv stats: 18100 packets, 0 dropped, 1599 assembled, 87 frame_drops
+[2026-08-05T04:10:39Z INFO  net_transport::video_receiver] Recv stats: 18200 packets, 0 dropped, 1599 assembled, 87 frame_drops
+[2026-08-05T04:10:40Z INFO  net_transport::video_receiver] Recv stats: 18300 packets, 0 dropped, 1629 assembled, 87 frame_drops
+[2026-08-05T04:10:40Z INFO  net_transport::video_receiver] Recv stats: 18400 packets, 0 dropped, 1629 assembled, 87 frame_drops
+[2026-08-05T04:10:40Z INFO  net_transport::video_receiver] Recv stats: 18500 packets, 0 dropped, 1629 assembled, 87 frame_drops
+[2026-08-05T04:10:40Z INFO  remote_display_client] Decoded: 1560 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:40Z INFO  net_transport::video_receiver] Recv stats: 18600 packets, 0 dropped, 1650 assembled, 87 frame_drops
+[2026-08-05T04:10:40Z INFO  net_transport::video_receiver] Recv stats: 18700 packets, 0 dropped, 1659 assembled, 87 frame_drops
+[2026-08-05T04:10:40Z INFO  net_transport::video_receiver] Recv stats: 18800 packets, 0 dropped, 1659 assembled, 87 frame_drops
+[2026-08-05T04:10:40Z INFO  net_transport::video_receiver] Recv stats: 18900 packets, 0 dropped, 1659 assembled, 87 frame_drops
+[2026-08-05T04:10:41Z INFO  net_transport::video_receiver] Recv stats: 19000 packets, 0 dropped, 1689 assembled, 87 frame_drops
+[2026-08-05T04:10:41Z INFO  net_transport::video_receiver] Recv stats: 19100 packets, 0 dropped, 1689 assembled, 87 frame_drops
+[2026-08-05T04:10:41Z INFO  net_transport::video_receiver] Recv stats: 19200 packets, 0 dropped, 1689 assembled, 87 frame_drops
+[2026-08-05T04:10:41Z INFO  remote_display_client] Decoded: 1620 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:41Z INFO  net_transport::video_receiver] Recv stats: 19300 packets, 0 dropped, 1719 assembled, 87 frame_drops
+[2026-08-05T04:10:41Z INFO  net_transport::video_receiver] Recv stats: 19400 packets, 0 dropped, 1719 assembled, 87 frame_drops
+[2026-08-05T04:10:41Z INFO  net_transport::video_receiver] Recv stats: 19500 packets, 0 dropped, 1719 assembled, 87 frame_drops
+[2026-08-05T04:10:41Z INFO  net_transport::video_receiver] Recv stats: 19600 packets, 0 dropped, 1723 assembled, 87 frame_drops
+[2026-08-05T04:10:42Z INFO  net_transport::video_receiver] Recv stats: 19700 packets, 0 dropped, 1749 assembled, 87 frame_drops
+[2026-08-05T04:10:42Z INFO  net_transport::video_receiver] Recv stats: 19800 packets, 0 dropped, 1749 assembled, 87 frame_drops
+[2026-08-05T04:10:42Z INFO  net_transport::video_receiver] Recv stats: 19900 packets, 0 dropped, 1749 assembled, 87 frame_drops
+[2026-08-05T04:10:42Z INFO  remote_display_client] Decoded: 1680 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:42Z INFO  net_transport::video_receiver] Recv stats: 20000 packets, 0 dropped, 1779 assembled, 87 frame_drops
+[2026-08-05T04:10:42Z INFO  net_transport::video_receiver] Recv stats: 20100 packets, 0 dropped, 1779 assembled, 87 frame_drops
+[2026-08-05T04:10:42Z INFO  net_transport::video_receiver] Recv stats: 20200 packets, 0 dropped, 1779 assembled, 87 frame_drops
+[2026-08-05T04:10:43Z INFO  net_transport::video_receiver] Recv stats: 20300 packets, 0 dropped, 1805 assembled, 87 frame_drops
+[2026-08-05T04:10:43Z INFO  net_transport::video_receiver] Recv stats: 20400 packets, 0 dropped, 1809 assembled, 87 frame_drops
+[2026-08-05T04:10:43Z INFO  net_transport::video_receiver] Recv stats: 20500 packets, 0 dropped, 1809 assembled, 87 frame_drops
+[2026-08-05T04:10:43Z INFO  net_transport::video_receiver] Recv stats: 20600 packets, 0 dropped, 1809 assembled, 87 frame_drops
+[2026-08-05T04:10:43Z INFO  remote_display_client] Decoded: 1740 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:43Z INFO  net_transport::video_receiver] Recv stats: 20700 packets, 0 dropped, 1839 assembled, 87 frame_drops
+[2026-08-05T04:10:43Z INFO  net_transport::video_receiver] Recv stats: 20800 packets, 0 dropped, 1839 assembled, 87 frame_drops
+[2026-08-05T04:10:43Z INFO  net_transport::video_receiver] Recv stats: 20900 packets, 0 dropped, 1839 assembled, 87 frame_drops
+[2026-08-05T04:10:44Z INFO  net_transport::video_receiver] Recv stats: 21000 packets, 0 dropped, 1869 assembled, 87 frame_drops
+[2026-08-05T04:10:44Z INFO  net_transport::video_receiver] Recv stats: 21100 packets, 0 dropped, 1869 assembled, 87 frame_drops
+[2026-08-05T04:10:44Z INFO  net_transport::video_receiver] Recv stats: 21200 packets, 0 dropped, 1869 assembled, 87 frame_drops
+[2026-08-05T04:10:44Z INFO  net_transport::video_receiver] Recv stats: 21300 packets, 0 dropped, 1878 assembled, 87 frame_drops
+[2026-08-05T04:10:44Z INFO  remote_display_client] Decoded: 1800 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:44Z INFO  net_transport::video_receiver] Recv stats: 21400 packets, 0 dropped, 1899 assembled, 87 frame_drops
+[2026-08-05T04:10:44Z INFO  net_transport::video_receiver] Recv stats: 21500 packets, 0 dropped, 1899 assembled, 87 frame_drops
+[2026-08-05T04:10:44Z INFO  net_transport::video_receiver] Recv stats: 21600 packets, 0 dropped, 1899 assembled, 87 frame_drops
+[2026-08-05T04:10:45Z INFO  net_transport::video_receiver] Recv stats: 21700 packets, 0 dropped, 1929 assembled, 87 frame_drops
+[2026-08-05T04:10:45Z INFO  net_transport::video_receiver] Recv stats: 21800 packets, 0 dropped, 1929 assembled, 87 frame_drops
+[2026-08-05T04:10:45Z INFO  net_transport::video_receiver] Recv stats: 21900 packets, 0 dropped, 1929 assembled, 87 frame_drops
+[2026-08-05T04:10:45Z INFO  remote_display_client] Decoded: 1860 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:45Z INFO  net_transport::video_receiver] Recv stats: 22000 packets, 0 dropped, 1959 assembled, 87 frame_drops
+[2026-08-05T04:10:45Z INFO  net_transport::video_receiver] Recv stats: 22100 packets, 0 dropped, 1959 assembled, 87 frame_drops
+[2026-08-05T04:10:45Z INFO  net_transport::video_receiver] Recv stats: 22200 packets, 0 dropped, 1959 assembled, 87 frame_drops
+[2026-08-05T04:10:45Z INFO  net_transport::video_receiver] Recv stats: 22300 packets, 0 dropped, 1959 assembled, 87 frame_drops
+[2026-08-05T04:10:46Z INFO  net_transport::video_receiver] Recv stats: 22400 packets, 0 dropped, 1989 assembled, 87 frame_drops
+[2026-08-05T04:10:46Z INFO  net_transport::video_receiver] Recv stats: 22500 packets, 0 dropped, 1989 assembled, 87 frame_drops
+[2026-08-05T04:10:46Z INFO  net_transport::video_receiver] Recv stats: 22600 packets, 0 dropped, 1989 assembled, 87 frame_drops
+[2026-08-05T04:10:46Z INFO  remote_display_client] Decoded: 1920 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:46Z INFO  net_transport::video_receiver] Recv stats: 22700 packets, 0 dropped, 2019 assembled, 87 frame_drops
+[2026-08-05T04:10:46Z INFO  net_transport::video_receiver] Recv stats: 22800 packets, 0 dropped, 2019 assembled, 87 frame_drops
+[2026-08-05T04:10:46Z INFO  net_transport::video_receiver] Recv stats: 22900 packets, 0 dropped, 2019 assembled, 87 frame_drops
+[2026-08-05T04:10:47Z INFO  net_transport::video_receiver] Recv stats: 23000 packets, 0 dropped, 2033 assembled, 87 frame_drops
+[2026-08-05T04:10:47Z INFO  net_transport::video_receiver] Recv stats: 23100 packets, 0 dropped, 2049 assembled, 87 frame_drops
+[2026-08-05T04:10:47Z INFO  net_transport::video_receiver] Recv stats: 23200 packets, 0 dropped, 2049 assembled, 87 frame_drops
+[2026-08-05T04:10:47Z INFO  net_transport::video_receiver] Recv stats: 23300 packets, 0 dropped, 2049 assembled, 87 frame_drops
+[2026-08-05T04:10:47Z INFO  remote_display_client] Decoded: 1980 frames, 58.0 fps, avg decode 1.4ms
+[2026-08-05T04:10:47Z INFO  net_transport::video_receiver] Recv stats: 23400 packets, 0 dropped, 2079 assembled, 87 frame_drops
+[2026-08-05T04:10:47Z INFO  net_transport::video_receiver] Recv stats: 23500 packets, 0 dropped, 2079 assembled, 87 frame_drops
+[2026-08-05T04:10:47Z INFO  net_transport::video_receiver] Recv stats: 23600 packets, 0 dropped, 2079 assembled, 87 frame_drops
+[2026-08-05T04:10:48Z INFO  net_transport::video_receiver] Recv stats: 23700 packets, 0 dropped, 2109 assembled, 87 frame_drops
+[2026-08-05T04:10:48Z INFO  net_transport::video_receiver] Recv stats: 23800 packets, 0 dropped, 2109 assembled, 87 frame_drops
+[2026-08-05T04:10:48Z INFO  net_transport::video_receiver] Recv stats: 23900 packets, 0 dropped, 2109 assembled, 87 frame_drops
+[2026-08-05T04:10:48Z INFO  net_transport::video_receiver] Recv stats: 24000 packets, 0 dropped, 2109 assembled, 87 frame_drops
+[2026-08-05T04:10:48Z INFO  remote_display_client] Decoded: 2040 frames, 58.0 fps, avg decode 1.4ms
+[2026-08-05T04:10:48Z INFO  net_transport::video_receiver] Recv stats: 24100 packets, 0 dropped, 2139 assembled, 87 frame_drops
+[2026-08-05T04:10:48Z INFO  net_transport::video_receiver] Recv stats: 24200 packets, 0 dropped, 2139 assembled, 87 frame_drops
+[2026-08-05T04:10:48Z INFO  net_transport::video_receiver] Recv stats: 24300 packets, 0 dropped, 2139 assembled, 87 frame_drops
+[2026-08-05T04:10:49Z INFO  net_transport::video_receiver] Recv stats: 24400 packets, 0 dropped, 2169 assembled, 87 frame_drops
+[2026-08-05T04:10:49Z INFO  net_transport::video_receiver] Recv stats: 24500 packets, 0 dropped, 2169 assembled, 87 frame_drops
+[2026-08-05T04:10:49Z INFO  net_transport::video_receiver] Recv stats: 24600 packets, 0 dropped, 2169 assembled, 87 frame_drops
+[2026-08-05T04:10:49Z INFO  remote_display_client] Decoded: 2100 frames, 58.0 fps, avg decode 1.4ms
+[2026-08-05T04:10:49Z INFO  net_transport::video_receiver] Recv stats: 24700 packets, 0 dropped, 2188 assembled, 87 frame_drops
+[2026-08-05T04:10:49Z INFO  net_transport::video_receiver] Recv stats: 24800 packets, 0 dropped, 2199 assembled, 87 frame_drops
+[2026-08-05T04:10:49Z INFO  net_transport::video_receiver] Recv stats: 24900 packets, 0 dropped, 2199 assembled, 87 frame_drops
+[2026-08-05T04:10:49Z INFO  net_transport::video_receiver] Recv stats: 25000 packets, 0 dropped, 2199 assembled, 87 frame_drops
+[2026-08-05T04:10:50Z INFO  net_transport::video_receiver] Recv stats: 25100 packets, 0 dropped, 2229 assembled, 87 frame_drops
+[2026-08-05T04:10:50Z INFO  net_transport::video_receiver] Recv stats: 25200 packets, 0 dropped, 2229 assembled, 87 frame_drops
+[2026-08-05T04:10:50Z INFO  net_transport::video_receiver] Recv stats: 25300 packets, 0 dropped, 2229 assembled, 87 frame_drops
+[2026-08-05T04:10:50Z INFO  remote_display_client] Decoded: 2160 frames, 58.0 fps, avg decode 1.4ms
+[2026-08-05T04:10:50Z INFO  net_transport::video_receiver] Recv stats: 25400 packets, 0 dropped, 2259 assembled, 87 frame_drops
+[2026-08-05T04:10:50Z INFO  net_transport::video_receiver] Recv stats: 25500 packets, 0 dropped, 2259 assembled, 87 frame_drops
+[2026-08-05T04:10:50Z INFO  net_transport::video_receiver] Recv stats: 25600 packets, 0 dropped, 2259 assembled, 87 frame_drops
+[2026-08-05T04:10:50Z INFO  net_transport::video_receiver] Recv stats: 25700 packets, 0 dropped, 2261 assembled, 87 frame_drops
+[2026-08-05T04:10:51Z INFO  net_transport::video_receiver] Recv stats: 25800 packets, 0 dropped, 2289 assembled, 87 frame_drops
+[2026-08-05T04:10:51Z INFO  net_transport::video_receiver] Recv stats: 25900 packets, 0 dropped, 2289 assembled, 87 frame_drops
+[2026-08-05T04:10:51Z INFO  net_transport::video_receiver] Recv stats: 26000 packets, 0 dropped, 2289 assembled, 87 frame_drops
+[2026-08-05T04:10:51Z INFO  remote_display_client] Decoded: 2220 frames, 58.0 fps, avg decode 1.4ms
+[2026-08-05T04:10:51Z INFO  net_transport::video_receiver] Recv stats: 26100 packets, 0 dropped, 2319 assembled, 87 frame_drops
+[2026-08-05T04:10:51Z INFO  net_transport::video_receiver] Recv stats: 26200 packets, 0 dropped, 2319 assembled, 87 frame_drops
+[2026-08-05T04:10:51Z INFO  net_transport::video_receiver] Recv stats: 26300 packets, 0 dropped, 2319 assembled, 87 frame_drops
+[2026-08-05T04:10:52Z INFO  net_transport::video_receiver] Recv stats: 26400 packets, 0 dropped, 2343 assembled, 87 frame_drops
+[2026-08-05T04:10:52Z INFO  net_transport::video_receiver] Recv stats: 26500 packets, 0 dropped, 2349 assembled, 87 frame_drops
+[2026-08-05T04:10:52Z INFO  net_transport::video_receiver] Recv stats: 26600 packets, 0 dropped, 2349 assembled, 87 frame_drops
+[2026-08-05T04:10:52Z INFO  net_transport::video_receiver] Recv stats: 26700 packets, 0 dropped, 2349 assembled, 87 frame_drops
+[2026-08-05T04:10:52Z INFO  remote_display_client] Decoded: 2280 frames, 58.0 fps, avg decode 1.4ms
+[2026-08-05T04:10:52Z INFO  net_transport::video_receiver] Recv stats: 26800 packets, 0 dropped, 2379 assembled, 87 frame_drops
+[2026-08-05T04:10:52Z INFO  net_transport::video_receiver] Recv stats: 26900 packets, 0 dropped, 2379 assembled, 87 frame_drops
+[2026-08-05T04:10:52Z INFO  net_transport::video_receiver] Recv stats: 27000 packets, 0 dropped, 2379 assembled, 87 frame_drops
+[2026-08-05T04:10:53Z INFO  net_transport::video_receiver] Recv stats: 27100 packets, 0 dropped, 2409 assembled, 87 frame_drops
+[2026-08-05T04:10:53Z INFO  net_transport::video_receiver] Recv stats: 27200 packets, 0 dropped, 2409 assembled, 87 frame_drops
+[2026-08-05T04:10:53Z INFO  net_transport::video_receiver] Recv stats: 27300 packets, 0 dropped, 2409 assembled, 87 frame_drops
+[2026-08-05T04:10:53Z INFO  net_transport::video_receiver] Recv stats: 27400 packets, 0 dropped, 2416 assembled, 87 frame_drops
+[2026-08-05T04:10:53Z INFO  remote_display_client] Decoded: 2340 frames, 58.0 fps, avg decode 1.4ms
+[2026-08-05T04:10:54Z INFO  net_transport::video_receiver] Recv stats: 27500 packets, 0 dropped, 2439 assembled, 87 frame_drops
+[2026-08-05T04:10:54Z INFO  net_transport::video_receiver] Recv stats: 27600 packets, 0 dropped, 2439 assembled, 87 frame_drops
+[2026-08-05T04:10:54Z INFO  net_transport::video_receiver] Recv stats: 27700 packets, 0 dropped, 2439 assembled, 87 frame_drops
+[2026-08-05T04:10:54Z INFO  net_transport::video_receiver] Recv stats: 27800 packets, 0 dropped, 2469 assembled, 87 frame_drops
+[2026-08-05T04:10:54Z INFO  net_transport::video_receiver] Recv stats: 27900 packets, 0 dropped, 2469 assembled, 87 frame_drops
+[2026-08-05T04:10:54Z INFO  net_transport::video_receiver] Recv stats: 28000 packets, 0 dropped, 2469 assembled, 87 frame_drops
+[2026-08-05T04:10:54Z INFO  remote_display_client] Decoded: 2400 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:55Z INFO  net_transport::video_receiver] Recv stats: 28100 packets, 0 dropped, 2498 assembled, 87 frame_drops
+[2026-08-05T04:10:55Z INFO  net_transport::video_receiver] Recv stats: 28200 packets, 0 dropped, 2499 assembled, 87 frame_drops
+[2026-08-05T04:10:55Z INFO  net_transport::video_receiver] Recv stats: 28300 packets, 0 dropped, 2499 assembled, 87 frame_drops
+[2026-08-05T04:10:55Z INFO  net_transport::video_receiver] Recv stats: 28400 packets, 0 dropped, 2499 assembled, 87 frame_drops
+[2026-08-05T04:10:55Z INFO  net_transport::video_receiver] Recv stats: 28500 packets, 0 dropped, 2529 assembled, 87 frame_drops
+[2026-08-05T04:10:55Z INFO  net_transport::video_receiver] Recv stats: 28600 packets, 0 dropped, 2529 assembled, 87 frame_drops
+[2026-08-05T04:10:55Z INFO  net_transport::video_receiver] Recv stats: 28700 packets, 0 dropped, 2529 assembled, 87 frame_drops
+[2026-08-05T04:10:55Z INFO  remote_display_client] Decoded: 2460 frames, 58.0 fps, avg decode 1.4ms
+[2026-08-05T04:10:56Z INFO  net_transport::video_receiver] Recv stats: 28800 packets, 0 dropped, 2559 assembled, 87 frame_drops
+[2026-08-05T04:10:56Z INFO  net_transport::video_receiver] Recv stats: 28900 packets, 0 dropped, 2559 assembled, 87 frame_drops
+[2026-08-05T04:10:56Z INFO  net_transport::video_receiver] Recv stats: 29000 packets, 0 dropped, 2559 assembled, 87 frame_drops
+[2026-08-05T04:10:56Z INFO  net_transport::video_receiver] Recv stats: 29100 packets, 0 dropped, 2571 assembled, 87 frame_drops
+[2026-08-05T04:10:56Z INFO  net_transport::video_receiver] Recv stats: 29200 packets, 0 dropped, 2589 assembled, 87 frame_drops
+[2026-08-05T04:10:56Z INFO  net_transport::video_receiver] Recv stats: 29300 packets, 0 dropped, 2589 assembled, 87 frame_drops
+[2026-08-05T04:10:56Z INFO  net_transport::video_receiver] Recv stats: 29400 packets, 0 dropped, 2589 assembled, 87 frame_drops
+[2026-08-05T04:10:56Z INFO  remote_display_client] Decoded: 2520 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:57Z INFO  net_transport::video_receiver] Recv stats: 29500 packets, 0 dropped, 2619 assembled, 87 frame_drops
+[2026-08-05T04:10:57Z INFO  net_transport::video_receiver] Recv stats: 29600 packets, 0 dropped, 2619 assembled, 87 frame_drops
+[2026-08-05T04:10:57Z INFO  net_transport::video_receiver] Recv stats: 29700 packets, 0 dropped, 2619 assembled, 87 frame_drops
+[2026-08-05T04:10:57Z INFO  net_transport::video_receiver] Recv stats: 29800 packets, 0 dropped, 2649 assembled, 87 frame_drops
+[2026-08-05T04:10:57Z INFO  net_transport::video_receiver] Recv stats: 29900 packets, 0 dropped, 2649 assembled, 87 frame_drops
+[2026-08-05T04:10:57Z INFO  net_transport::video_receiver] Recv stats: 30000 packets, 0 dropped, 2649 assembled, 87 frame_drops
+[2026-08-05T04:10:57Z INFO  net_transport::video_receiver] Recv stats: 30100 packets, 0 dropped, 2649 assembled, 87 frame_drops
+[2026-08-05T04:10:57Z INFO  remote_display_client] Decoded: 2580 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:58Z INFO  net_transport::video_receiver] Recv stats: 30200 packets, 0 dropped, 2679 assembled, 87 frame_drops
+[2026-08-05T04:10:58Z INFO  net_transport::video_receiver] Recv stats: 30300 packets, 0 dropped, 2679 assembled, 87 frame_drops
+[2026-08-05T04:10:58Z INFO  net_transport::video_receiver] Recv stats: 30400 packets, 0 dropped, 2679 assembled, 87 frame_drops
+[2026-08-05T04:10:58Z INFO  net_transport::video_receiver] Recv stats: 30500 packets, 0 dropped, 2709 assembled, 87 frame_drops
+[2026-08-05T04:10:58Z INFO  net_transport::video_receiver] Recv stats: 30600 packets, 0 dropped, 2709 assembled, 87 frame_drops
+[2026-08-05T04:10:58Z INFO  net_transport::video_receiver] Recv stats: 30700 packets, 0 dropped, 2709 assembled, 87 frame_drops
+[2026-08-05T04:10:58Z INFO  net_transport::video_receiver] Recv stats: 30800 packets, 0 dropped, 2726 assembled, 87 frame_drops
+[2026-08-05T04:10:59Z INFO  remote_display_client] Decoded: 2640 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:10:59Z INFO  net_transport::video_receiver] Recv stats: 30900 packets, 0 dropped, 2739 assembled, 87 frame_drops
+[2026-08-05T04:10:59Z INFO  net_transport::video_receiver] Recv stats: 31000 packets, 0 dropped, 2739 assembled, 87 frame_drops
+[2026-08-05T04:10:59Z INFO  net_transport::video_receiver] Recv stats: 31100 packets, 0 dropped, 2739 assembled, 87 frame_drops
+[2026-08-05T04:10:59Z INFO  net_transport::video_receiver] Recv stats: 31200 packets, 0 dropped, 2769 assembled, 87 frame_drops
+[2026-08-05T04:10:59Z INFO  net_transport::video_receiver] Recv stats: 31300 packets, 0 dropped, 2769 assembled, 87 frame_drops
+[2026-08-05T04:10:59Z INFO  net_transport::video_receiver] Recv stats: 31400 packets, 0 dropped, 2769 assembled, 87 frame_drops
+[2026-08-05T04:11:00Z INFO  net_transport::video_receiver] Recv stats: 31500 packets, 0 dropped, 2799 assembled, 87 frame_drops
+[2026-08-05T04:11:00Z INFO  net_transport::video_receiver] Recv stats: 31600 packets, 0 dropped, 2799 assembled, 87 frame_drops
+[2026-08-05T04:11:00Z INFO  net_transport::video_receiver] Recv stats: 31700 packets, 0 dropped, 2799 assembled, 87 frame_drops
+[2026-08-05T04:11:00Z INFO  net_transport::video_receiver] Recv stats: 31800 packets, 0 dropped, 2799 assembled, 87 frame_drops
+[2026-08-05T04:11:00Z INFO  net_transport::video_receiver] Recv stats: 31900 packets, 0 dropped, 2829 assembled, 87 frame_drops
+[2026-08-05T04:11:00Z INFO  net_transport::video_receiver] Recv stats: 32000 packets, 0 dropped, 2829 assembled, 87 frame_drops
+[2026-08-05T04:11:00Z INFO  net_transport::video_receiver] Recv stats: 32100 packets, 0 dropped, 2829 assembled, 87 frame_drops
+[2026-08-05T04:11:01Z INFO  remote_display_client] Decoded: 2760 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:01Z INFO  net_transport::video_receiver] Recv stats: 32200 packets, 0 dropped, 2859 assembled, 87 frame_drops
+[2026-08-05T04:11:01Z INFO  net_transport::video_receiver] Recv stats: 32300 packets, 0 dropped, 2859 assembled, 87 frame_drops
+[2026-08-05T04:11:01Z INFO  net_transport::video_receiver] Recv stats: 32400 packets, 0 dropped, 2859 assembled, 87 frame_drops
+[2026-08-05T04:11:01Z INFO  net_transport::video_receiver] Recv stats: 32500 packets, 0 dropped, 2881 assembled, 87 frame_drops
+[2026-08-05T04:11:01Z INFO  net_transport::video_receiver] Recv stats: 32600 packets, 0 dropped, 2889 assembled, 87 frame_drops
+[2026-08-05T04:11:01Z INFO  net_transport::video_receiver] Recv stats: 32700 packets, 0 dropped, 2889 assembled, 87 frame_drops
+[2026-08-05T04:11:01Z INFO  net_transport::video_receiver] Recv stats: 32800 packets, 0 dropped, 2889 assembled, 87 frame_drops
+[2026-08-05T04:11:02Z INFO  remote_display_client] Decoded: 2820 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:02Z INFO  net_transport::video_receiver] Recv stats: 32900 packets, 0 dropped, 2919 assembled, 87 frame_drops
+[2026-08-05T04:11:02Z INFO  net_transport::video_receiver] Recv stats: 33000 packets, 0 dropped, 2919 assembled, 87 frame_drops
+[2026-08-05T04:11:02Z INFO  net_transport::video_receiver] Recv stats: 33100 packets, 0 dropped, 2919 assembled, 87 frame_drops
+[2026-08-05T04:11:02Z INFO  net_transport::video_receiver] Recv stats: 33200 packets, 0 dropped, 2949 assembled, 87 frame_drops
+[2026-08-05T04:11:02Z INFO  net_transport::video_receiver] Recv stats: 33300 packets, 0 dropped, 2949 assembled, 87 frame_drops
+[2026-08-05T04:11:02Z INFO  net_transport::video_receiver] Recv stats: 33400 packets, 0 dropped, 2949 assembled, 87 frame_drops
+[2026-08-05T04:11:02Z INFO  net_transport::video_receiver] Recv stats: 33500 packets, 0 dropped, 2954 assembled, 87 frame_drops
+[2026-08-05T04:11:03Z INFO  remote_display_client] Decoded: 2880 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:03Z INFO  net_transport::video_receiver] Recv stats: 33600 packets, 0 dropped, 2979 assembled, 87 frame_drops
+[2026-08-05T04:11:03Z INFO  net_transport::video_receiver] Recv stats: 33700 packets, 0 dropped, 2979 assembled, 87 frame_drops
+[2026-08-05T04:11:03Z INFO  net_transport::video_receiver] Recv stats: 33800 packets, 0 dropped, 2979 assembled, 87 frame_drops
+[2026-08-05T04:11:03Z INFO  net_transport::video_receiver] Recv stats: 33900 packets, 0 dropped, 3009 assembled, 87 frame_drops
+[2026-08-05T04:11:03Z INFO  net_transport::video_receiver] Recv stats: 34000 packets, 0 dropped, 3009 assembled, 87 frame_drops
+[2026-08-05T04:11:03Z INFO  net_transport::video_receiver] Recv stats: 34100 packets, 0 dropped, 3009 assembled, 87 frame_drops
+[2026-08-05T04:11:04Z INFO  remote_display_client] Decoded: 2940 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:04Z INFO  net_transport::video_receiver] Recv stats: 34200 packets, 0 dropped, 3036 assembled, 87 frame_drops
+[2026-08-05T04:11:04Z INFO  net_transport::video_receiver] Recv stats: 34300 packets, 0 dropped, 3039 assembled, 87 frame_drops
+[2026-08-05T04:11:04Z INFO  net_transport::video_receiver] Recv stats: 34400 packets, 0 dropped, 3039 assembled, 87 frame_drops
+[2026-08-05T04:11:04Z INFO  net_transport::video_receiver] Recv stats: 34500 packets, 0 dropped, 3039 assembled, 87 frame_drops
+[2026-08-05T04:11:04Z INFO  net_transport::video_receiver] Recv stats: 34600 packets, 0 dropped, 3069 assembled, 87 frame_drops
+[2026-08-05T04:11:04Z INFO  net_transport::video_receiver] Recv stats: 34700 packets, 0 dropped, 3069 assembled, 87 frame_drops
+[2026-08-05T04:11:04Z INFO  net_transport::video_receiver] Recv stats: 34800 packets, 0 dropped, 3069 assembled, 87 frame_drops
+[2026-08-05T04:11:05Z INFO  remote_display_client] Decoded: 3000 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:05Z INFO  net_transport::video_receiver] Recv stats: 34900 packets, 0 dropped, 3099 assembled, 87 frame_drops
+[2026-08-05T04:11:05Z INFO  net_transport::video_receiver] Recv stats: 35000 packets, 0 dropped, 3099 assembled, 87 frame_drops
+[2026-08-05T04:11:05Z INFO  net_transport::video_receiver] Recv stats: 35100 packets, 0 dropped, 3099 assembled, 87 frame_drops
+[2026-08-05T04:11:05Z INFO  net_transport::video_receiver] Recv stats: 35200 packets, 0 dropped, 3109 assembled, 87 frame_drops
+[2026-08-05T04:11:05Z INFO  net_transport::video_receiver] Recv stats: 35300 packets, 0 dropped, 3129 assembled, 87 frame_drops
+[2026-08-05T04:11:05Z INFO  net_transport::video_receiver] Recv stats: 35400 packets, 0 dropped, 3129 assembled, 87 frame_drops
+[2026-08-05T04:11:05Z INFO  net_transport::video_receiver] Recv stats: 35500 packets, 0 dropped, 3129 assembled, 87 frame_drops
+[2026-08-05T04:11:06Z INFO  remote_display_client] Decoded: 3060 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:06Z INFO  net_transport::video_receiver] Recv stats: 35600 packets, 0 dropped, 3159 assembled, 87 frame_drops
+[2026-08-05T04:11:06Z INFO  net_transport::video_receiver] Recv stats: 35700 packets, 0 dropped, 3159 assembled, 87 frame_drops
+[2026-08-05T04:11:06Z INFO  net_transport::video_receiver] Recv stats: 35800 packets, 0 dropped, 3159 assembled, 87 frame_drops
+[2026-08-05T04:11:07Z INFO  net_transport::video_receiver] Recv stats: 35900 packets, 0 dropped, 3189 assembled, 87 frame_drops
+[2026-08-05T04:11:07Z INFO  net_transport::video_receiver] Recv stats: 36000 packets, 0 dropped, 3189 assembled, 87 frame_drops
+[2026-08-05T04:11:07Z INFO  net_transport::video_receiver] Recv stats: 36100 packets, 0 dropped, 3189 assembled, 87 frame_drops
+[2026-08-05T04:11:07Z INFO  net_transport::video_receiver] Recv stats: 36200 packets, 0 dropped, 3189 assembled, 87 frame_drops
+[2026-08-05T04:11:07Z INFO  remote_display_client] Decoded: 3120 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:07Z INFO  net_transport::video_receiver] Recv stats: 36300 packets, 0 dropped, 3219 assembled, 87 frame_drops
+[2026-08-05T04:11:07Z INFO  net_transport::video_receiver] Recv stats: 36400 packets, 0 dropped, 3219 assembled, 87 frame_drops
+[2026-08-05T04:11:07Z INFO  net_transport::video_receiver] Recv stats: 36500 packets, 0 dropped, 3219 assembled, 87 frame_drops
+[2026-08-05T04:11:08Z INFO  net_transport::video_receiver] Recv stats: 36600 packets, 0 dropped, 3249 assembled, 87 frame_drops
+[2026-08-05T04:11:08Z INFO  net_transport::video_receiver] Recv stats: 36700 packets, 0 dropped, 3249 assembled, 87 frame_drops
+[2026-08-05T04:11:08Z INFO  net_transport::video_receiver] Recv stats: 36800 packets, 0 dropped, 3249 assembled, 87 frame_drops
+[2026-08-05T04:11:08Z INFO  net_transport::video_receiver] Recv stats: 36900 packets, 0 dropped, 3264 assembled, 87 frame_drops
+[2026-08-05T04:11:08Z INFO  remote_display_client] Decoded: 3180 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:08Z INFO  net_transport::video_receiver] Recv stats: 37000 packets, 0 dropped, 3279 assembled, 87 frame_drops
+[2026-08-05T04:11:08Z INFO  net_transport::video_receiver] Recv stats: 37100 packets, 0 dropped, 3279 assembled, 87 frame_drops
+[2026-08-05T04:11:08Z INFO  net_transport::video_receiver] Recv stats: 37200 packets, 0 dropped, 3279 assembled, 87 frame_drops
+[2026-08-05T04:11:09Z INFO  net_transport::video_receiver] Recv stats: 37300 packets, 0 dropped, 3309 assembled, 87 frame_drops
+[2026-08-05T04:11:09Z INFO  net_transport::video_receiver] Recv stats: 37400 packets, 0 dropped, 3309 assembled, 87 frame_drops
+[2026-08-05T04:11:09Z INFO  net_transport::video_receiver] Recv stats: 37500 packets, 0 dropped, 3309 assembled, 87 frame_drops
+[2026-08-05T04:11:09Z INFO  remote_display_client] Decoded: 3240 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:09Z INFO  net_transport::video_receiver] Recv stats: 37600 packets, 0 dropped, 3339 assembled, 87 frame_drops
+[2026-08-05T04:11:09Z INFO  net_transport::video_receiver] Recv stats: 37700 packets, 0 dropped, 3339 assembled, 87 frame_drops
+[2026-08-05T04:11:09Z INFO  net_transport::video_receiver] Recv stats: 37800 packets, 0 dropped, 3339 assembled, 87 frame_drops
+[2026-08-05T04:11:09Z INFO  net_transport::video_receiver] Recv stats: 37900 packets, 0 dropped, 3339 assembled, 87 frame_drops
+[2026-08-05T04:11:10Z INFO  net_transport::video_receiver] Recv stats: 38000 packets, 0 dropped, 3369 assembled, 87 frame_drops
+[2026-08-05T04:11:10Z INFO  net_transport::video_receiver] Recv stats: 38100 packets, 0 dropped, 3369 assembled, 87 frame_drops
+[2026-08-05T04:11:10Z INFO  net_transport::video_receiver] Recv stats: 38200 packets, 0 dropped, 3369 assembled, 87 frame_drops
+[2026-08-05T04:11:10Z INFO  remote_display_client] Decoded: 3300 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:10Z INFO  net_transport::video_receiver] Recv stats: 38300 packets, 0 dropped, 3399 assembled, 87 frame_drops
+[2026-08-05T04:11:10Z INFO  net_transport::video_receiver] Recv stats: 38400 packets, 0 dropped, 3399 assembled, 87 frame_drops
+[2026-08-05T04:11:10Z INFO  net_transport::video_receiver] Recv stats: 38500 packets, 0 dropped, 3399 assembled, 87 frame_drops
+[2026-08-05T04:11:10Z INFO  net_transport::video_receiver] Recv stats: 38600 packets, 0 dropped, 3419 assembled, 87 frame_drops
+[2026-08-05T04:11:11Z INFO  net_transport::video_receiver] Recv stats: 38700 packets, 0 dropped, 3429 assembled, 87 frame_drops
+[2026-08-05T04:11:11Z INFO  net_transport::video_receiver] Recv stats: 38800 packets, 0 dropped, 3429 assembled, 87 frame_drops
+[2026-08-05T04:11:11Z INFO  net_transport::video_receiver] Recv stats: 38900 packets, 0 dropped, 3429 assembled, 87 frame_drops
+[2026-08-05T04:11:11Z INFO  remote_display_client] Decoded: 3360 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:11Z INFO  net_transport::video_receiver] Recv stats: 39000 packets, 0 dropped, 3459 assembled, 87 frame_drops
+[2026-08-05T04:11:11Z INFO  net_transport::video_receiver] Recv stats: 39100 packets, 0 dropped, 3459 assembled, 87 frame_drops
+[2026-08-05T04:11:11Z INFO  net_transport::video_receiver] Recv stats: 39200 packets, 0 dropped, 3459 assembled, 87 frame_drops
+[2026-08-05T04:11:12Z INFO  net_transport::video_receiver] Recv stats: 39300 packets, 0 dropped, 3489 assembled, 87 frame_drops
+[2026-08-05T04:11:12Z INFO  net_transport::video_receiver] Recv stats: 39400 packets, 0 dropped, 3489 assembled, 87 frame_drops
+[2026-08-05T04:11:12Z INFO  net_transport::video_receiver] Recv stats: 39500 packets, 0 dropped, 3489 assembled, 87 frame_drops
+[2026-08-05T04:11:12Z INFO  net_transport::video_receiver] Recv stats: 39600 packets, 0 dropped, 3492 assembled, 87 frame_drops
+[2026-08-05T04:11:12Z INFO  remote_display_client] Decoded: 3420 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:12Z INFO  net_transport::video_receiver] Recv stats: 39700 packets, 0 dropped, 3519 assembled, 87 frame_drops
+[2026-08-05T04:11:12Z INFO  net_transport::video_receiver] Recv stats: 39800 packets, 0 dropped, 3519 assembled, 87 frame_drops
+[2026-08-05T04:11:12Z INFO  net_transport::video_receiver] Recv stats: 39900 packets, 0 dropped, 3519 assembled, 87 frame_drops
+[2026-08-05T04:11:13Z INFO  net_transport::video_receiver] Recv stats: 40000 packets, 0 dropped, 3549 assembled, 87 frame_drops
+[2026-08-05T04:11:13Z INFO  net_transport::video_receiver] Recv stats: 40100 packets, 0 dropped, 3549 assembled, 87 frame_drops
+[2026-08-05T04:11:13Z INFO  net_transport::video_receiver] Recv stats: 40200 packets, 0 dropped, 3549 assembled, 87 frame_drops
+[2026-08-05T04:11:13Z INFO  remote_display_client] Decoded: 3480 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:13Z INFO  net_transport::video_receiver] Recv stats: 40300 packets, 0 dropped, 3574 assembled, 87 frame_drops
+[2026-08-05T04:11:13Z INFO  net_transport::video_receiver] Recv stats: 40400 packets, 0 dropped, 3579 assembled, 87 frame_drops
+[2026-08-05T04:11:13Z INFO  net_transport::video_receiver] Recv stats: 40500 packets, 0 dropped, 3579 assembled, 87 frame_drops
+[2026-08-05T04:11:13Z INFO  net_transport::video_receiver] Recv stats: 40600 packets, 0 dropped, 3579 assembled, 87 frame_drops
+[2026-08-05T04:11:14Z INFO  net_transport::video_receiver] Recv stats: 40700 packets, 0 dropped, 3609 assembled, 87 frame_drops
+[2026-08-05T04:11:14Z INFO  net_transport::video_receiver] Recv stats: 40800 packets, 0 dropped, 3609 assembled, 87 frame_drops
+[2026-08-05T04:11:14Z INFO  net_transport::video_receiver] Recv stats: 40900 packets, 0 dropped, 3609 assembled, 87 frame_drops
+[2026-08-05T04:11:14Z INFO  remote_display_client] Decoded: 3540 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:14Z INFO  net_transport::video_receiver] Recv stats: 41000 packets, 0 dropped, 3639 assembled, 87 frame_drops
+[2026-08-05T04:11:14Z INFO  net_transport::video_receiver] Recv stats: 41100 packets, 0 dropped, 3639 assembled, 87 frame_drops
+[2026-08-05T04:11:14Z INFO  net_transport::video_receiver] Recv stats: 41200 packets, 0 dropped, 3639 assembled, 87 frame_drops
+[2026-08-05T04:11:14Z INFO  net_transport::video_receiver] Recv stats: 41300 packets, 0 dropped, 3647 assembled, 87 frame_drops
+[2026-08-05T04:11:15Z INFO  net_transport::video_receiver] Recv stats: 41400 packets, 0 dropped, 3669 assembled, 87 frame_drops
+[2026-08-05T04:11:15Z INFO  net_transport::video_receiver] Recv stats: 41500 packets, 0 dropped, 3669 assembled, 87 frame_drops
+[2026-08-05T04:11:15Z INFO  net_transport::video_receiver] Recv stats: 41600 packets, 0 dropped, 3669 assembled, 87 frame_drops
+[2026-08-05T04:11:15Z INFO  remote_display_client] Decoded: 3600 frames, 57.9 fps, avg decode 1.4ms
+[2026-08-05T04:11:15Z INFO  net_transport::video_receiver] Recv stats: 41700 packets, 0 dropped, 3699 assembled, 87 frame_drops
+[2026-08-05T04:11:15Z INFO  net_transport::video_receiver] Recv stats: 41800 packets, 0 dropped, 3699 assembled, 87 frame_drops
+[2026-08-05T04:11:15Z INFO  net_transport::video_receiver] Recv stats: 41900 packets, 0 dropped, 3699 assembled, 87 frame_drops
+[2026-08-05T04:11:16Z INFO  remote_display_client] Trace-mode clean shutdown: draining admitted queue
+[2026-08-05T04:11:16Z INFO  remote_display_client] Trace-mode clean shutdown: decoder EOF/tail flush
+[2026-08-05T04:11:16Z INFO  remote_display_client] Trace-mode shutdown complete: status=clean pending_identities=0 identity_failures=0 render_failures=0
+[2026-08-05T04:11:16Z INFO  net_transport::video_receiver] Recv stats: 42000 packets, 0 dropped, 3729 assembled, 92 frame_drops
+[2026-08-05T04:11:16Z INFO  net_transport::video_receiver] Recv stats: 42100 packets, 0 dropped, 3729 assembled, 92 frame_drops
+[2026-08-05T04:11:16Z INFO  net_transport::video_receiver] Recv stats: 42200 packets, 0 dropped, 3729 assembled, 92 frame_drops
+[2026-08-05T04:11:16Z INFO  net_transport::video_receiver] Recv stats: 42300 packets, 0 dropped, 3729 assembled, 92 frame_drops

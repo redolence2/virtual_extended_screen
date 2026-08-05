@@ -1,0 +1,30 @@
+join_trace: host_frames=3872 client_frames=3636 presents=3467 joined=3636 presented_joined=3467 identity_ambiguities=0 identity_failure_records=0 rejected={'never_received': 236}
+PASS (identity_ambiguities=0, identity_failure_records=0, joined=3636)
+JOINER EXIT: 0
+== summary ==
+{
+  "client_frames": 3636,
+  "host_frames": 3872,
+  "identity_ambiguities": 0,
+  "identity_failure_records": 0,
+  "joined": 3636,
+  "offset_stats": {
+    "median_delay_us": 7633,
+    "min_delay_us": 6806,
+    "sample_count": 7
+  },
+  "pass": true,
+  "presented_joined": 3467,
+  "presents": 3467,
+  "rejected": {
+    "never_received": 236
+  }
+}
+
+== host log tail ==
+[RESC] Video sender: 44042 packets, 56703KB sent
+[RESC] Video sender: 44042 packets, 56703KB sent
+[RESC] Control connection closed
+[RESC] Capture stopped. Total frames: 4286, dropped: 1
+[RESC] Virtual display destroyed
+[RESC] Final: 4285 frames, 144 KF, avg 6.7ms

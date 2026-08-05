@@ -1,0 +1,58 @@
+[2026-08-05T03:54:28Z INFO  protocol::constants] Protocol constants v1:
+[2026-08-05T03:54:28Z INFO  protocol::constants]   PACKET_PREFIX_BYTES      = 6
+[2026-08-05T03:54:28Z INFO  protocol::constants]   VIDEO_CHUNK_HEADER_BYTES  = 36
+[2026-08-05T03:54:28Z INFO  protocol::constants]   VIDEO_TOTAL_HEADER_BYTES  = 42
+[2026-08-05T03:54:28Z INFO  protocol::constants]   MAX_VIDEO_PAYLOAD_BYTES   = 1358
+[2026-08-05T03:54:28Z INFO  protocol::constants]   CURSOR_TOTAL_PACKET_BYTES = 35
+[2026-08-05T03:54:28Z INFO  protocol::constants]   INPUT_TOTAL_PACKET_BYTES  = 28
+[2026-08-05T03:54:28Z INFO  remote_display_client] Connecting to 192.168.50.125:9870
+[2026-08-05T03:54:28Z INFO  net_transport::control_channel] Control channel connected to 192.168.50.125:9870
+[2026-08-05T03:54:28Z INFO  net_transport::control_channel] Sent ModeRequest: 1920x1080@60000mHz
+[2026-08-05T03:54:28Z INFO  net_transport::control_channel] ModeConfirm: 1920x1080, stream_id=3568937810, config_id=1, codec=1
+[2026-08-05T03:54:28Z INFO  net_transport::control_channel] StreamingReady sent
+[2026-08-05T03:54:28Z INFO  remote_display_client] Streaming active. Press Ctrl+C to stop.
+[2026-08-05T03:54:28Z INFO  remote_display_client] Cursor receiver listening on UDP port 9873
+[2026-08-05T03:54:28Z INFO  net_transport::video_receiver] Video receiver listening on UDP port 9871
+[hevc_cuvid @ 0x7a1bb0953440] Invalid pkt_timebase, passing timestamps as-is.
+[2026-08-05T03:54:28Z INFO  video_decode] HEVC CUVID decoder initialized (NVDEC hardware, RTX GPU)
+[2026-08-05T03:54:29Z INFO  renderer] SDL2 displays: 1
+[2026-08-05T03:54:29Z INFO  renderer]   Display 0: 'LS32D70xE 32"' at 1080x1920+0+0
+[2026-08-05T03:54:29Z INFO  remote_display_client] Night Shift: warm_strength=50%
+[2026-08-05T03:54:29Z INFO  renderer] Flash test on display 0 for 2 seconds...
+[2026-08-05T03:54:31Z INFO  renderer] Renderer ready on display 0 (1920x1080)
+[2026-08-05T03:54:31Z INFO  input_capture] Input sender → 192.168.50.125:9872
+[2026-08-05T03:54:31Z INFO  remote_display_client] Rotation detected: stream 1920x1080 → canvas 1080x1920 (scaled)
+[2026-08-05T03:54:41Z INFO  net_transport::video_receiver] First video packet: frame_id=0, chunk_id=0, size=1358B, stream_id=3568937810
+[2026-08-05T03:54:41Z INFO  net_transport::video_receiver]   Frame meta: 1920x1080, total_chunks=253, total_bytes=342403, keyframe=true
+[2026-08-05T03:54:41Z INFO  net_transport::video_receiver] Recv stats: 100 packets, 0 dropped, 0 assembled, 0 frame_drops
+[2026-08-05T03:54:41Z INFO  net_transport::video_receiver] Recv stats: 200 packets, 0 dropped, 0 assembled, 0 frame_drops
+[2026-08-05T03:55:00Z INFO  renderer] Texture cache: created 1920x1080
+[2026-08-05T03:55:00Z INFO  remote_display_client] First decoded frame: 1920x1080, decode 19.7ms
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 300 packets, 0 dropped, 9 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 400 packets, 0 dropped, 11 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 500 packets, 0 dropped, 13 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 600 packets, 0 dropped, 15 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 700 packets, 0 dropped, 17 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 800 packets, 0 dropped, 19 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 900 packets, 0 dropped, 23 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 1000 packets, 0 dropped, 27 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 1100 packets, 0 dropped, 30 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 1200 packets, 0 dropped, 30 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 1300 packets, 0 dropped, 37 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 1400 packets, 0 dropped, 43 assembled, 0 frame_drops
+[2026-08-05T03:55:15Z INFO  net_transport::video_receiver] Recv stats: 1500 packets, 0 dropped, 47 assembled, 0 frame_drops
+[2026-08-05T03:55:16Z INFO  net_transport::video_receiver] Recv stats: 1600 packets, 0 dropped, 59 assembled, 0 frame_drops
+[2026-08-05T03:55:16Z INFO  net_transport::video_receiver] Recv stats: 1700 packets, 0 dropped, 60 assembled, 0 frame_drops
+[2026-08-05T03:55:16Z INFO  net_transport::video_receiver] Recv stats: 1800 packets, 0 dropped, 60 assembled, 0 frame_drops
+[2026-08-05T03:55:16Z INFO  net_transport::video_receiver] Recv stats: 1900 packets, 0 dropped, 62 assembled, 0 frame_drops
+[2026-08-05T03:55:16Z INFO  remote_display_client] Decoded: 60 frames, 1.3 fps, avg decode 2.2ms
+[2026-08-05T03:55:16Z INFO  net_transport::video_receiver] Recv stats: 2000 packets, 0 dropped, 64 assembled, 0 frame_drops
+[2026-08-05T03:55:17Z INFO  net_transport::video_receiver] Recv stats: 2100 packets, 0 dropped, 75 assembled, 0 frame_drops
+[2026-08-05T03:59:16Z INFO  net_transport::video_receiver] Recv stats: 2200 packets, 0 dropped, 90 assembled, 0 frame_drops
+[2026-08-05T03:59:16Z INFO  net_transport::video_receiver] Recv stats: 2300 packets, 0 dropped, 90 assembled, 0 frame_drops
+[2026-08-05T03:59:20Z INFO  net_transport::video_receiver] Recv stats: 2400 packets, 0 dropped, 120 assembled, 1 frame_drops
+[2026-08-05T03:59:20Z INFO  net_transport::video_receiver] Recv stats: 2500 packets, 0 dropped, 120 assembled, 1 frame_drops
+[2026-08-05T03:59:20Z INFO  net_transport::video_receiver] Recv stats: 2600 packets, 0 dropped, 120 assembled, 1 frame_drops
+[2026-08-05T03:59:20Z INFO  remote_display_client] Decoded: 120 frames, 0.4 fps, avg decode 2.4ms
+[2026-08-05T03:59:58Z WARN  remote_display_client] Control recv error: early eof (host may have disconnected)
+[2026-08-05T03:59:59Z INFO  remote_display_client] Decode/render stopped (shutdown signal): 132 frames
