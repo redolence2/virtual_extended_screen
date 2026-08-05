@@ -18,8 +18,11 @@ set -o pipefail
 REPO=/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen
 BOX=wan@192.168.50.47
 HOST_TRACE_DIR="$HOME/Library/Logs/RESC"
-EVID="$REPO/evidence/a00/wip"
-RUN_TAG=r4-live
+# RUN_TAG/EVID overridable via env so demo-era measurement runs (e.g. the
+# portrait latency check) can land under their own names/directory instead
+# of overwriting the wip evidence copies. Defaults unchanged.
+EVID="${EVID:-$REPO/evidence/a00/wip}"
+RUN_TAG="${RUN_TAG:-r4-live}"
 TERM_TIMEOUT_S=10
 
 cleanup() {

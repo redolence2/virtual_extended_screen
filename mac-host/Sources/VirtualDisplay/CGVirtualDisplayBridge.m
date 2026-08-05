@@ -181,10 +181,14 @@ float RESCGetNightShiftStrength(void) {
     }
 
     // Set physical size in millimeters (required for display registration)
-    // Approximate: 24" 16:9 monitor = ~531mm x 299mm
+    // Approximate 16:9 panel: landscape ~531x299mm, swapped to 299x531mm
+    // when the requested mode is portrait (height > width) so macOS
+    // registers the display with matching orientation and DPI.
     SEL setSizeInMM = NSSelectorFromString(@"setSizeInMillimeters:");
     if ([descriptor respondsToSelector:setSizeInMM]) {
-        CGSize physicalSize = CGSizeMake(531.0, 299.0);
+        CGSize physicalSize = (height > width)
+            ? CGSizeMake(299.0, 531.0)
+            : CGSizeMake(531.0, 299.0);
         ((void (*)(id, SEL, CGSize))objc_msgSend)(descriptor, setSizeInMM, physicalSize);
         NSLog(@"[RESC] Set sizeInMillimeters: %.0fx%.0f", physicalSize.width, physicalSize.height);
     } else {
@@ -198,7 +202,7 @@ float RESCGetNightShiftStrength(void) {
             dispatch_get_main_queue());
     }
 
-    NSLog(@"[RESC] Descriptor configured: %lux%lu, sizeInMM=531x299", (unsigned long)width, (unsigned long)height);
+    NSLog(@"[RESC] Descriptor configured: %lux%lu (sizeInMM follows orientation)", (unsigned long)width, (unsigned long)height);
 
     // 2. Create display mode — use alloc + designated init (NOT alloc+init+reinit)
     Class modeClass = NSClassFromString(@"CGVirtualDisplayMode");

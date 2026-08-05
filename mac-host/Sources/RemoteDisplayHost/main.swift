@@ -37,8 +37,11 @@ print("[RESC] macOS build: \(CGVirtualDisplayBridge.osBuildVersion())")
 
 // Parse command-line arguments
 let args = CommandLine.arguments
-let width = Int(args.dropFirst().first ?? "1920") ?? 1920
-let height = Int(args.dropFirst(2).first ?? "1080") ?? 1080
+// Portrait-native defaults: the single user's 32" client monitor is
+// physically vertical, and the canonical profile is 1080x1920@60 portrait —
+// so the virtual display is created vertical and streamed unrotated.
+let width = Int(args.dropFirst().first ?? "1080") ?? 1080
+let height = Int(args.dropFirst(2).first ?? "1920") ?? 1920
 let refreshRate = Int(args.dropFirst(3).first ?? "60") ?? 60
 let controlPort: UInt16 = {
     if let idx = args.firstIndex(of: "--port"), idx + 1 < args.count {

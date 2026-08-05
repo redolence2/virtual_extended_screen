@@ -3,8 +3,8 @@ import Foundation
 /// Runtime configuration, loadable from JSON file or CLI args.
 struct AppConfig: Codable {
     var controlPort: UInt16 = 9870
-    var displayWidth: Int = 1920
-    var displayHeight: Int = 1080
+    var displayWidth: Int = 1080
+    var displayHeight: Int = 1920
     var refreshRate: Int = 60
     var bitrateBps: UInt32 = 20_000_000
     var keyframeIntervalSec: Double = 1.0
