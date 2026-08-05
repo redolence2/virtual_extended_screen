@@ -64,7 +64,8 @@ final class VirtualDisplayManager {
 
     // MARK: - Create / Destroy
 
-    func create(width: Int, height: Int, refreshRate: Int = 60) throws -> DisplayHandle {
+    func create(width: Int, height: Int, refreshRate: Int = 60, hiDPI: Bool = false) throws -> DisplayHandle {
+        bridge.wantsHiDPI = hiDPI
         guard virtualDisplayEnabled else {
             throw DisplayError.killSwitchActive
         }

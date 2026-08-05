@@ -26,6 +26,13 @@ float RESCGetNightShiftStrength(void);
 @property (nonatomic, readonly) uint32_t productID;
 @property (nonatomic, readonly) uint32_t serialNumber;
 
+/// When YES, the next create call builds a true Retina (2x) display: the
+/// requested width/height are the PIXEL dimensions, exposed to macOS as a
+/// HiDPI mode of width/2 x height/2 points, and that Retina mode is
+/// selected after creation. Default NO (plain 1x display — the doctor's
+/// profile-true probe path relies on this default).
+@property (nonatomic, assign) BOOL wantsHiDPI;
+
 /// Creates a virtual display with the given resolution and refresh rate.
 /// @param width Pixel width (e.g. 1920 or 3840)
 /// @param height Pixel height (e.g. 1080 or 2160)

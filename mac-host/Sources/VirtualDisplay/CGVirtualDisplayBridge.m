@@ -225,16 +225,29 @@ float RESCGetNightShiftStrength(void) {
     Class settingsClass = NSClassFromString(@"CGVirtualDisplaySettings");
     id settings = [[settingsClass alloc] init];
 
-    // Set the modes array
+    // Set the modes array. Retina (wantsHiDPI): a SINGLE full-size mode +
+    // the hiDPI flag only yields derived low-res Retina modes (verified
+    // live 2026-08-05: the largest @2x backing stopped at half the request,
+    // so macOS rendered 1x and SCK upscaled — no sharpness gain).
+    // Advertising BOTH the full-pixel mode and its half-point sibling lets
+    // macOS pair them into a true Retina mode: points width/2 x height/2,
+    // pixels width x height. That mode is selected post-creation below.
     SEL setModes = NSSelectorFromString(@"setModes:");
     if ([settings respondsToSelector:setModes]) {
-        ((void (*)(id, SEL, id))objc_msgSend)(settings, setModes, @[mode]);
+        NSArray *modes = @[mode];
+        if (self.wantsHiDPI && modeClass && [modeClass instancesRespondToSelector:modeInit]) {
+            id modeHalf = ((id (*)(id, SEL, NSUInteger, NSUInteger, double))objc_msgSend)(
+                [modeClass alloc], modeInit, width / 2, height / 2, (double)refreshRate);
+            if (modeHalf) { modes = @[mode, modeHalf]; }
+        }
+        ((void (*)(id, SEL, id))objc_msgSend)(settings, setModes, modes);
     }
 
-    // Set hiDPI = NO (non-Retina, scale 1.0 as per spec)
+    // hiDPI per wantsHiDPI (NO = plain 1x display, the historical default)
     SEL setHiDPI = NSSelectorFromString(@"setHiDPI:");
     if ([settings respondsToSelector:setHiDPI]) {
-        ((void (*)(id, SEL, BOOL))objc_msgSend)(settings, setHiDPI, NO);
+        ((void (*)(id, SEL, BOOL))objc_msgSend)(settings, setHiDPI, self.wantsHiDPI);
+        if (self.wantsHiDPI) { NSLog(@"[RESC] hiDPI enabled on virtual display settings"); }
     }
 
     // 4. Create the virtual display — alloc + designated init (NOT alloc+init+reinit)
@@ -280,6 +293,40 @@ float RESCGetNightShiftStrength(void) {
     }
     free(ids);
     NSLog(@"[RESC] Display %u in CG online list: %@, total displays: %u", did, foundInCG ? @"YES" : @"NO", count);
+
+    // Retina: select the paired mode (points width/2 x height/2 backed by
+    // width x height PIXELS) so macOS renders 2x-crisp into the full
+    // framebuffer. Mode registration is async after applySettings — retry
+    // briefly until the Retina mode appears. NOTE: CGDisplayPixelsWide()
+    // reports POINTS for Retina modes; only CGDisplayModeGetPixelWidth()
+    // tells the truth about the backing store.
+    if (self.wantsHiDPI) {
+        for (int attempt = 0; attempt < 8; attempt++) {
+            BOOL selected = NO;
+            NSDictionary *opts = @{(__bridge NSString *)kCGDisplayShowDuplicateLowResolutionModes: @YES};
+            CFArrayRef all = CGDisplayCopyAllDisplayModes(did, (__bridge CFDictionaryRef)opts);
+            if (all) {
+                for (CFIndex i = 0; i < CFArrayGetCount(all); i++) {
+                    CGDisplayModeRef m = (CGDisplayModeRef)CFArrayGetValueAtIndex(all, i);
+                    if (CGDisplayModeGetPixelWidth(m) == width && CGDisplayModeGetPixelHeight(m) == height &&
+                        CGDisplayModeGetWidth(m) == width / 2 && CGDisplayModeGetHeight(m) == height / 2) {
+                        CGError err = CGDisplaySetDisplayMode(did, m, NULL);
+                        NSLog(@"[RESC] Retina mode selected: %zux%zu points / %zux%zu pixels (err=%d)",
+                              CGDisplayModeGetWidth(m), CGDisplayModeGetHeight(m),
+                              CGDisplayModeGetPixelWidth(m), CGDisplayModeGetPixelHeight(m), err);
+                        selected = (err == kCGErrorSuccess);
+                        break;
+                    }
+                }
+                CFRelease(all);
+            }
+            if (selected) break;
+            if (attempt == 7) NSLog(@"[RESC] WARNING: Retina mode (points %lux%lu, pixels %lux%lu) never appeared",
+                                    (unsigned long)(width / 2), (unsigned long)(height / 2),
+                                    (unsigned long)width, (unsigned long)height);
+            usleep(250000);
+        }
+    }
 
     return YES;
 }

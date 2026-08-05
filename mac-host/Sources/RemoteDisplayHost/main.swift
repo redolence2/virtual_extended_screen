@@ -78,12 +78,19 @@ guard CGVirtualDisplayBridge.isAPIAvailable() else {
     print("[RESC] ERROR: CGVirtualDisplay API not available."); exit(1)
 }
 
-// Create virtual display
+// Create virtual display — Retina-supersampled (settled 2026-08-05): the
+// display is created at 2x the stream size as a TRUE HiDPI display (macOS
+// renders Retina-crisp glyphs into a width*2 x height*2 backing; logical
+// size stays width x height points), and SCK downscales into the unchanged
+// width x height stream below. Supersampled text over the proven 1080p
+// pipeline: wire, encoder, cursor, and input mapping all remain at stream
+// size (the coordinate mappers are proportional against CGDisplayBounds,
+// which reports POINTS = stream size, so mapping is identity-scaled).
 let displayManager = VirtualDisplayManager()
 let displayHandle: VirtualDisplayManager.DisplayHandle
 do {
-    displayHandle = try displayManager.create(width: width, height: height, refreshRate: refreshRate)
-    print("[RESC] Virtual display: displayID=\(displayHandle.lastKnownDisplayID)")
+    displayHandle = try displayManager.create(width: width * 2, height: height * 2, refreshRate: refreshRate, hiDPI: true)
+    print("[RESC] Virtual display: displayID=\(displayHandle.lastKnownDisplayID) (Retina \(width * 2)x\(height * 2) px, looks like \(width)x\(height))")
 } catch {
     print("[RESC] ERROR: \(error)"); exit(1)
 }
