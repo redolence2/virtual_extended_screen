@@ -324,7 +324,12 @@ async fn main() -> Result<()> {
 
     // Bounded queue: small to minimize latency (Item 5 from review).
     // Receiver uses smart drop policy: keyframes always kept.
-    let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(4);
+    // Depth 2, not 4 (native-4K trace finding, 2026-08-05: recv->decode
+    // p50 117ms while decode itself is 5ms — the channel was a standing
+    // latency reservoir whenever the decode/render loop runs below the
+    // FramePacer's 60fps). At depth 2 the assembler sheds instead, which
+    // costs smoothness, not latency.
+    let (frame_tx, frame_rx) = mpsc::sync_channel::<AssembledFrame>(2);
 
     // Shared stats — receiver updates atomics in real-time, stats reporter reads them
     let recv_stats = Arc::new(SharedReceiverStats::default());

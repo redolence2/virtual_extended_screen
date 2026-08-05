@@ -118,6 +118,18 @@ final class VideoSender {
                 totalBytesSent += UInt64(sent)
                 totalPacketsSent += 1
             }
+
+            // Burst pacing (native-4K finding, 2026-08-05): a ~1MB 4K
+            // keyframe is ~756 chunks sent back-to-back at GbE line rate —
+            // ~2.5x the client's 416KB kernel UDP receive buffer
+            // (net.core.rmem_max default), measured as 906 socket-level
+            // drops: the keyframe never assembled, and with a 10s GOP the
+            // screen stayed black. Pausing ~1.5ms every 128 chunks keeps
+            // peak in-flight under the buffer; affects only large (key)
+            // frames, ~8ms each, at most once per GOP.
+            if chunkIdx > 0 && chunkIdx % 128 == 0 {
+                usleep(1500)
+            }
         }
 
         // A0 trace mode only (RESC_TRACE=1) — see RescTrace.swift. sendTsUs is

@@ -78,6 +78,12 @@ public final class VideoEncoder {
     private var totalEncodeTimeMs: Double = 0
     private var pendingForceKeyframe = false
 
+    // In-flight encode gate (see encode()): submit-thread and VT-callback
+    // both touch these, hence the lock.
+    private let pendingLock = NSLock()
+    private var pendingEncodes = 0
+    public private(set) var encodeSkips: UInt64 = 0
+
     public init(config: Config, outputCallback: @escaping OutputCallback) {
         self.config = config
         self.outputCallback = outputCallback
@@ -106,12 +112,15 @@ public final class VideoEncoder {
             width: config.width,
             height: config.height,
             codecType: codecType,
-            encoderSpecification: [
-                kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder: true
-            ] as CFDictionary,
-            imageBufferAttributes: [
-                kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
-            ] as CFDictionary,
+            // nil/nil (native-4K experiment, 2026-08-06): the OpenDisplay
+            // session — same silicon, same 2160x3840 — encodes in <=20ms
+            // where ours took ~41ms; its creation passes NO encoder
+            // specification and NO image-buffer attributes, letting VT pick
+            // its preferred encoder instance and buffer path. Hardware use
+            // is verified at runtime via the UsingHardwareAccelerated query
+            // logged below, so the explicit Enable dict adds nothing.
+            encoderSpecification: nil,
+            imageBufferAttributes: nil,
             compressedDataAllocator: nil,
             outputCallback: nil,
             refcon: nil,
@@ -147,20 +156,39 @@ public final class VideoEncoder {
         try setProperty(kVTCompressionPropertyKey_MaxKeyFrameInterval, keyframeInterval as CFNumber)
         try setProperty(kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, config.keyframeIntervalSeconds as CFNumber)
 
-        // Data rate limits
-        let bytesPerSec = Double(config.bitrateBps) / 8.0
-        let limits: [Double] = [bytesPerSec * 2.0, 0.1]
-        try setProperty(kVTCompressionPropertyKey_DataRateLimits, limits as CFArray)
+        // NO DataRateLimits (native-4K trace finding, 2026-08-05: capture->
+        // encode p50 41.6ms): the hard 2x/0.1s window is overflowed by every
+        // 4K keyframe, and fighting it costs the encoder its realtime
+        // budget. AverageBitRate alone governs rate — the OpenDisplay-proven
+        // configuration on this same silicon.
+
+        // Encoder paces itself for this cadence (also OpenDisplay-proven;
+        // was previously unset).
+        try setProperty(kVTCompressionPropertyKey_ExpectedFrameRate, config.fps as CFNumber)
 
         // No B-frames (reduces latency)
         try setProperty(kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse)
 
-        // CABAC for H.264
-        if config.codec == .h264 {
-            try setProperty(kVTCompressionPropertyKey_H264EntropyMode, kVTH264EntropyMode_CABAC)
+        // Zero frame-delay window (native-4K, 2026-08-05, mirroring the
+        // OpenDisplay-proven realtime config): the encoder may not hold
+        // frames to optimize across a window. OPTIONAL like the speed hint
+        // below — this VT H.264 session rejects it with -12900
+        // (kVTPropertyNotSupportedErr) on some configurations, and with
+        // RealTime + no-reordering already set it is a refinement, not
+        // load-bearing.
+        let delayStatus = VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxFrameDelayCount,
+                                               value: 0 as CFNumber)
+        if delayStatus != noErr {
+            print("[RESC] WARNING: VTSessionSetProperty(MaxFrameDelayCount) failed: status=\(delayStatus) — continuing (optional realtime refinement, not load-bearing)")
         }
 
-        try setProperty(kVTCompressionPropertyKey_ExpectedFrameRate, config.fps as CFNumber)
+        // Entropy mode deliberately UNSET for H.264 (native-4K finding,
+        // 2026-08-05): forcing CABAC fights PrioritizeEncodingSpeedOverQuality
+        // at 8.3MP — let VT pick the entropy coder that meets the realtime
+        // budget. Previous behavior, removed:
+        //   if config.codec == .h264 {
+        //       try setProperty(kVTCompressionPropertyKey_H264EntropyMode, kVTH264EntropyMode_CABAC)
+        //   }
 
         if #available(macOS 14.0, *) {
             // Deliberate exception (A00_REMEDIATION_PLAN.md §5 R3a): this is
@@ -175,6 +203,14 @@ public final class VideoEncoder {
                 print("[RESC] WARNING: VTSessionSetProperty(PrioritizeEncodingSpeedOverQuality) failed: status=\(speedStatus) — continuing (optional quality hint, not load-bearing)")
             }
         }
+
+        // Diagnostic (native-4K, 2026-08-06): is this session actually
+        // hardware? 41ms/frame at 4K despite the Enable spec smells of a
+        // silent software fallback.
+        var usingHW: CFTypeRef?
+        let hwStatus = VTSessionCopyProperty(session, key: kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
+                                             allocator: nil, valueOut: &usingHW)
+        print("[RESC] Encoder hardware-accelerated: \(hwStatus == noErr ? String(describing: usingHW) : "query failed (\(hwStatus))")")
 
         var prepareStatus = VTCompressionSessionPrepareToEncodeFrames(session)
         if config.forcePrepareFailure {
@@ -220,6 +256,25 @@ public final class VideoEncoder {
     public func encode(pixelBuffer: CVPixelBuffer, presentationTime: CMTime, identity: FrameIdentity? = nil) {
         guard let session = session else { return }
 
+        // At most ONE frame inside VT at a time (native-4K trace finding,
+        // 2026-08-05: capture->encode p50 41.6ms at ~58fps THROUGHPUT — the
+        // encoder kept up but pipelined ~2.5 frames deep when every capture
+        // was submitted unconditionally; the delay was queueing, not encode
+        // speed). A capture arriving while one is in flight is dropped
+        // BEFORE encode — reference-chain-safe (the next encoded frame
+        // references the last ENCODED frame). Mirrors OpenDisplay's proven
+        // maxPendingEncodes=1. The completion handler below decrements
+        // UNCONDITIONALLY (before its guards), so error frames can't leak
+        // the gate.
+        pendingLock.lock()
+        if pendingEncodes >= 1 {
+            encodeSkips += 1
+            pendingLock.unlock()
+            return
+        }
+        pendingEncodes += 1
+        pendingLock.unlock()
+
         let encodeStart = CFAbsoluteTimeGetCurrent()
 
         var properties: [CFString: Any]? = nil
@@ -238,6 +293,11 @@ public final class VideoEncoder {
             infoFlagsOut: nil
         ) { [weak self] status, flags, sampleBuffer in
             guard let self = self else { return }
+            // Gate release FIRST, before any guard — error/nil-buffer frames
+            // must not leak the in-flight slot.
+            self.pendingLock.lock()
+            self.pendingEncodes -= 1
+            self.pendingLock.unlock()
             let encodeDuration = (CFAbsoluteTimeGetCurrent() - encodeStart) * 1000.0
 
             guard status == noErr, let sampleBuffer = sampleBuffer else { return }
@@ -265,6 +325,11 @@ public final class VideoEncoder {
         }
 
         if status != noErr {
+            // Synchronous submission failure: VT does not invoke the output
+            // handler for a frame it never accepted — release the slot here.
+            pendingLock.lock()
+            pendingEncodes -= 1
+            pendingLock.unlock()
             print("[RESC] Encode frame failed: \(status)")
         }
     }

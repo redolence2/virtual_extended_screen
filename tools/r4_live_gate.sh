@@ -87,9 +87,11 @@ mkdir -p "$HOST_TRACE_DIR"
 echo "== preflight: fresh client trace dir on box =="
 ssh "$BOX" 'rm -rf /tmp/resc-r4-trace && mkdir -p /tmp/resc-r4-trace'
 
-echo "== start host (Mac, RESC_TRACE=1, HEVC -> 192.168.50.47) =="
+echo "== start host (Mac, RESC_TRACE=1, args: ${HOST_ARGS:---client 192.168.50.47 --hevc}) =="
 cd "$REPO/mac-host"
-RESC_TRACE=1 ./.build/debug/remote-display-host --client 192.168.50.47 --hevc \
+# HOST_ARGS env-overridable (native-4K measurement runs pass
+# "2160 3840 60 --client 192.168.50.47"); default unchanged.
+RESC_TRACE=1 ./.build/debug/remote-display-host ${HOST_ARGS:---client 192.168.50.47 --hevc} \
   > /tmp/r4-host.log 2>&1 &
 HOST_PID=$!
 echo "host pid: $HOST_PID"

@@ -136,7 +136,13 @@ impl VideoDecoder {
             backend: DecodeBackend::Cuvid,
             frame_count: 0,
             codec_name: display_name.to_string(),
-            state: DecoderState::Healthy,
+            // Start GATED until the first wire-keyframe (native-4K finding,
+            // 2026-08-05): a client joining mid-GOP receives reference-less
+            // P-frames before the host's forced connect keyframe arrives, and
+            // feeding those to h264_cuvid+LOW_DELAY intermittently wedges the
+            // parser (silent zero-output, thread spin). hevc_cuvid tolerated
+            // it; the gate makes connect deterministic for both.
+            state: DecoderState::WaitingForIDR,
             last_idr_request: None,
             pending_idr_reason: None,
             frames_since_recovery: 0,
@@ -175,7 +181,13 @@ impl VideoDecoder {
             backend: DecodeBackend::Software,
             frame_count: 0,
             codec_name: name.to_string(),
-            state: DecoderState::Healthy,
+            // Start GATED until the first wire-keyframe (native-4K finding,
+            // 2026-08-05): a client joining mid-GOP receives reference-less
+            // P-frames before the host's forced connect keyframe arrives, and
+            // feeding those to h264_cuvid+LOW_DELAY intermittently wedges the
+            // parser (silent zero-output, thread spin). hevc_cuvid tolerated
+            // it; the gate makes connect deterministic for both.
+            state: DecoderState::WaitingForIDR,
             last_idr_request: None,
             pending_idr_reason: None,
             frames_since_recovery: 0,
@@ -212,8 +224,22 @@ impl VideoDecoder {
     /// call can emit 0, 1, or several frames, and each recovers its own PTS
     /// independently in [`Self::drain_ready`] — never this call's `frame_id`.
     pub fn decode(&mut self, data: &[u8], frame_id: u32, timestamp_us: u64, is_keyframe: bool) -> Result<Vec<DecodedFrame>> {
-        if self.state == DecoderState::WaitingForIDR && !is_keyframe {
-            return Ok(Vec::new());
+        log::debug!("decode(): frame_id={} kf={} state={:?} bytes={}", frame_id, is_keyframe, self.state, data.len());
+        if self.state == DecoderState::WaitingForIDR {
+            if !is_keyframe {
+                return Ok(Vec::new());
+            }
+            // Transition at FEED time, not emission time (native-4K
+            // finding, 2026-08-05): cuvid's low-delay parser emits AU n's
+            // picture only once AU n+1 arrives, so an emission-gated
+            // transition deadlocks — the keyframe's emission waits for the
+            // next feed, and the next feed waits (gated) for the emission.
+            // Leaving WaitingForIDR the moment a keyframe is FED lets the
+            // following P-frames through, which is what completes the
+            // keyframe's own emission.
+            log::info!("Decoder → Recovering (keyframe fed)");
+            self.state = DecoderState::Recovering;
+            self.frames_since_recovery = 0;
         }
 
         let mut packet = ffmpeg_next::Packet::copy(data);
@@ -359,9 +385,13 @@ impl VideoDecoder {
                 }
             }
 
-            // State machine updates
+            // State machine updates. (WaitingForIDR → Recovering now
+            // happens at FEED time in decode() — see its doc comment; an
+            // emission-gated transition deadlocks against cuvid's gap-1
+            // low-delay emission. This emission-time arm remains only for
+            // the flush()/EOF drain path, where no further feeds exist.)
             if is_keyframe && self.state == DecoderState::WaitingForIDR {
-                log::info!("Decoder → Recovering (keyframe received)");
+                log::info!("Decoder → Recovering (keyframe received at drain)");
                 self.state = DecoderState::Recovering;
                 self.frames_since_recovery = 0;
             }

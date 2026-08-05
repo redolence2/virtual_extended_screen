@@ -10,6 +10,11 @@ import RescCore
 // Phase 2: H.264 Encoding + Local Validation
 // Phase 3: Protocol + Transport + Control Channel
 
+// Line-buffer stdout even when redirected to a file (nohup runs): fully
+// buffered print() hid every periodic stats line and died unflushed on
+// SIGTERM, repeatedly blinding live diagnosis (native-4K night, 2026-08-06).
+setvbuf(stdout, nil, _IOLBF, 0)
+
 print("[RESC] Remote Extended Screen Host starting...")
 
 // Diagnostics bootstrap + per-profile instance lock (IMPLEMENTATION_PLAN_V11.md §3, §11).
@@ -86,11 +91,16 @@ guard CGVirtualDisplayBridge.isAPIAvailable() else {
 // pipeline: wire, encoder, cursor, and input mapping all remain at stream
 // size (the coordinate mappers are proportional against CGDisplayBounds,
 // which reports POINTS = stream size, so mapping is identity-scaled).
+// Native-4K launch (`2160 3840 60 ...`): the display's Retina backing IS the
+// stream — 2160x3840 pixels, logical 1080x1920 — captured 1:1 with no
+// downscale (sharp end-to-end). Default 1080p launch keeps the supersampled
+// arrangement (display at 2x the stream, SCK downscales).
+let (displayPxW, displayPxH) = width >= 2160 ? (width, height) : (width * 2, height * 2)
 let displayManager = VirtualDisplayManager()
 let displayHandle: VirtualDisplayManager.DisplayHandle
 do {
-    displayHandle = try displayManager.create(width: width * 2, height: height * 2, refreshRate: refreshRate, hiDPI: true)
-    print("[RESC] Virtual display: displayID=\(displayHandle.lastKnownDisplayID) (Retina \(width * 2)x\(height * 2) px, looks like \(width)x\(height))")
+    displayHandle = try displayManager.create(width: displayPxW, height: displayPxH, refreshRate: refreshRate, hiDPI: true)
+    print("[RESC] Virtual display: displayID=\(displayHandle.lastKnownDisplayID) (Retina \(displayPxW)x\(displayPxH) px, looks like \(displayPxW / 2)x\(displayPxH / 2); stream \(width)x\(height))")
 } catch {
     print("[RESC] ERROR: \(error)"); exit(1)
 }
@@ -120,7 +130,10 @@ let streamingState = StreamingState()
 let useHEVC = CommandLine.arguments.contains("--hevc")
 var encoderConfig = VideoEncoder.Config(
     width: Int32(width), height: Int32(height), fps: Double(refreshRate),
-    keyframeIntervalSeconds: 0.5,
+    // 4K keyframes are ~1-2MB and cost the encoder its realtime budget —
+    // space them out (recovery is covered by the client's IDR-request
+    // path); 1080p keeps the historical 0.5s cadence.
+    keyframeIntervalSeconds: width >= 2160 ? 10.0 : 0.5,
     codec: useHEVC ? .hevc : .h264
 )
 encoderConfig.bitrateBps = {

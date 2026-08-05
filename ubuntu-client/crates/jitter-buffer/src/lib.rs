@@ -33,7 +33,11 @@ struct FrameSlot {
     metadata: Option<VideoChunkPerFrame>,
     data: Vec<u8>,           // preallocated buffer (chunks stored at stride offsets)
     chunk_sizes: Vec<u16>,   // actual payload size per chunk
-    received: [u64; 8],      // bitset for up to 512 chunks (supports 4K IDR spikes)
+    // Chunk-receipt bitset sized from max_chunks (native-4K finding,
+    // 2026-08-05: the old fixed [u64; 8] = 512 bits silently refused
+    // chunk ids >= 512, so every ~753-chunk 4K keyframe timed out at
+    // exactly 512/753 and the screen stayed black).
+    received: Vec<u64>,
     chunks_received: u16,
     first_chunk_time: Instant,
 }
@@ -46,7 +50,7 @@ impl FrameSlot {
             metadata: None,
             data: vec![0u8; max_frame_bytes],
             chunk_sizes: vec![0u16; max_chunks],
-            received: [0u64; 8],
+            received: vec![0u64; (max_chunks + 63) / 64],
             chunks_received: 0,
             first_chunk_time: Instant::now(),
         }
@@ -56,7 +60,7 @@ impl FrameSlot {
         self.active = true;
         self.frame_id = frame_id;
         self.metadata = None;
-        self.received = [0u64; 8];
+        self.received.iter_mut().for_each(|w| *w = 0);
         self.chunks_received = 0;
         self.first_chunk_time = Instant::now();
         for s in self.chunk_sizes.iter_mut() { *s = 0; }
@@ -65,7 +69,7 @@ impl FrameSlot {
     fn mark_chunk(&mut self, chunk_id: u16) -> bool {
         let idx = chunk_id as usize / 64;
         let bit = chunk_id as usize % 64;
-        if idx >= 8 { return false; }
+        if idx >= self.received.len() { return false; }
         let was_set = (self.received[idx] >> bit) & 1 == 1;
         if !was_set {
             self.received[idx] |= 1u64 << bit;
@@ -163,7 +167,7 @@ impl FrameAssembler {
             for cid in 0..self.max_chunks_per_frame {
                 let idx = cid as usize / 64;
                 let bit = cid as usize % 64;
-                if idx < 8 && (slot.received[idx] >> bit) & 1 == 1 && cid >= meta.total_chunks {
+                if idx < slot.received.len() && (slot.received[idx] >> bit) & 1 == 1 && cid >= meta.total_chunks {
                     slot.received[idx] &= !(1u64 << bit);
                     slot.chunks_received -= 1;
                 }
