@@ -123,6 +123,15 @@ impl VideoDecoder {
             // cuvid-lowdelay configuration, extra_hw_frames included.
             (*context.as_mut_ptr()).flags |= ffmpeg_sys_next::AV_CODEC_FLAG_LOW_DELAY as i32;
             (*context.as_mut_ptr()).extra_hw_frames = 8;
+            // NOTE (native-4K, 2026-08-06): cuvid's decode pipeline runs
+            // ~6 frames deep (~100ms) under sustained 4K load + GPU
+            // contention (decode_trigger gaps: 84% at exactly 6). Bounding
+            // the surface pool to 6 did NOT shrink the depth but DID starve
+            // reference frames — corruption detectors then forced 135
+            // keyframes in 40s (verified live, reverted). The structural
+            // fix is contention reduction / zero-copy rendering, not pool
+            // tuning; the EAGAIN drain-and-retry in decode() is kept as
+            // correct backpressure handling regardless.
         }
 
         let decoder = context.decoder().video()
@@ -244,12 +253,34 @@ impl VideoDecoder {
 
         let mut packet = ffmpeg_next::Packet::copy(data);
         packet.set_pts(Some(frame_id as i64));
-        if let Err(e) = self.decoder.send_packet(&packet) {
-            self.enter_waiting_for_idr(IDRReason::DecodeError);
-            return Err(anyhow::anyhow!("send_packet failed: {}", e));
+        // EAGAIN is backpressure from the bounded surface pool, NOT an
+        // error: drain the ready emissions (pool-full implies some exist)
+        // and resubmit — the same bounded discipline flush() uses for EOF.
+        let mut frames = Vec::new();
+        let mut eagain_attempts: u32 = 0;
+        loop {
+            match self.decoder.send_packet(&packet) {
+                Ok(()) => break,
+                Err(ffmpeg_next::Error::Other { errno }) if errno == libc::EAGAIN => {
+                    eagain_attempts += 1;
+                    if eagain_attempts > 64 {
+                        self.enter_waiting_for_idr(IDRReason::DecodeError);
+                        return Err(anyhow::anyhow!(
+                            "send_packet EAGAIN did not converge after {} attempts",
+                            eagain_attempts
+                        ));
+                    }
+                    frames.extend(self.drain_ready(timestamp_us, is_keyframe));
+                }
+                Err(e) => {
+                    self.enter_waiting_for_idr(IDRReason::DecodeError);
+                    return Err(anyhow::anyhow!("send_packet failed: {}", e));
+                }
+            }
         }
 
-        Ok(self.drain_ready(timestamp_us, is_keyframe))
+        frames.extend(self.drain_ready(timestamp_us, is_keyframe));
+        Ok(frames)
     }
 
     /// End-of-stream flush (C3; A00_COMPLETION_REPORT_AMENDED_review.md

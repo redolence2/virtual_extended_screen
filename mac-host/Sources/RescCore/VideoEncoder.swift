@@ -267,7 +267,14 @@ public final class VideoEncoder {
         // UNCONDITIONALLY (before its guards), so error frames can't leak
         // the gate.
         pendingLock.lock()
-        if pendingEncodes >= 1 {
+        // Depth 2, not 1 (native-4K, 2026-08-06): 4K encode (~19ms) exceeds
+        // the 16.7ms frame period, so a 1-deep gate skipped every frame that
+        // arrived mid-encode and halved throughput to ~28fps. Two in flight
+        // pipelines to full rate (2 frames / 19ms ≈ 105fps ceiling) while
+        // bounding queueing to one extra slot — per-frame encode latency
+        // stays ~19ms, wait-for-slot ≤ a few ms. (OpenDisplay's depth-1
+        // works only because its encode beats the frame period.)
+        if pendingEncodes >= 2 {
             encodeSkips += 1
             pendingLock.unlock()
             return

@@ -516,11 +516,63 @@ async fn main() -> Result<()> {
     let host_addr_for_input = host_addr.clone();
     let input_udp_port = mode_confirm.input_udp_port as u16;
 
-    let _decode_render_handle = std::thread::Builder::new()
-        .name("decode-render".into())
-        .spawn(move || {
-            // Determine codec from ModeConfirm (0=H.264, 1=HEVC)
-            let codec_id = mode_confirm.codec as u8;
+    // Decode and render are SEPARATE threads joined by a newest-wins
+    // mailbox (native-4K, 2026-08-06): fused, the ~16.7ms vsync-blocked
+    // present serialized with 4K decode capped the loop near 30fps and
+    // kept a standing queue upstream (the content-latency the owner felt
+    // while the cursor overlay channel stayed instant). Split, decode
+    // sustains full rate in parallel with presents — the pattern proven in
+    // ubuntu_receiver. SDL stays whole in the render thread (renderer +
+    // event pump + input, SDL's one-thread rule); ALL identity/ledger/
+    // trace-footer machinery stays in the decode thread (C3 semantics
+    // unchanged); presents cross via an atomic for the footer.
+    struct FrameMailbox {
+        inner: std::sync::Mutex<(Option<video_decode::DecodedFrame>, bool)>, // (newest, closed)
+        cvar: std::sync::Condvar,
+    }
+    impl FrameMailbox {
+        fn new() -> Self {
+            Self { inner: std::sync::Mutex::new((None, false)), cvar: std::sync::Condvar::new() }
+        }
+        fn put(&self, f: video_decode::DecodedFrame) {
+            let mut g = self.inner.lock().unwrap();
+            // Newest-wins: an overwritten frame is a shed — smoothness cost
+            // only; its identity was already resolved at emission in the
+            // decode thread, so the ledger/trace contract is untouched.
+            g.0 = Some(f);
+            self.cvar.notify_one();
+        }
+        #[allow(dead_code)]
+        fn close(&self) {
+            let mut g = self.inner.lock().unwrap();
+            g.1 = true;
+            self.cvar.notify_one();
+        }
+        /// Newest frame if one is (or becomes) available within `wait`;
+        /// also reports the closed flag.
+        fn take_timeout(&self, wait: Duration) -> (Option<video_decode::DecodedFrame>, bool) {
+            let mut g = self.inner.lock().unwrap();
+            if g.0.is_none() && !g.1 {
+                let (ng, _timeout) = self.cvar.wait_timeout(g, wait).unwrap();
+                g = ng;
+            }
+            (g.0.take(), g.1)
+        }
+    }
+    let mailbox = std::sync::Arc::new(FrameMailbox::new());
+    let presents_shared = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let render_failures_shared = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let codec_id = mode_confirm.codec as u8;
+
+    // 7a. Decode thread: decoder + receipt ledger + identity + IDR
+    // requests + the C3 trace-mode shutdown protocol.
+    let _decode_handle = {
+        let mailbox = std::sync::Arc::clone(&mailbox);
+        let presents_shared = std::sync::Arc::clone(&presents_shared);
+        let render_failures_shared = std::sync::Arc::clone(&render_failures_shared);
+        std::thread::Builder::new()
+            .name("decode".into())
+            .spawn(move || {
             let mut decoder = match video_decode::VideoDecoder::new(codec_id) {
                 Ok(d) => d,
                 Err(e) => {
@@ -536,40 +588,6 @@ async fn main() -> Result<()> {
                 }
             };
 
-            // Init SDL2 (needed for both renderer and input)
-            let sdl = sdl2::init().expect("SDL init");
-            let video = sdl.video().expect("SDL video");
-            let mut event_pump = sdl.event_pump().expect("SDL event pump");
-
-            let mut renderer_opt = if !headless {
-                match renderer::Renderer::new(display_idx, stream_width, stream_height, !no_flash) {
-                    Ok(r) => Some(r),
-                    Err(e) => { log::warn!("Renderer init failed: {} (headless)", e); None }
-                }
-            } else {
-                None
-            };
-
-            let mut cursor_renderer = renderer::CursorRenderer::new();
-
-            // Input capture (Phase 6)
-            let mut input = input_capture::InputCapture::new(
-                &host_addr_for_input, input_udp_port, stream_width, stream_height
-            );
-
-            // Detect xrandr rotation + set canvas dimensions for coordinate mapping
-            if let Some(ref r) = renderer_opt {
-                let (cw, ch) = r.canvas_size();
-                input.canvas_width = cw;
-                input.canvas_height = ch;
-                if r.is_rotated() {
-                    input.rotated = true;
-                    cursor_renderer.rotated = true;
-                    log::info!("Rotation detected: stream {}x{} → canvas {}x{} (scaled)",
-                              stream_width, stream_height, cw, ch);
-                }
-            }
-
             let mut dump_file = dump_path.as_ref().map(|p| {
                 std::fs::File::create(p).expect("Failed to create dump file")
             });
@@ -577,27 +595,16 @@ async fn main() -> Result<()> {
             let start = std::time::Instant::now();
             let mut frame_count = 0u64;
             let mut decode_total_us = 0u64;
-            let mut has_frame = false;
-            let mut new_video_frame; // set per loop iteration
-            // Recovered identity (A00_REMEDIATION_PLAN.md §4 item 7) of the
-            // most recently uploaded decoded frame — i.e. whatever
-            // `r.update_frame()` last copied into the persistent texture.
-            // Read at the present call site (§4 item 8) since
-            // `present_with_cursor()` re-presents this same texture on
-            // cursor-only redraws too, with no frame reference of its own.
-            let mut last_uploaded_recovered_id: Option<u64> = None;
             // A0.0 trace-mode per-frame log (RESC_TRACE=1 only; see
             // crates/diagnostics/src/trace.rs). Cheap no-op otherwise.
             let trace = diagnostics::trace::ClientTrace::global();
 
             // C3 decode-side receipt ledger + counters (see `ledger_submit`/
             // `ledger_resolve`'s doc comments): all trace-mode-only
-            // bookkeeping, kept alongside the identity-bearing state above.
+            // bookkeeping.
             let mut ledger: HashMap<u64, u64> = HashMap::new();
             let mut identity_failures: u64 = 0;
             let mut decode_submitted: u64 = 0;
-            let mut presents: u64 = 0;
-            let mut render_failures: u64 = 0;
             // Last frame_id actually submitted to the decoder — used only as
             // `decode_trigger_frame_id` for tail frames recovered by
             // `decoder.flush()` during shutdown, which (being triggered by
@@ -611,16 +618,9 @@ async fn main() -> Result<()> {
             let _decode_loop_alive_guard = DecodeLoopAliveGuard::new();
 
             loop {
-                new_video_frame = false;
-
-                // Update warm filter from Night Shift control message
-                if let Some(ref mut r) = renderer_opt {
-                    let bits = warm_strength_reader.load(Ordering::Relaxed);
-                    r.warm_strength = f32::from_bits(bits);
-                }
-
-                // Collect ALL available frames from queue, DECODE all (maintains
-                // HEVC reference chain), but only RENDER the last good one.
+                // Collect ALL available frames from the queue, DECODE all
+                // (maintains the reference chain); every renderable emission
+                // is published to the newest-wins mailbox.
                 let mut frames_to_decode: Vec<AssembledFrame> = Vec::new();
                 let mut shutting_down = false;
                 match frame_rx.recv_timeout(Duration::from_millis(1)) {
@@ -722,25 +722,24 @@ async fn main() -> Result<()> {
                             "queue_drops": recv_stats_for_decode.frames_dropped.load(Ordering::Relaxed),
                             "decode_submitted": decode_submitted,
                             "decode_emitted": frame_count,
-                            "presents": presents,
+                            // Written by the render thread at the actual
+                            // present call site; read once here at seal time.
+                            "presents": presents_shared.load(Ordering::Relaxed),
                         }));
                         log::info!(
                             "Trace-mode shutdown complete: status={} pending_identities={} identity_failures={} render_failures={}",
-                            status, pending_identities, identity_failures, render_failures
+                            status, pending_identities, identity_failures,
+                            render_failures_shared.load(Ordering::Relaxed)
                         );
                         std::process::exit(if status == "clean" { 0 } else { 1 });
                     } else {
-                        log::info!("Decode/render stopped (shutdown signal): {} frames", frame_count);
+                        log::info!("Decode stopped (shutdown signal): {} frames", frame_count);
                         std::process::exit(0);
                     }
                 }
 
                 if !frames_to_decode.is_empty() {
-                    let batch_size = frames_to_decode.len();
-
-                    for (i, assembled) in frames_to_decode.iter().enumerate() {
-                        let is_last = i == batch_size - 1;
-
+                    for assembled in frames_to_decode.iter() {
                         if let Some(ref mut f) = dump_file {
                             use std::io::Write;
                             f.write_all(&assembled.data).ok();
@@ -770,7 +769,7 @@ async fn main() -> Result<()> {
                                 let decode_us = decode_start.elapsed().as_micros() as u64;
                                 decode_total_us += decode_us;
 
-                                for decoded in &decoded_frames {
+                                for decoded in decoded_frames {
                                     // Identity FIRST, render-skip second (C7 gate
                                     // finding 3, 2026-08-05): a suppressed emission
                                     // (empty planes — the legacy gray/corrupt filter)
@@ -783,33 +782,6 @@ async fn main() -> Result<()> {
                                         assembled.frame_id, decoded.recovered_frame_id,
                                     );
                                     if decoded.planes[0].is_empty() { continue; }
-                                    has_frame = true;
-
-                                    // Only render the LAST frame in the batch (latest content).
-                                    // A00_COMPLETION_REPORT_AMENDED_review.md finding 1
-                                    // (presentation-identity bug): new_video_frame and
-                                    // last_uploaded_recovered_id advance ONLY on a
-                                    // successful upload — the present record must never
-                                    // claim a frame whose upload failed.
-                                    if is_last {
-                                        if let Some(ref mut r) = renderer_opt {
-                                            match r.update_frame(decoded) {
-                                                Ok(()) => {
-                                                    new_video_frame = true;
-                                                    last_uploaded_recovered_id = decoded.recovered_frame_id;
-                                                }
-                                                Err(e) => {
-                                                    render_failures += 1;
-                                                    log::warn!("Frame upload failed: {}", e);
-                                                    if trace.enabled() {
-                                                        trace.render_failure(serde_json::json!({
-                                                            "recovered_frame_id": decoded.recovered_frame_id,
-                                                        }));
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
 
                                     if frame_count == 1 {
                                         log::info!(
@@ -823,6 +795,7 @@ async fn main() -> Result<()> {
                                     // one record per EMITTED frame, resolving its OWN
                                     // identity, with decode_trigger_frame_id carried
                                     // separately.)
+                                    mailbox.put(decoded);
                                 }
                             }
                             Err(e) => {
@@ -846,13 +819,114 @@ async fn main() -> Result<()> {
                         log::info!("Decoded: {} frames, {:.1} fps, avg decode {:.1}ms", frame_count, fps, avg_ms);
                     }
                 }
+            }
+        })?
+    };
+
+    // 7b. Render + input thread (SDL2 must stay whole on one thread:
+    // renderer, event pump, cursor overlay, input capture).
+    let _render_handle = {
+        let mailbox = std::sync::Arc::clone(&mailbox);
+        let presents_shared = std::sync::Arc::clone(&presents_shared);
+        let render_failures_shared = std::sync::Arc::clone(&render_failures_shared);
+        std::thread::Builder::new()
+            .name("render-input".into())
+            .spawn(move || {
+            let sdl = sdl2::init().expect("SDL init");
+            let _video = sdl.video().expect("SDL video");
+            let mut event_pump = sdl.event_pump().expect("SDL event pump");
+
+            let mut renderer_opt = if !headless {
+                match renderer::Renderer::new(display_idx, stream_width, stream_height, !no_flash) {
+                    Ok(r) => Some(r),
+                    Err(e) => { log::warn!("Renderer init failed: {} (headless)", e); None }
+                }
+            } else {
+                None
+            };
+
+            let mut cursor_renderer = renderer::CursorRenderer::new();
+
+            // Input capture (Phase 6)
+            let mut input = input_capture::InputCapture::new(
+                &host_addr_for_input, input_udp_port, stream_width, stream_height
+            );
+
+            // Detect xrandr rotation + set canvas dimensions for coordinate mapping
+            if let Some(ref r) = renderer_opt {
+                let (cw, ch) = r.canvas_size();
+                input.canvas_width = cw;
+                input.canvas_height = ch;
+                if r.is_rotated() {
+                    input.rotated = true;
+                    cursor_renderer.rotated = true;
+                    log::info!("Rotation detected: stream {}x{} → canvas {}x{} (scaled)",
+                              stream_width, stream_height, cw, ch);
+                }
+            }
+
+            let mut has_frame = false;
+            // Recovered identity (A00_REMEDIATION_PLAN.md §4 item 7) of the
+            // most recently uploaded decoded frame — i.e. whatever
+            // `r.update_frame()` last copied into the persistent texture.
+            // Read at the present call site (§4 item 8) since
+            // `present_with_cursor()` re-presents this same texture on
+            // cursor-only redraws too, with no frame reference of its own.
+            let mut last_uploaded_recovered_id: Option<u64> = None;
+            let trace = diagnostics::trace::ClientTrace::global();
+
+            loop {
+                // Update warm filter from Night Shift control message
+                if let Some(ref mut r) = renderer_opt {
+                    let bits = warm_strength_reader.load(Ordering::Relaxed);
+                    r.warm_strength = f32::from_bits(bits);
+                }
+
+                // Newest decoded frame, waiting at most ~2ms so the event
+                // pump and cursor-only redraws stay responsive without video.
+                let (newest, closed) = mailbox.take_timeout(Duration::from_millis(2));
+                if closed && newest.is_none() {
+                    log::info!("Render stopped: decode side closed the mailbox");
+                    return;
+                }
+
+                let mut new_video_frame = false;
+                if let Some(ref decoded) = newest {
+                    // A00_COMPLETION_REPORT_AMENDED_review.md finding 1
+                    // (presentation-identity bug): new_video_frame and
+                    // last_uploaded_recovered_id advance ONLY on a
+                    // successful upload — the present record must never
+                    // claim a frame whose upload failed.
+                    if let Some(ref mut r) = renderer_opt {
+                        match r.update_frame(decoded) {
+                            Ok(()) => {
+                                new_video_frame = true;
+                                has_frame = true;
+                                last_uploaded_recovered_id = decoded.recovered_frame_id;
+                            }
+                            Err(e) => {
+                                render_failures_shared.fetch_add(1, Ordering::Relaxed);
+                                log::warn!("Frame upload failed: {}", e);
+                                if trace.enabled() {
+                                    trace.render_failure(serde_json::json!({
+                                        "recovered_frame_id": decoded.recovered_frame_id,
+                                    }));
+                                }
+                            }
+                        }
+                    }
+                }
 
                 // Process SDL2 events (input capture)
                 for event in event_pump.poll_iter() {
                     use sdl2::event::Event;
                     use sdl2::keyboard::Mod;
                     match event {
-                        Event::Quit { .. } => { return; }
+                        // Quit exits the whole process now (the old fused
+                        // thread's `return` also ended decoding; a lone
+                        // render-thread return would leave decode running
+                        // headless).
+                        Event::Quit { .. } => { std::process::exit(0); }
                         // Ctrl+Alt+Q: quit the application (works in fullscreen without terminal)
                         Event::KeyDown { scancode: Some(sc), keymod, .. }
                             if sc == sdl2::keyboard::Scancode::Q
@@ -860,7 +934,7 @@ async fn main() -> Result<()> {
                             && keymod.intersects(Mod::LALTMOD | Mod::RALTMOD)
                         => {
                             log::info!("Ctrl+Alt+Q pressed, quitting");
-                            return;
+                            std::process::exit(0);
                         }
                         Event::KeyDown { scancode: Some(sc), keycode, keymod, .. } => {
                             if let Some(_key_out) = input.process_key(
@@ -918,7 +992,7 @@ async fn main() -> Result<()> {
                     sdl.mouse().set_relative_mouse_mode(false); // release mouse
                 }
 
-                // Only re-render when something changed (not every 1ms)
+                // Only re-render when something changed
                 if has_frame {
                     let cx = cursor_state_reader.x.load(Ordering::Relaxed);
                     let cy = cursor_state_reader.y.load(Ordering::Relaxed);
@@ -956,7 +1030,7 @@ async fn main() -> Result<()> {
                             // written as-is when identity recovery failed —
                             // the joiner counts that as a rejected sample.
                             if new_video_frame && trace.enabled() {
-                                presents += 1;
+                                presents_shared.fetch_add(1, Ordering::Relaxed);
                                 trace.present(serde_json::json!({
                                     "recovered_frame_id": last_uploaded_recovered_id,
                                     "ts_present_us": diagnostics::mono_us(),
@@ -966,13 +1040,8 @@ async fn main() -> Result<()> {
                     }
                 }
             }
-            // No trailing "Decode/render stopped" log here: every path out
-            // of the loop above is now either `return` (SDL quit — logged
-            // at that call site if ever needed) or `std::process::exit`
-            // (the C3 shutdown block, which logs its own status) — the loop
-            // itself no longer has a `break`, so code after it is
-            // unreachable.
-        })?;
+        })?
+    };
 
     log::info!("Streaming active. Press Ctrl+C to stop.");
     tokio::signal::ctrl_c().await?;
