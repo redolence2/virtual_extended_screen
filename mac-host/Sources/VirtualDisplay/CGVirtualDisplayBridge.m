@@ -58,6 +58,7 @@ float RESCGetNightShiftStrength(void) {
 @property (nonatomic, assign) uint32_t vendorID;
 @property (nonatomic, assign) uint32_t productID;
 @property (nonatomic, assign) uint32_t serialNumber;
+@property (nonatomic, strong) dispatch_source_t retinaEnforceTimer;
 @end
 
 @implementation CGVirtualDisplayBridge
@@ -302,36 +303,77 @@ float RESCGetNightShiftStrength(void) {
     // tells the truth about the backing store.
     if (self.wantsHiDPI) {
         for (int attempt = 0; attempt < 8; attempt++) {
-            BOOL selected = NO;
-            NSDictionary *opts = @{(__bridge NSString *)kCGDisplayShowDuplicateLowResolutionModes: @YES};
-            CFArrayRef all = CGDisplayCopyAllDisplayModes(did, (__bridge CFDictionaryRef)opts);
-            if (all) {
-                for (CFIndex i = 0; i < CFArrayGetCount(all); i++) {
-                    CGDisplayModeRef m = (CGDisplayModeRef)CFArrayGetValueAtIndex(all, i);
-                    if (CGDisplayModeGetPixelWidth(m) == width && CGDisplayModeGetPixelHeight(m) == height &&
-                        CGDisplayModeGetWidth(m) == width / 2 && CGDisplayModeGetHeight(m) == height / 2) {
-                        CGError err = CGDisplaySetDisplayMode(did, m, NULL);
-                        NSLog(@"[RESC] Retina mode selected: %zux%zu points / %zux%zu pixels (err=%d)",
-                              CGDisplayModeGetWidth(m), CGDisplayModeGetHeight(m),
-                              CGDisplayModeGetPixelWidth(m), CGDisplayModeGetPixelHeight(m), err);
-                        selected = (err == kCGErrorSuccess);
-                        break;
-                    }
-                }
-                CFRelease(all);
-            }
-            if (selected) break;
+            if ([self selectRetinaModeOnDisplay:did pixelWidth:width pixelHeight:height]) break;
             if (attempt == 7) NSLog(@"[RESC] WARNING: Retina mode (points %lux%lu, pixels %lux%lu) never appeared",
                                     (unsigned long)(width / 2), (unsigned long)(height / 2),
                                     (unsigned long)width, (unsigned long)height);
             usleep(250000);
         }
+        [self startRetinaEnforcementForDisplay:did pixelWidth:width pixelHeight:height];
     }
 
     return YES;
 }
 
+// One pass: YES if the 2x pair (points w/2 x h/2, pixels w x h) is already the
+// current mode or was just set. Silent when already correct.
+- (BOOL)selectRetinaModeOnDisplay:(CGDirectDisplayID)did
+                       pixelWidth:(size_t)width pixelHeight:(size_t)height {
+    CGDisplayModeRef cur = CGDisplayCopyDisplayMode(did);
+    if (cur) {
+        BOOL ok = CGDisplayModeGetPixelWidth(cur) == width &&
+                  CGDisplayModeGetWidth(cur) == width / 2;
+        CGDisplayModeRelease(cur);
+        if (ok) return YES;
+    }
+    BOOL selected = NO;
+    NSDictionary *opts = @{(__bridge NSString *)kCGDisplayShowDuplicateLowResolutionModes: @YES};
+    CFArrayRef all = CGDisplayCopyAllDisplayModes(did, (__bridge CFDictionaryRef)opts);
+    if (all) {
+        for (CFIndex i = 0; i < CFArrayGetCount(all); i++) {
+            CGDisplayModeRef m = (CGDisplayModeRef)CFArrayGetValueAtIndex(all, i);
+            if (CGDisplayModeGetPixelWidth(m) == width && CGDisplayModeGetPixelHeight(m) == height &&
+                CGDisplayModeGetWidth(m) == width / 2 && CGDisplayModeGetHeight(m) == height / 2) {
+                CGError err = CGDisplaySetDisplayMode(did, m, NULL);
+                NSLog(@"[RESC] Retina mode selected: %zux%zu points / %zux%zu pixels (err=%d)",
+                      CGDisplayModeGetWidth(m), CGDisplayModeGetHeight(m),
+                      CGDisplayModeGetPixelWidth(m), CGDisplayModeGetPixelHeight(m), err);
+                selected = (err == kCGErrorSuccess);
+                break;
+            }
+        }
+        CFRelease(all);
+    }
+    return selected;
+}
+
+// WindowServer restores stale saved modes asynchronously — seconds to minutes
+// after creation (observed live: a streaming session reverted to 1080x1920@1x,
+// blurring everything). Re-assert the 2x mode every 2s for the display's life.
+- (void)startRetinaEnforcementForDisplay:(CGDirectDisplayID)did
+                              pixelWidth:(size_t)width pixelHeight:(size_t)height {
+    if (self.retinaEnforceTimer) return;
+    dispatch_queue_t q = dispatch_get_global_queue(QOS_CLASS_UTILITY, 0);
+    dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, q);
+    dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC),
+                              2 * NSEC_PER_SEC, NSEC_PER_SEC / 2);
+    __weak __typeof__(self) weakSelf = self;
+    dispatch_source_set_event_handler(timer, ^{
+        __typeof__(self) s = weakSelf;
+        if (!s) return;
+        if (![s selectRetinaModeOnDisplay:did pixelWidth:width pixelHeight:height]) {
+            NSLog(@"[RESC] WARNING: Retina re-assert failed (mode missing?) — will retry");
+        }
+    });
+    dispatch_resume(timer);
+    self.retinaEnforceTimer = timer;
+}
+
 - (void)destroy {
+    if (self.retinaEnforceTimer) {
+        dispatch_source_cancel(self.retinaEnforceTimer);
+        self.retinaEnforceTimer = nil;
+    }
     if (self.virtualDisplay) {
         NSLog(@"[RESC] Destroying virtual display: displayID=%u", self.cachedDisplayID);
         self.virtualDisplay = nil;
