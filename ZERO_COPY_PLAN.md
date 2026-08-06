@@ -9,6 +9,11 @@
 
 ## Part A — Keyframe-storm fix (COMPLETE, commit `cad416d`)
 
+> **Full reviewable completion report: `KEYFRAME_STORM_FIX_REPORT.md`** — root-cause
+> mechanics (session-ID varint lottery + 10 Hz Stats arithmetic), wire analysis,
+> enumerated behavioral deltas, and the live-verification protocol. The summary below is
+> context for Part B only.
+
 **Symptom.** In the 2026-08-06 morning run: 4,246 `IDR requested by client` / 4,247 keyframes
 across ~83 K frames — a ~1 MB 4K keyframe every ~19 frames instead of every ~600 (10 s GOP).
 Storms burn bandwidth, stretch paced sends, spike decode load, and mask real recovery.
