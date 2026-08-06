@@ -1,8 +1,12 @@
 # Response to the Keyframe-Storm Fix Review
 
 **Date**: 2026-08-06 · **Responds to**: `KEYFRAME_STORM_FIX_REPORT_review.md` (CONDITIONAL ACCEPT)
-**Verdict on the verdict**: **ACCEPTED.** The condition (one post-fix relaunch + 5-minute
-smoke + one genuine recovery exercise) has been executed — evidence in §4. The two
+**Verdict on the verdict**: **ACCEPTED.** The post-fix relaunch and 9-minute-45-second
+soak passed. A genuine recovery request was **not** exercised; the reviewer accepts
+closure of the raw-byte storm independently and leaves recovery reliability as separate
+scope. (Opening corrected per `KEYFRAME_STORM_FIX_REPORT_response_review.md` §1 — the
+original sentence claimed the recovery exercise was executed, contradicting §4's own
+table. Full correction list: §6 Amendments.) The two
 hardening items the review recommended (identity validation, force-keyframe flag race)
 are implemented in this response's commit; the deterministic regression test is deferred
 with rationale (§3). The reviewed report file is left byte-identical (SHA pinned in the
@@ -127,3 +131,46 @@ marker).
   Remaining open threads live where they belong: client retry timer + `StreamingReady`
   guard (recorded, unscheduled), regression vectors (recorded, gated on formal track),
   zero-copy latency work (`ZERO_COPY_PLAN.md`, awaiting its own review).
+
+## 6. Amendments (ordered by `KEYFRAME_STORM_FIX_REPORT_response_review.md`, all accepted)
+
+The reviewed version of this file is preserved at commit `e9b8f78`; the corrections
+below supersede the corresponding statements above.
+
+1. **Opening contradiction** — fixed in place (§ header): the genuine-recovery exercise
+   was NOT executed; closure rests on the storm evidence + static argument.
+2. **Cause of client death: UDP receive EINTR, not a control-read error.** The retained
+   client log shows `UDP recv error: Interrupted system call (os error 4)` → video
+   receiver stop → frame-channel disconnect → decoder shutdown
+   (`video_receiver.rs:111-118` breaks on `Interrupted`; `main.rs:633-637` shuts down on
+   the disconnected channel). There is no `Control recv error` in the retained log —
+   §4.5's finding 1 is corrected accordingly. Minimal future fix: retry
+   `ErrorKind::Interrupted` in the receive loop (recorded, not scheduled).
+3. **Reconnect diagnosis retracted.** §4.5's finding 2 ("host logged no disconnect,
+   stayed `streaming`, ate the replacement `ModeRequest`") is NOT supported by the
+   retained host log, which shows `Control connection closed by peer` (line 290) and a
+   replacement connection followed by `Session: streaming → negotiating` (lines
+   381-383), then no further handshake events. The supported statement is only:
+   **the replacement connection did not complete negotiation** (no second ModeConfirm /
+   StreamingReady / Streaming started). The reviewer's candidate cause — old-connection
+   cancellation in `ControlChannel.swift:57-75` asynchronously clearing the shared
+   `connection` after the new one is assigned — is an untested inference, recorded for
+   any future reconnect work. Operational rule stands: restart both ends together.
+4. **Evidence wording**: file is `evidence/keyframe_fix/client.log` (not
+   `client-tail.log`); the "post-incident fresh session (12 KF / 6,600)" metric is
+   withdrawn (not in the retained log — it came from the live log after the evidence
+   copy); zero invalid-IDR lines do NOT demonstrate the guard accepts valid requests
+   (no valid request reached the guard); "no silent drops" → invalid requests are
+   observable at most once per second and never force a keyframe.
+5. **Telemetry provenance**: "55 KF / 31,800 frames" is process-lifetime encoder
+   telemetry (the host pre-encoded ~2,100 frames / 4 KF before the client connected).
+   Primary runtime statement: the client's 9 m 45 s live interval (30,450 decoded
+   frames) produced zero `IDR requested` lines. "Zero sendto errors" is narrowed to
+   zero **logged** initial sendto errors (`VideoSender` logs only while
+   `totalPacketsSent == 0`).
+6. **Race-fix guarantee precision**: the flag is consumed before submission; a
+   synchronous submission failure does not restore it. Guarantee: the next admitted,
+   successful submission normally carries the force-keyframe property.
+7. **GOP-bound wording**: "stalls at most ~10 s" → the host normally attempts a
+   scheduled keyframe around the 10 s GOP bound; a lost scheduled keyframe can extend
+   recovery beyond it.
