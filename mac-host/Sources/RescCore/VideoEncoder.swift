@@ -280,14 +280,19 @@ public final class VideoEncoder {
             return
         }
         pendingEncodes += 1
+        // Consume the force-keyframe flag inside the same lock forceKeyframe()
+        // takes — an unsynchronized read/clear could lose a request landing
+        // between them (keyframe-fix review finding 6). Consumed only after
+        // the gate passes, so a gate-skipped frame can't swallow the request.
+        let forceKF = pendingForceKeyframe
+        pendingForceKeyframe = false
         pendingLock.unlock()
 
         let encodeStart = CFAbsoluteTimeGetCurrent()
 
         var properties: [CFString: Any]? = nil
-        if pendingForceKeyframe {
+        if forceKF {
             properties = [kVTEncodeFrameOptionKey_ForceKeyFrame: true]
-            pendingForceKeyframe = false
         }
 
         let codec = config.codec
@@ -341,7 +346,11 @@ public final class VideoEncoder {
         }
     }
 
-    public func forceKeyframe() { pendingForceKeyframe = true }
+    public func forceKeyframe() {
+        pendingLock.lock()
+        pendingForceKeyframe = true
+        pendingLock.unlock()
+    }
 
     public func updateBitrate(_ newBitrateBps: UInt32) {
         guard let session = session else { return }

@@ -1,0 +1,398 @@
+[RESC] Remote Extended Screen Host starting...
+[RESC] Protocol constants v1:
+[RESC]   PACKET_PREFIX_BYTES      = 6
+[RESC]   VIDEO_CHUNK_HEADER_BYTES  = 36
+[RESC]   VIDEO_TOTAL_HEADER_BYTES  = 42
+[RESC]   MAX_VIDEO_PAYLOAD_BYTES   = 1358
+[RESC]   CURSOR_TOTAL_PACKET_BYTES = 35
+[RESC]   INPUT_TOTAL_PACKET_BYTES  = 28
+[RESC] macOS build: 26A5388g
+[RESC] Mode: 2160x3840@60Hz, control port: 9870
+[RESC] WARNING: OS build 26A5388g unknown, proceeding.
+[RESC] WARNING: Unknown macOS build 26A5388g — attempting virtual display creation
+2026-08-06 21:08:07.153 remote-display-host[6584:114565] [RESC] Set sizeInMillimeters: 299x531
+2026-08-06 21:08:07.153 remote-display-host[6584:114565] [RESC] Descriptor configured: 2160x3840 (sizeInMM follows orientation)
+2026-08-06 21:08:07.153 remote-display-host[6584:114565] [RESC] hiDPI enabled on virtual display settings
+2026-08-06 21:08:07.499 remote-display-host[6584:114565] [RESC] Virtual display created: displayID=7, vendor=0xE5C, product=0x1, serial=0x52455343, size=2160x3840@60Hz
+2026-08-06 21:08:07.637 remote-display-host[6584:114565] [RESC] Display 7 in CG online list: YES, total displays: 3
+2026-08-06 21:08:08.036 remote-display-host[6584:114565] [RESC] Retina mode selected: 1080x1920 points / 2160x3840 pixels (err=0)
+[RESC] Display identity [creation]: displayID=7, vendor=3676/model=1/serial=1380275011, size=1080x1920
+[RESC] Virtual display: displayID=7 (Retina 2160x3840 px, looks like 1080x1920; stream 2160x3840)
+[RESC] Codec: H.264, bitrate: 50Mbps
+[RESC] Night Shift monitor started
+[RESC] mDNS: advertising _remotedisplay._tcp. on port 9870
+[RESC] Session: idle → waitingForClient
+[RESC] Host session started, waiting for client on port 9870
+[RESC] Running. Press Ctrl+C to stop.
+[RESC] Control channel listening on port 9870
+[RESC] FramePacer started: forcing 60fps compositor updates on display 7
+[RESC] WARNING: VTSessionSetProperty(MaxFrameDelayCount) failed: status=-12900 — continuing (optional realtime refinement, not load-bearing)
+[RESC] Encoder hardware-accelerated: Optional(1)
+[RESC] Encoder started: H.264 2160x3840, 50Mbps
+[RESC] Capture started: displayID=7, 2160x3840@60fps, NV12
+[RESC] First frame pixel format: NV12
+[RESC] mDNS: published as 'Remote Extended Screen' on port 9870
+[RESC] WARNING: Capture FPS low: 44.7 fps (expected ~60)
+[RESC] Encode: 300 frames, 1 KF, avg 24.5ms [H.264]
+[RESC] WARNING: Capture FPS low: 41.7 fps (expected ~60)
+[RESC] Encode: 600 frames, 2 KF, avg 26.2ms [H.264]
+[RESC] WARNING: Capture FPS low: 40.6 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 39.7 fps (expected ~60)
+[RESC] Encode: 900 frames, 2 KF, avg 27.1ms [H.264]
+[RESC] WARNING: Capture FPS low: 41.7 fps (expected ~60)
+[RESC] Encode: 1200 frames, 3 KF, avg 27.7ms [H.264]
+[RESC] WARNING: Capture FPS low: 42.0 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 42.9 fps (expected ~60)
+[RESC] Encode: 1500 frames, 3 KF, avg 27.7ms [H.264]
+[RESC] WARNING: Capture FPS low: 41.2 fps (expected ~60)
+[RESC] Encode: 1800 frames, 4 KF, avg 27.9ms [H.264]
+[RESC] WARNING: Capture FPS low: 41.8 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 42.3 fps (expected ~60)
+[RESC] Encode: 2100 frames, 4 KF, avg 28.0ms [H.264]
+[RESC] Control client connected: 192.168.50.47:57146
+[RESC] Client connected from 192.168.50.47:57146
+[RESC] Session: waitingForClient → negotiating
+[RESC] Sending ModeConfirm: 2160x3840, stream=2892431231, config=1, video_port=9871
+[RESC] Waiting for StreamingReady from client...
+[RESC] StreamingReady received, starting video
+[RESC] Session: negotiating → streaming
+[RESC] Video UDP sender ready → 192.168.50.47:9871
+[RESC] Video sender → 192.168.50.47:9871
+[RESC] CursorTracker started → 192.168.50.47:9873 (120Hz)
+[RESC] Input receiver listening on UDP port 9872
+[RESC] Forced keyframe for streaming start
+[RESC] Streaming started: stream=2892431231, config=1
+[RESC] WARNING: Capture FPS low: 41.1 fps (expected ~60)
+[RESC] First keyframe sent to client (883KB)
+[RESC] Night Shift: ON (strength 50%)
+[RESC] Night Shift → client (warm=0.5)
+[RESC] Encode: 2400 frames, 5 KF, avg 27.9ms [H.264]
+[RESC] Capture FPS: 50.4 (frames=2555, dropped=0)
+[RESC] Encode: 2700 frames, 5 KF, avg 28.1ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.0 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 47.8 fps (expected ~60)
+[RESC] Encode: 3000 frames, 6 KF, avg 28.3ms [H.264]
+[RESC] WARNING: Capture FPS low: 47.2 fps (expected ~60)
+[RESC] Encode: 3300 frames, 6 KF, avg 28.5ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.7 fps (expected ~60)
+[RESC] Encode: 3600 frames, 7 KF, avg 28.7ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.4 fps (expected ~60)
+[RESC] Encode: 3900 frames, 7 KF, avg 28.8ms [H.264]
+[RESC] WARNING: Capture FPS low: 45.5 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 46.9 fps (expected ~60)
+[RESC] Encode: 4200 frames, 8 KF, avg 28.9ms [H.264]
+[RESC] WARNING: Capture FPS low: 46.8 fps (expected ~60)
+[RESC] Encode: 4500 frames, 8 KF, avg 28.8ms [H.264]
+[RESC] WARNING: Capture FPS low: 49.1 fps (expected ~60)
+[RESC] Encode: 4800 frames, 9 KF, avg 28.6ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.5 fps (expected ~60)
+[RESC] Encode: 5100 frames, 9 KF, avg 28.5ms [H.264]
+[RESC] Capture FPS: 57.4 (frames=5230, dropped=10)
+[RESC] Capture FPS: 56.6 (frames=5513, dropped=11)
+[RESC] Encode: 5400 frames, 10 KF, avg 28.4ms [H.264]
+[RESC] Capture FPS: 54.2 (frames=5785, dropped=21)
+[RESC] Encode: 5700 frames, 10 KF, avg 28.2ms [H.264]
+[RESC] Capture FPS: 57.1 (frames=6071, dropped=21)
+[RESC] Encode: 6000 frames, 11 KF, avg 28.0ms [H.264]
+[RESC] Capture FPS: 57.1 (frames=6357, dropped=21)
+[RESC] Encode: 6300 frames, 11 KF, avg 27.7ms [H.264]
+[RESC] Capture FPS: 57.5 (frames=6645, dropped=21)
+[RESC] Encode: 6600 frames, 12 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 57.4 (frames=6932, dropped=21)
+[RESC] Encode: 6900 frames, 12 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=7221, dropped=21)
+[RESC] Encode: 7200 frames, 13 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=7511, dropped=21)
+[RESC] Encode: 7500 frames, 13 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 57.5 (frames=7799, dropped=21)
+[RESC] Encode: 7800 frames, 14 KF, avg 27.2ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=8088, dropped=21)
+[RESC] Encode: 8100 frames, 14 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=8378, dropped=22)
+[RESC] Encode: 8400 frames, 15 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 57.9 (frames=8668, dropped=22)
+[RESC] Encode: 8700 frames, 15 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=8957, dropped=22)
+[RESC] Encode: 9000 frames, 16 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 57.9 (frames=9247, dropped=22)
+[RESC] Encode: 9300 frames, 16 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=9536, dropped=22)
+[RESC] Encode: 9600 frames, 17 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=9825, dropped=22)
+[RESC] Encode: 9900 frames, 17 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 57.9 (frames=10115, dropped=22)
+[RESC] Capture FPS: 58.2 (frames=10406, dropped=22)
+[RESC] Encode: 10200 frames, 18 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=10697, dropped=22)
+[RESC] Encode: 10500 frames, 18 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=10988, dropped=24)
+[RESC] Encode: 10800 frames, 19 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=11278, dropped=24)
+[RESC] Encode: 11100 frames, 20 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=11569, dropped=24)
+[RESC] Encode: 11400 frames, 20 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=11859, dropped=24)
+[RESC] Encode: 11700 frames, 21 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=12149, dropped=24)
+[RESC] Encode: 12000 frames, 21 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=12440, dropped=24)
+[RESC] Encode: 12300 frames, 22 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 57.9 (frames=12730, dropped=24)
+[RESC] Encode: 12600 frames, 22 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 58.2 (frames=13021, dropped=24)
+[RESC] Encode: 12900 frames, 23 KF, avg 27.3ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=13310, dropped=24)
+[RESC] Encode: 13200 frames, 23 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=13601, dropped=24)
+[RESC] Encode: 13500 frames, 24 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=13892, dropped=24)
+[RESC] Encode: 13800 frames, 24 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=14183, dropped=24)
+[RESC] Encode: 14100 frames, 25 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=14472, dropped=24)
+[RESC] Encode: 14400 frames, 25 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=14763, dropped=24)
+[RESC] Capture FPS: 58.0 (frames=15054, dropped=24)
+[RESC] Encode: 14700 frames, 26 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=15345, dropped=24)
+[RESC] Encode: 15000 frames, 26 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=15634, dropped=24)
+[RESC] Encode: 15300 frames, 27 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=15924, dropped=24)
+[RESC] Encode: 15600 frames, 27 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=16213, dropped=24)
+[RESC] Encode: 15900 frames, 28 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=16502, dropped=24)
+[RESC] Encode: 16200 frames, 28 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=16792, dropped=24)
+[RESC] Encode: 16500 frames, 29 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=17083, dropped=24)
+[RESC] Encode: 16800 frames, 29 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=17373, dropped=24)
+[RESC] Encode: 17100 frames, 30 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=17662, dropped=24)
+[RESC] Encode: 17400 frames, 30 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=17953, dropped=24)
+[RESC] Encode: 17700 frames, 31 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=18243, dropped=24)
+[RESC] Encode: 18000 frames, 31 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=18533, dropped=24)
+[RESC] Encode: 18300 frames, 32 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=18822, dropped=24)
+[RESC] Encode: 18600 frames, 32 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=19113, dropped=24)
+[RESC] Encode: 18900 frames, 33 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=19404, dropped=24)
+[RESC] Encode: 19200 frames, 33 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=19695, dropped=24)
+[RESC] Encode: 19500 frames, 34 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=19983, dropped=24)
+[RESC] Capture FPS: 58.0 (frames=20274, dropped=24)
+[RESC] Encode: 19800 frames, 34 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 58.2 (frames=20565, dropped=24)
+[RESC] Encode: 20100 frames, 35 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=20856, dropped=24)
+[RESC] Encode: 20400 frames, 36 KF, avg 27.7ms [H.264]
+[RESC] Capture FPS: 58.3 (frames=21148, dropped=24)
+[RESC] Encode: 20700 frames, 36 KF, avg 27.7ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=21439, dropped=24)
+[RESC] Encode: 21000 frames, 37 KF, avg 27.7ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=21727, dropped=24)
+[RESC] Encode: 21300 frames, 37 KF, avg 27.7ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=22016, dropped=24)
+[RESC] Encode: 21600 frames, 38 KF, avg 27.7ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=22306, dropped=24)
+[RESC] Encode: 21900 frames, 38 KF, avg 27.7ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=22597, dropped=24)
+[RESC] Encode: 22200 frames, 39 KF, avg 27.7ms [H.264]
+[RESC] Capture FPS: 57.5 (frames=22885, dropped=24)
+[RESC] Encode: 22500 frames, 39 KF, avg 27.7ms [H.264]
+[RESC] Capture FPS: 57.9 (frames=23175, dropped=24)
+[RESC] Encode: 22800 frames, 40 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=23464, dropped=24)
+[RESC] Encode: 23100 frames, 40 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 56.7 (frames=23748, dropped=24)
+[RESC] Encode: 23400 frames, 41 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=24037, dropped=24)
+[RESC] Encode: 23700 frames, 41 KF, avg 27.6ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=24325, dropped=24)
+[RESC] Capture FPS: 58.0 (frames=24615, dropped=24)
+[RESC] Encode: 24000 frames, 42 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=24904, dropped=24)
+[RESC] Encode: 24300 frames, 42 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=25195, dropped=24)
+[RESC] Encode: 24600 frames, 43 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=25484, dropped=24)
+[RESC] Encode: 24900 frames, 43 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 56.6 (frames=25767, dropped=24)
+[RESC] Encode: 25200 frames, 44 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 57.2 (frames=26053, dropped=24)
+[RESC] Encode: 25500 frames, 44 KF, avg 27.5ms [H.264]
+[RESC] Capture FPS: 57.5 (frames=26341, dropped=24)
+[RESC] Encode: 25800 frames, 45 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 56.9 (frames=26626, dropped=24)
+[RESC] Encode: 26100 frames, 45 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 57.1 (frames=26912, dropped=24)
+[RESC] Encode: 26400 frames, 46 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 58.3 (frames=27204, dropped=24)
+[RESC] Encode: 26700 frames, 46 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=27493, dropped=24)
+[RESC] Encode: 27000 frames, 47 KF, avg 27.4ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=27781, dropped=24)
+[RESC] Encode: 27300 frames, 47 KF, avg 27.4ms [H.264]
+[RESC] WARNING: Capture FPS low: 47.9 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 45.9 fps (expected ~60)
+[RESC] Encode: 27600 frames, 48 KF, avg 27.3ms [H.264]
+[RESC] WARNING: Capture FPS low: 47.8 fps (expected ~60)
+[RESC] Encode: 27900 frames, 48 KF, avg 27.2ms [H.264]
+[RESC] WARNING: Capture FPS low: 49.9 fps (expected ~60)
+[RESC] Encode: 28200 frames, 49 KF, avg 27.2ms [H.264]
+[RESC] Capture FPS: 51.8 (frames=29001, dropped=24)
+[RESC] Encode: 28500 frames, 49 KF, avg 27.2ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.8 fps (expected ~60)
+[RESC] Encode: 28800 frames, 50 KF, avg 27.2ms [H.264]
+[RESC] WARNING: Capture FPS low: 49.9 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 46.4 fps (expected ~60)
+[RESC] Encode: 29100 frames, 50 KF, avg 27.1ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.9 fps (expected ~60)
+[RESC] Encode: 29400 frames, 51 KF, avg 27.1ms [H.264]
+[RESC] WARNING: Capture FPS low: 49.5 fps (expected ~60)
+[RESC] Encode: 29700 frames, 51 KF, avg 27.0ms [H.264]
+[RESC] WARNING: Capture FPS low: 47.6 fps (expected ~60)
+[RESC] Encode: 30000 frames, 52 KF, avg 27.0ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.6 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 49.1 fps (expected ~60)
+[RESC] Encode: 30300 frames, 52 KF, avg 26.9ms [H.264]
+[RESC] WARNING: Capture FPS low: 46.6 fps (expected ~60)
+[RESC] Encode: 30600 frames, 53 KF, avg 26.9ms [H.264]
+[RESC] WARNING: Capture FPS low: 45.6 fps (expected ~60)
+[RESC] Encode: 30900 frames, 53 KF, avg 26.8ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.2 fps (expected ~60)
+[RESC] Encode: 31200 frames, 54 KF, avg 26.8ms [H.264]
+[RESC] WARNING: Capture FPS low: 49.2 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 46.1 fps (expected ~60)
+[RESC] Encode: 31500 frames, 54 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 50.8 (frames=32384, dropped=24)
+[RESC] Encode: 31800 frames, 55 KF, avg 26.7ms [H.264]
+[RESC] WARNING: Capture FPS low: 47.1 fps (expected ~60)
+[RESC] Encode: 32100 frames, 55 KF, avg 26.7ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.5 fps (expected ~60)
+[RESC] Encode: 32400 frames, 56 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 51.8 (frames=33122, dropped=24)
+[RESC] Encode: 32700 frames, 56 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 53.9 (frames=33392, dropped=26)
+[RESC] Capture FPS: 53.4 (frames=33659, dropped=26)
+[RESC] Encode: 33000 frames, 57 KF, avg 26.5ms [H.264]
+[RESC] Capture FPS: 53.8 (frames=33928, dropped=26)
+[RESC] Encode: 33300 frames, 57 KF, avg 26.5ms [H.264]
+[RESC] Capture FPS: 51.3 (frames=34185, dropped=26)
+[RESC] Encode: 33600 frames, 58 KF, avg 26.5ms [H.264]
+[RESC] Control connection closed by peer
+[RESC] Capture FPS: 55.8 (frames=34465, dropped=26)
+[RESC] Encode: 33900 frames, 58 KF, avg 26.5ms [H.264]
+[RESC] Capture FPS: 51.2 (frames=34722, dropped=26)
+[RESC] Encode: 34200 frames, 59 KF, avg 26.5ms [H.264]
+[RESC] Capture FPS: 55.2 (frames=34999, dropped=26)
+[RESC] Encode: 34500 frames, 59 KF, avg 26.5ms [H.264]
+[RESC] Capture FPS: 51.9 (frames=35259, dropped=26)
+[RESC] Encode: 34800 frames, 60 KF, avg 26.5ms [H.264]
+[RESC] Capture FPS: 53.7 (frames=35528, dropped=26)
+[RESC] Capture FPS: 54.6 (frames=35802, dropped=27)
+[RESC] Encode: 35100 frames, 60 KF, avg 26.5ms [H.264]
+[RESC] WARNING: Capture FPS low: 46.6 fps (expected ~60)
+[RESC] Encode: 35400 frames, 61 KF, avg 26.5ms [H.264]
+[RESC] WARNING: Capture FPS low: 48.0 fps (expected ~60)
+[RESC] Encode: 35700 frames, 61 KF, avg 26.5ms [H.264]
+[RESC] Capture FPS: 50.1 (frames=36527, dropped=27)
+[RESC] Encode: 36000 frames, 62 KF, avg 26.6ms [H.264]
+[RESC] WARNING: Capture FPS low: 47.3 fps (expected ~60)
+[RESC] WARNING: Capture FPS low: 49.0 fps (expected ~60)
+[RESC] Encode: 36300 frames, 62 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 52.1 (frames=37270, dropped=27)
+[RESC] Encode: 36600 frames, 63 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 56.8 (frames=37555, dropped=27)
+[RESC] Encode: 36900 frames, 63 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 55.9 (frames=37835, dropped=27)
+[RESC] Encode: 37200 frames, 64 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=38124, dropped=27)
+[RESC] Encode: 37500 frames, 64 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 57.2 (frames=38411, dropped=27)
+[RESC] Encode: 37800 frames, 65 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 53.5 (frames=38679, dropped=27)
+[RESC] Encode: 38100 frames, 65 KF, avg 26.5ms [H.264]
+[RESC] Capture FPS: 58.3 (frames=38971, dropped=27)
+[RESC] Encode: 38400 frames, 66 KF, avg 26.5ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=39260, dropped=27)
+[RESC] Encode: 38700 frames, 66 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 57.4 (frames=39547, dropped=27)
+[RESC] Encode: 39000 frames, 67 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 57.4 (frames=39835, dropped=27)
+[RESC] Capture FPS: 58.0 (frames=40126, dropped=27)
+[RESC] Encode: 39300 frames, 68 KF, avg 26.6ms [H.264]
+[RESC] Capture FPS: 58.2 (frames=40417, dropped=27)
+[RESC] Encode: 39600 frames, 68 KF, avg 26.7ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=40707, dropped=27)
+[RESC] Encode: 39900 frames, 69 KF, avg 26.7ms [H.264]
+[RESC] Capture FPS: 57.0 (frames=40993, dropped=27)
+[RESC] Encode: 40200 frames, 69 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=41282, dropped=27)
+[RESC] Encode: 40500 frames, 70 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=41573, dropped=27)
+[RESC] Encode: 40800 frames, 70 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=41863, dropped=27)
+[RESC] Encode: 41100 frames, 71 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.2 (frames=42154, dropped=28)
+[RESC] Encode: 41400 frames, 71 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.2 (frames=42446, dropped=28)
+[RESC] Capture FPS: 58.2 (frames=42737, dropped=28)
+[RESC] Encode: 41700 frames, 72 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.9 (frames=43027, dropped=28)
+[RESC] Encode: 42000 frames, 72 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=43316, dropped=28)
+[RESC] Encode: 42300 frames, 73 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.3 (frames=43608, dropped=28)
+[RESC] Encode: 42600 frames, 73 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.9 (frames=43898, dropped=28)
+[RESC] Encode: 42900 frames, 74 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=44186, dropped=28)
+[RESC] Encode: 43200 frames, 74 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=44476, dropped=28)
+[RESC] Encode: 43500 frames, 75 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=44767, dropped=28)
+[RESC] Encode: 43800 frames, 75 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.8 (frames=45057, dropped=28)
+[RESC] Encode: 44100 frames, 76 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.2 (frames=45349, dropped=28)
+[RESC] Encode: 44400 frames, 76 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.3 (frames=45636, dropped=28)
+[RESC] Encode: 44700 frames, 77 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=45924, dropped=28)
+[RESC] Encode: 45000 frames, 77 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=46213, dropped=28)
+[RESC] Encode: 45300 frames, 78 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=46501, dropped=28)
+[RESC] Encode: 45600 frames, 78 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 57.7 (frames=46790, dropped=28)
+[RESC] Encode: 45900 frames, 79 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.0 (frames=47080, dropped=28)
+[RESC] Encode: 46200 frames, 79 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=47371, dropped=28)
+[RESC] Control connection closed
+[RESC] Control client connected: 192.168.50.47:54392
+[RESC] Client connected from 192.168.50.47:54392
+[RESC] Session: streaming → negotiating
+[RESC] Encode: 46500 frames, 80 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.2 (frames=47663, dropped=28)
+[RESC] Capture FPS: 58.0 (frames=47954, dropped=28)
+[RESC] Encode: 46800 frames, 81 KF, avg 26.8ms [H.264]
+[RESC] Capture FPS: 58.2 (frames=48245, dropped=28)
+[RESC] Encode: 47100 frames, 81 KF, avg 26.9ms [H.264]
+[RESC] Capture FPS: 57.6 (frames=48534, dropped=28)
+[RESC] Encode: 47400 frames, 82 KF, avg 26.9ms [H.264]
+[RESC] Capture FPS: 58.2 (frames=48825, dropped=28)
+[RESC] Encode: 47700 frames, 82 KF, avg 26.9ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=49116, dropped=28)
+[RESC] Encode: 48000 frames, 83 KF, avg 27.0ms [H.264]
+[RESC] Capture FPS: 58.1 (frames=49407, dropped=28)
+[RESC] Encode: 48300 frames, 83 KF, avg 27.0ms [H.264]
+[RESC] Capture FPS: 58.3 (frames=49699, dropped=28)

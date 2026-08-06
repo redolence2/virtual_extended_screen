@@ -99,9 +99,22 @@ final class HostSession {
                 // fired on any control payload containing that byte value.
                 // reason is the client's IDRReason discriminant, logged so
                 // keyframe storms are attributable (real corruption vs. bug).
-                if sm.state == .streaming {
-                    forceKeyframeRateLimited(reason: idr.reason)
+                // Identity guard (keyframe-fix review finding 3): a stale
+                // stream's, wrong-session, or reasonless request must not
+                // force keyframes.
+                var reasonValid = idr.reason != .unspecified
+                if case .UNRECOGNIZED = idr.reason { reasonValid = false }
+                guard sm.state == .streaming,
+                      envelope.protocolVersion == UInt32(ProtocolConstants.protocolVersion),
+                      envelope.sessionID == sessionID,
+                      idr.streamID == streamID,
+                      idr.configID == configID,
+                      reasonValid
+                else {
+                    logInvalidIDRRateLimited()
+                    return
                 }
+                forceKeyframeRateLimited(reason: idr.reason)
                 return
             default:
                 break // not clock traffic — fall through to the legacy path
@@ -203,6 +216,15 @@ final class HostSession {
             lastIDRRequestTime = Date()
             onForceKeyframe?()
             print("[RESC] IDR requested by client (reason=\(reason), rate-limited)")
+        }
+    }
+
+    private var lastInvalidIDRLogTime: Date?
+    private func logInvalidIDRRateLimited() {
+        let last = lastInvalidIDRLogTime ?? Date.distantPast
+        if Date().timeIntervalSince(last) >= 1.0 {
+            lastInvalidIDRLogTime = Date()
+            print("[RESC] Ignoring invalid RequestIDR (state/version/session/stream/config/reason mismatch)")
         }
     }
 
