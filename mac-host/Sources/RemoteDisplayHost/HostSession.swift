@@ -94,6 +94,15 @@ final class HostSession {
                 // Host is responder-only; an inbound pong is unexpected but
                 // harmless. Ignore.
                 return
+            case .requestIdr(let idr):
+                // Typed decode — replaces the legacy 0xFA byte-scan, which
+                // fired on any control payload containing that byte value.
+                // reason is the client's IDRReason discriminant, logged so
+                // keyframe storms are attributable (real corruption vs. bug).
+                if sm.state == .streaming {
+                    forceKeyframeRateLimited(reason: idr.reason)
+                }
+                return
             default:
                 break // not clock traffic — fall through to the legacy path
             }
@@ -181,32 +190,20 @@ final class HostSession {
         print("[RESC] Waiting for StreamingReady from client...")
     }
 
-    /// Handle messages during streaming (Stats, RequestIDR, etc.)
+    /// Handle messages during streaming. RequestIDR is intercepted by the
+    /// typed envelope decode in handleMessage; anything reaching here
+    /// (Stats, unknown legacy payloads) is consumed silently.
     private func handleStreamingMessage(_ data: Data) {
-        // Decode protobuf envelope to check for RequestIDR
-        // RequestIDR has field 31 in the Envelope oneof.
-        // For now, detect RequestIDR by checking if the envelope contains
-        // the field tag for request_idr (field 31, wire type 2 = length-delimited).
-        // Tag = (31 << 3) | 2 = 250.
-        // This is a minimal check; full protobuf parsing comes in Milestone C (Item 2).
-        if data.contains(where: { _ in true }) {
-            // Try to find RequestIDR field tag (varint 250 = 0xFA)
-            // In length-prefixed envelope, scan for the tag
-            for i in 0..<data.count {
-                if data[i] == 0xFA && i + 1 < data.count {
-                    // Likely RequestIDR message — force a keyframe
-                    let lastIDRTime = lastIDRRequestTime ?? Date.distantPast
-                    let elapsed = Date().timeIntervalSince(lastIDRTime)
-                    if elapsed >= 0.25 { // Rate limit: 250ms
-                        lastIDRRequestTime = Date()
-                        onForceKeyframe?()
-                        print("[RESC] IDR requested by client (rate-limited)")
-                    }
-                    return
-                }
-            }
+    }
+
+    private func forceKeyframeRateLimited(reason: Resc_Control_RequestIDR.Reason) {
+        let lastIDRTime = lastIDRRequestTime ?? Date.distantPast
+        let elapsed = Date().timeIntervalSince(lastIDRTime)
+        if elapsed >= 0.25 { // Rate limit: 250ms
+            lastIDRRequestTime = Date()
+            onForceKeyframe?()
+            print("[RESC] IDR requested by client (reason=\(reason), rate-limited)")
         }
-        // Other messages (Stats, etc.) — silently consumed for now
     }
 
     private func handleStreamingReady(_ data: Data) {
