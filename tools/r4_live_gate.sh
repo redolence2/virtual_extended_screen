@@ -115,12 +115,16 @@ CLIENT_PID_FILE="$(mktemp -t r4-client-pid)"
 # nohup'd client, which never runs its shutdown/footer sequence (the C7
 # second live-gate failure, 2026-08-05; reproduced in isolation: with
 # `cd &&` the pids differ, as separate statements they match).
-ssh "$BOX" 'cd ~/resc/remote_extended_screen/ubuntu-client
-  nohup env RESC_TRACE=1 RESC_LOG_DIR=/tmp/resc-r4-trace DISPLAY=:0 \
-    LD_LIBRARY_PATH=$HOME/ffmpeg7/lib \
+# CLIENT_ENV: optional extra NAME=VALUE pairs injected into the client env —
+# zero-copy W0a probe runs pass RESC_W0A_NO_DOWNLOAD=1 here. Expanded
+# LOCALLY (deliberate); remote $ are escaped since this string is now
+# double-quoted.
+ssh "$BOX" "cd ~/resc/remote_extended_screen/ubuntu-client
+  nohup env RESC_TRACE=1 ${CLIENT_ENV:-} RESC_LOG_DIR=/tmp/resc-r4-trace DISPLAY=:0 \
+    LD_LIBRARY_PATH=\$HOME/ffmpeg7/lib \
     ./target/release/remote-display-client -H 192.168.50.125 \
     < /dev/null > /tmp/resc-r4-client.log 2>&1 &
-  echo $!' </dev/null >"$CLIENT_PID_FILE" 2>&1 &
+  echo \$!" </dev/null >"$CLIENT_PID_FILE" 2>&1 &
 sleep 5
 CLIENT_PID="$(tr -d '[:space:]' < "$CLIENT_PID_FILE" 2>/dev/null)"
 rm -f "$CLIENT_PID_FILE"
