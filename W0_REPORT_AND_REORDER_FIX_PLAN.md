@@ -183,3 +183,50 @@ Removing 5 DPB periods ≈ −87 ms from receive→decode → segment lands ~18�
 join-summary, metrics.json) + `run-record.md` (SHAs, driver, workload, parity numbers,
 joiner-predicate caveat). Bitstream dump stays on the box at `/tmp/stream4k.h264`
 (30.8 MB; SPS hex + parsed fields preserved above and in the run record).
+
+## 9. Amendments (per `W0_REPORT_AND_REORDER_FIX_PLAN_review.md`, all accepted)
+
+The reviewed version of this file is preserved at commit `b4784d8`; corrections below
+supersede the corresponding statements above.
+
+1. **Wording narrowed as ordered**: "the copy hypothesis is refuted" → *removing the
+   copy/render path is not the expected primary latency lever and failed the agreed
+   gate* (the 8.397 ms p50 improvement is real; one manual A/B pair cannot prove copies
+   cost nothing). "Content parity verified" → *comparable active workload supported by
+   sender volume* (+6.3% bytes rules out an idle stream, not identical content).
+   "The delay lives between feed and emission" → *the remaining delay is within the
+   measured receive→decode interval* (`ts_recv_us` stamps assembly completion; channel/
+   batch wait before decoder submission is inside the interval, unmeasured separately).
+   B0's all-emission gap-6 rate is **99.5%** (3,643/3,663); 99.6% applies to presented
+   frames. Console encoder/sender totals are process-cumulative, not trace-window
+   counts.
+2. **Root-cause status**: missing VUI is the **leading hypothesis, not a proved root
+   cause** — the SPS closes the *allowance* arithmetic (5 + 1 = 6), but only a
+   controlled H.264 signaling change that moves the gap proves NVDEC's policy. An HEVC
+   success solves the product problem without proving the H.264 mechanism.
+3. **Evidence preservation completed** (`evidence/zero_copy/bitstream/`): 23-byte
+   SPS+PPS sample (SHA-256 verified box-side and post-transfer), full-dump SHA-256,
+   complete `trace_headers` output, and the client log lines proving `h264_cuvid` was
+   the active decode path.
+4. **Execution order adopted**: Candidate A now at **50 Mbps explicitly**
+   (`--bitrate 50` — without it the host silently defaults HEVC 4K to 40 Mbps, which
+   would confound the comparison), with proof-of-codec requirements (ModeConfirm
+   codec 1, `hevc_cuvid` opened, no silent H.264-decoder fallback — the client
+   currently falls back invalidly on HEVC init failure and any such run is void);
+   repeat once if the improvement is large; then launcher/codec shipping changes
+   (launcher `--hevc` in both copies, client advertises HEVC in supported_codecs,
+   fallback replaced with fail-fast) + 10-minute smoke at the *shipped* bitrate
+   (recorded as such). If A fails → bounded env-gated
+   `kVTVideoEncoderSpecification_EnableLowLatencyRateControl` host probe (dump + SPS
+   inspect first, measure only if signaling changes). Corrected Candidate B only after
+   both fail: prefer exact-known-SPS replacement over a general parser;
+   `log2_max_mv_length_* = 15` (not 16); buffering=1 conditional on the confirmed
+   no-reorder stream; no `constraint_set3_flag` shortcut; copy bits *before* the old
+   VUI flag and regenerate trailing bits; atomic multi-SPS handling; 3- and 4-byte
+   start codes; typed outcome enum instead of `Option`; bounded reads/allocations;
+   fail-open at runtime but fail the acceptance gate if the expected rewrite didn't
+   happen; post-rewrite fed-bytes tap + independent `trace_headers` verification; the
+   enabled/disabled H.264 A/B is the causal experiment.
+5. **W0a probe hygiene**: env presence (not value) currently activates it —
+   `RESC_W0A_NO_DOWNLOAD=0` would still enable the probe. To be removed after this
+   cycle seals (or value-parsed if kept).

@@ -1,0 +1,2 @@
+28:[h264_cuvid @ 0x7e9750ce8c80] Invalid pkt_timebase, passing timestamps as-is.
+29:[2026-08-07T03:18:26Z INFO  video_decode] H.264 CUVID decoder initialized (NVDEC hardware, RTX GPU)
