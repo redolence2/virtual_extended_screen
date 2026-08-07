@@ -1,0 +1,49 @@
+{
+  "file": "/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/zero_copy/a2-hevc50-joined.jsonl",
+  "joined": 3351,
+  "presented": 2951,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 3351,
+      "p50": 23.781,
+      "p90": 32.603,
+      "p99": 37.574
+    },
+    "encode_out_to_recv_ms": {
+      "n": 3351,
+      "p50": 6.547,
+      "p90": 9.681,
+      "p99": 20.861
+    },
+    "recv_to_decode_done_ms": {
+      "n": 3351,
+      "p50": 29.454,
+      "p90": 35.026,
+      "p99": 46.956
+    },
+    "decode_done_to_present_ms": {
+      "n": 2951,
+      "p50": 23.211,
+      "p90": 29.459,
+      "p99": 32.923
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 2951,
+      "p50": 79.565,
+      "p90": 94.895,
+      "p99": 106.797
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 3347,
+    "2": 2,
+    "9": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 2950,
+    "2": 1
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}
