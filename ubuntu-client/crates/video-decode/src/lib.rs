@@ -17,22 +17,10 @@ pub struct DecodedFrame {
     pub strides: [usize; 3],
 }
 
-/// W0a probe flag (ZERO_COPY_PLAN_review.md §B): read once, warn loudly.
-/// When set, CUVID hw frames skip GPU→CPU transfer + pixel extraction and
-/// are emitted metadata-only — measurement mode, never for real use.
-fn w0a_no_download() -> bool {
-    use std::sync::OnceLock;
-    static ON: OnceLock<bool> = OnceLock::new();
-    *ON.get_or_init(|| {
-        let on = std::env::var("RESC_W0A_NO_DOWNLOAD").is_ok();
-        if on {
-            log::warn!(
-                "W0a NO-DOWNLOAD PROBE ACTIVE: hw frames not transferred or rendered"
-            );
-        }
-        on
-    })
-}
+// The W0a no-download probe (RESC_W0A_NO_DOWNLOAD) lived here for the
+// zero-copy causal gate and was removed after its evidence sealed
+// (W0 review §1: env-presence activation was a footgun). Recoverable
+// from git history at f32ba62 if a decode-stage measurement is needed.
 
 /// Decoder recovery state machine.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -378,37 +366,6 @@ impl VideoDecoder {
         let mut decoded = ffmpeg_next::frame::Video::empty();
 
         while self.decoder.receive_frame(&mut decoded).is_ok() {
-            // ZERO_COPY_PLAN_review.md W0a: causal no-download probe. Real
-            // CUVID decode, but skip av_hwframe_transfer_data + extract_yuv
-            // entirely; emit a metadata-only frame (empty planes) that
-            // main.rs identity-resolves and then drops before the mailbox
-            // (its existing empty-plane skip). TEMP measurement mode.
-            if self.backend == DecodeBackend::Cuvid && w0a_no_download() {
-                if is_keyframe && self.state == DecoderState::WaitingForIDR {
-                    log::info!("Decoder → Recovering (keyframe received at drain)");
-                    self.state = DecoderState::Recovering;
-                    self.frames_since_recovery = 0;
-                }
-                if self.state == DecoderState::Recovering {
-                    self.frames_since_recovery += 1;
-                    if self.frames_since_recovery >= 5 {
-                        log::info!("Decoder → Healthy (5 clean frames)");
-                        self.state = DecoderState::Healthy;
-                    }
-                }
-                self.frame_count += 1;
-                let recovered_frame_id =
-                    decoded.pts().or_else(|| decoded.timestamp()).map(|v| v as u64);
-                frames.push(DecodedFrame {
-                    width: decoded.width(),
-                    height: decoded.height(),
-                    timestamp_us,
-                    recovered_frame_id,
-                    planes: [Vec::new(), Vec::new(), Vec::new()],
-                    strides: [0, 0, 0],
-                });
-                continue;
-            }
             // Check if frame is in GPU memory (CUVID) and transfer to CPU
             let cpu_frame = if self.backend == DecodeBackend::Cuvid {
                 let mut sw_frame = ffmpeg_next::frame::Video::empty();

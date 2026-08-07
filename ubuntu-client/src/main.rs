@@ -576,15 +576,18 @@ async fn main() -> Result<()> {
             let mut decoder = match video_decode::VideoDecoder::new(codec_id) {
                 Ok(d) => d,
                 Err(e) => {
-                    log::error!("Decoder init failed for codec {}: {}", codec_id, e);
-                    // Fallback to H.264 if HEVC fails
-                    if codec_id != 0 {
-                        log::info!("Falling back to H.264 decoder");
-                        match video_decode::VideoDecoder::new(0) {
-                            Ok(d) => d,
-                            Err(e2) => { log::error!("H.264 fallback also failed: {}", e2); return; }
-                        }
-                    } else { return; }
+                    // Fail fast — a silent H.264 decoder on a negotiated HEVC
+                    // stream decodes nothing and presents as a black screen
+                    // (W0 review §3: any such fallback invalidates the
+                    // session). A thread-local `return` would also leave the
+                    // rest of the client running headless.
+                    log::error!(
+                        "FATAL: decoder init failed for negotiated codec {} ({}): {} — exiting",
+                        codec_id,
+                        if codec_id == 1 { "HEVC" } else { "H.264" },
+                        e
+                    );
+                    std::process::exit(1);
                 }
             };
 
