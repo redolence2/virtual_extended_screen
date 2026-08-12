@@ -143,7 +143,51 @@ looking for it" — is already met. F4's maintenance weight (a pinned custom ffm
 receiver) is the kind of cost that outlives the benefit for a personal tool; stopping here
 with everything documented is a legitimate outcome, not a failure.
 
-## 9. Questions for the reviewer
+## 9. Amendments (per `SESSION_2026-08-12_SUMMARY_AND_NEXT_review.md`, all accepted)
+
+The reviewed version is preserved at `18ef10c`; corrections below supersede the text above.
+
+1. **Endpoint naming**: every "decode→screen" above means **decode→return from
+   `canvas.present()`**. Scanout/photons were never measured.
+2. **§4 "closed to ±0.2 ms"** overstated: the stage values are cumulative **means**, the
+   23.8 ms a segment **p50** over presented survivors. Correct claim: *mean stage
+   accounting is consistent with the measured p50; the controlled A/B establishes
+   cursor-triggered presentation contention as the dominant removable application-side
+   cost.*
+3. **§1.1 mechanism**: "54 presents/s exceeded a 60 Hz retire rate" is arithmetically
+   impossible (54 < 60). Supported statement: *extra asynchronous cursor presents caused
+   or exposed swap/presentation contention — bursts, vblank phase collisions, or an
+   effective retire rate below nominal; coalescing removed the measured blocking.* No
+   further mechanism experiment needed.
+4. **"Six paired runs"** → **four comparisons across eight runs** (two exploratory
+   baseline/candidate comparisons + two interleaved A/B pairs; A/B/A/B, not
+   counterbalanced).
+5. **§2 bound history** conflated two states: the ORIGINAL formula bound at its
+   **2,000,000-byte ceiling** (20×avg = 2,083,333 exceeded it); the FIRST fix bound at
+   **2.083 MB** via the 20×avg term. Code comment corrected likewise.
+6. **§2 severity wording**: the fix addresses the *observed* cause for this fixed
+   profile; "cannot black-screen this way again" was too strong — oversize rejection
+   still has no recovery signal (one bounded IDR request + loud fail is the recorded
+   hardening design, deliberately NOT an unconditional per-drop request, which could
+   loop into a keyframe storm).
+7. **§6.2 process attribution** ("mediaanalysisd 47.6%…"): observed operationally, not
+   retained as machine-readable evidence. Proof of E2E-invalidity is the measured
+   capture→encode drift (26.6 → ~90 ms).
+8. **§8 F4 numbers**: 17–19 ms is the observed one-frame wait, **not** proven removable
+   by explicit EOP; the 40–45 ms projection is withdrawn. F4 is **declined by default**
+   (reviewer + owner bar both met); its proof plan survives only for a future explicit
+   numeric target, gated on gap 1→0 plus ≥10 ms repeated E2E improvement.
+9. **Hardening landed with these amendments** (commit after `18ef10c`): the byte/chunk
+   pair is now a single-source invariant (`ProtocolConstants.maxTotalChunksPerFrame` +
+   startup precondition `bytes ≤ chunks × payload`), with a boundary regression test
+   accepting the observed 2,697,156-byte keyframe and rejecting advertised-max+1
+   (`jitter-buffer` 8/8 pass). The stale probe comment at the coalescing site now
+   documents the known `local_moved` imprecision to watch in the closure log.
+10. **Closure plan adopted** (review §5): one 60-second run of the shipped default under
+    `docs/MEASUREMENT_PROTOCOL.md`, then **stop by default** — no F4/E3/F1 work without
+    a concrete unmet owner target.
+
+## 10. Questions for the reviewer
 
 1. Is the shipped cursor-coalescing default acceptable as-is, or should the 50 ms
    no-video fallback be tightened/loosened (cursor now redraws at video rate)?

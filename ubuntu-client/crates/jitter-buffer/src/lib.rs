@@ -370,6 +370,44 @@ mod tests {
         assert_eq!(asm.oversize_drops, 1);
     }
 
+    /// Boundary regression for the 2026-08-12 black screen (session review
+    /// §3.2): the observed 2,697,156-byte dense-content 4K HEVC keyframe must
+    /// be ACCEPTED under the shipped limits (8MB / 6144 chunks), the shipped
+    /// byte budget must itself fit the chunk budget
+    /// (bytes <= chunks × payload), and one byte past the advertised maximum
+    /// must still be rejected. If someone drifts these constants apart again,
+    /// this test names the failure directly instead of a silent black screen.
+    #[test]
+    fn shipped_limits_accept_observed_dense_keyframe() {
+        const SHIPPED_MAX_BYTES: u32 = 8_000_000;
+        const SHIPPED_MAX_CHUNKS: u16 = 6144;
+        const PAYLOAD: usize = protocol::constants::MAX_VIDEO_PAYLOAD_BYTES;
+
+        // The matched-pair invariant the host also asserts at startup.
+        assert!(
+            (SHIPPED_MAX_BYTES as usize) <= (SHIPPED_MAX_CHUNKS as usize) * PAYLOAD,
+            "byte budget exceeds what the chunk budget can carry"
+        );
+
+        let mut asm = FrameAssembler::new(SHIPPED_MAX_CHUNKS, SHIPPED_MAX_BYTES);
+
+        // Observed incident keyframe: 2,697,156 bytes -> accepted (metadata
+        // passes validation and the first chunk is stored, not oversize-dropped).
+        let observed_bytes = 2_697_156u32;
+        let observed_chunks =
+            ((observed_bytes as usize + PAYLOAD - 1) / PAYLOAD) as u16;
+        let pf = make_pf(observed_chunks, observed_bytes);
+        let r = asm.process_chunk(&make_pp(1, 0, PAYLOAD as u16), Some(&pf), &vec![0xAB; PAYLOAD]);
+        assert!(r.is_none(), "single chunk of a multi-chunk frame never completes it");
+        assert_eq!(asm.oversize_drops, 0, "observed incident keyframe must be accepted");
+
+        // One byte past the advertised maximum -> rejected.
+        let pf_over = make_pf(SHIPPED_MAX_CHUNKS, SHIPPED_MAX_BYTES + 1);
+        let r = asm.process_chunk(&make_pp(2, 0, PAYLOAD as u16), Some(&pf_over), &vec![0xCD; PAYLOAD]);
+        assert!(r.is_none());
+        assert_eq!(asm.oversize_drops, 1, "advertised-max+1 must be oversize-dropped");
+    }
+
     #[test]
     fn slot_eviction_on_full() {
         let mut asm = FrameAssembler::new(16, 100_000);

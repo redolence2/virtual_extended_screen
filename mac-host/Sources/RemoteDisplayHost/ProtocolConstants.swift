@@ -59,23 +59,35 @@ enum ProtocolConstants {
         return 41 // Level 4.1 for 1080p
     }
 
-    // Max frame bytes — generous to avoid dropping keyframes.
-    // During rapid content changes (drag, video), frames spike well above average.
+    /// Chunk cap advertised in ModeConfirm alongside `maxFrameBytes` — kept
+    /// HERE, next to the byte budget, because they are a matched invariant:
+    /// `maxFrameBytes <= maxTotalChunksPerFrame × maxVideoPayloadBytes`
+    /// (6144 × 1358 = 8,343,552 ≥ 8,000,000 ✔). The 2026-08-12 black screen
+    /// was caused by exactly this pair drifting apart in spirit (byte term
+    /// binding below the chunk budget's implied size).
+    static let maxTotalChunksPerFrame: UInt32 = 6144
+
+    // Max frame bytes — bounds worst-case INTRA size, not average arithmetic.
     static func maxFrameBytes(bitrateBps: UInt32, fps: Double) -> UInt32 {
         let avgFrameBytes = Double(bitrateBps) / 8.0 / fps
-        // 8MB FLOOR, not just a raised ceiling (2026-08-12, second correction):
-        // VideoToolbox honors bitrate on AVERAGE, not per frame. Measured 4K
-        // HEVC intra frames of dense content: 2,445,414 and 2,697,156 bytes.
-        // The old formula's binding term was 20x avg = 2.08MB at 50Mbps/60fps
-        // (the 2MB ceiling was never even reached), so such keyframes were
-        // dropped as oversize by the client assembler; with every subsequent
-        // keyframe also oversize, the WaitingForIDR-gated decoder stayed black
-        // with no recovery path (observed: 42s black, recovery only by luck
-        // when content briefly compressed smaller). A per-frame limit must
-        // bound WORST-CASE INTRA size — which scales with pixels, not with
-        // average bitrate arithmetic. Matched pair with
-        // max_total_chunks_per_frame (HostSession): 8MB / 1358B ≈ 5,891
-        // chunks, covered by its 6144. Client cost: 4 slots x 8MB = 32MB.
-        return UInt32(min(max(avgFrameBytes * 20.0, 8_000_000), 16_000_000))
+        // 8MB FLOOR (2026-08-12, second correction; review-amended history:
+        // the ORIGINAL formula min(20×avg, 2MB) bound at the 2,000,000 CEILING
+        // at 50Mbps/60fps since 20×avg = 2,083,333; the FIRST fix raised only
+        // the ceiling, leaving the 20×avg term binding at 2.083MB — measured
+        // 4K HEVC intra frames of dense content, 2,445,414 and 2,697,156
+        // bytes, exceeded both). VideoToolbox honors bitrate on AVERAGE, not
+        // per frame, so with every subsequent keyframe also oversize the
+        // WaitingForIDR-gated decoder stayed black with no recovery path.
+        // A per-frame limit must bound worst-case intra size, which scales
+        // with pixels, not bitrate arithmetic. Client cost: 4 slots x 8MB.
+        let bytes = UInt32(min(max(avgFrameBytes * 20.0, 8_000_000), 16_000_000))
+        // Fail loudly at startup if the pair ever drifts apart again — a
+        // byte budget the chunk cap cannot carry silently reintroduces the
+        // permanent-black-screen failure (review §3.2).
+        precondition(
+            bytes <= maxTotalChunksPerFrame * UInt32(maxVideoPayloadBytes),
+            "maxFrameBytes \(bytes) exceeds chunk budget \(maxTotalChunksPerFrame) × \(maxVideoPayloadBytes)"
+        )
+        return bytes
     }
 }

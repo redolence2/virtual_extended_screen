@@ -1048,14 +1048,21 @@ async fn main() -> Result<()> {
                     // Also track local mouse movement
                     let mouse = event_pump.mouse_state();
                     let local_moved = mouse.x() != cursor_renderer.x || mouse.y() != cursor_renderer.y;
-                    // Cursor-coalescing probe (LATENCY_CODE_AUDIT_review.md §3):
-                    // a cursor-only present costs a full present() (~14ms
-                    // measured) and blocks the render thread while a freshly
-                    // decoded frame waits in the mailbox (measured pickup wait
-                    // 7.2ms). With RESC_COALESCE_CURSOR=1 the cursor is drawn
-                    // on the NEXT video present instead — except after a
-                    // no-video gap, so the cursor can never freeze on a
-                    // genuinely static stream.
+                    // Cursor coalescing (SHIPPED DEFAULT — see the flag's doc
+                    // comment above for numbers/rollback): a cursor-only
+                    // present cost a full present() (~14ms measured) and
+                    // blocked the render thread while a freshly decoded frame
+                    // waited in the mailbox (7.2ms measured). The cursor is
+                    // drawn on the NEXT video present instead — except after a
+                    // no-video gap, so it can never freeze on a static stream.
+                    // Known imprecision (review 2026-08-13 §4, unreproduced):
+                    // `local_moved` compares the local pointer against
+                    // cursor_renderer even when that holds the REMOTE cursor,
+                    // so a static screen with differing local/remote positions
+                    // could sustain 50ms-fallback presents. Watch the
+                    // video/cursor present counts in the closure log; fix by
+                    // comparing against a single "desired cursor state" if
+                    // cursor-only presents persist on a static screen.
                     let need_render = if coalesce_cursor {
                         new_video_frame
                             || ((cursor_moved || local_moved)
