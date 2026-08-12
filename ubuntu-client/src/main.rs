@@ -894,13 +894,17 @@ async fn main() -> Result<()> {
             // Attribution (audit review §8.2): publication→pickup wait.
             let mut mb_wait_us: u64 = 0;
             let mut mb_wait_n: u64 = 0;
-            let coalesce_cursor = std::env::var("RESC_COALESCE_CURSOR")
-                .map(|v| v == "1")
-                .unwrap_or(false);
-            if coalesce_cursor {
-                log::warn!(
-                    "PROBE: cursor-coalescing ON — cursor-only presents suppressed (50ms no-video fallback)"
-                );
+            // DEFAULT ON since 2026-08-12 (owner verdict: "latency is hardly
+            // perceivable... if you are not intentionally focusing on it, you
+            // will not notice it"). Measured: present() 14.0 -> 0.3ms, mailbox
+            // pickup wait 7.2 -> 0.0ms, decode->present p50 23.8 -> 2.9ms,
+            // reproduced across 6 paired runs. RESC_NO_CURSOR_COALESCE=1
+            // restores the old behaviour (a present per cursor move).
+            let coalesce_cursor = std::env::var("RESC_NO_CURSOR_COALESCE")
+                .map(|v| v != "1")
+                .unwrap_or(true);
+            if !coalesce_cursor {
+                log::warn!("cursor-coalescing DISABLED (RESC_NO_CURSOR_COALESCE=1) — expect ~21ms more present latency");
             }
             let mut last_present_at = std::time::Instant::now();
 
