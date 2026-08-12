@@ -1,0 +1,49 @@
+{
+  "file": "/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/zero_copy/e3b-lowlat-joined.jsonl",
+  "joined": 3014,
+  "presented": 2860,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 3014,
+      "p50": 22.492,
+      "p90": 31.941,
+      "p99": 36.63
+    },
+    "encode_out_to_recv_ms": {
+      "n": 3014,
+      "p50": 4.852,
+      "p90": 11.17,
+      "p99": 23.202
+    },
+    "recv_to_decode_done_ms": {
+      "n": 3014,
+      "p50": 30.384,
+      "p90": 34.983,
+      "p99": 46.101
+    },
+    "decode_done_to_present_ms": {
+      "n": 2860,
+      "p50": 23.531,
+      "p90": 29.77,
+      "p99": 31.576
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 2860,
+      "p50": 84.559,
+      "p90": 91.69,
+      "p99": 106.34
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 3011,
+    "12": 1,
+    "2": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 2859,
+    "2": 1
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}

@@ -1,0 +1,15 @@
+== v1-stages run client log (/tmp/resc-r4-client.log) ==
+== daily-use client log (/tmp/resc4k-client.log) ==
+[2026-08-12T09:54:31Z INFO  renderer] Render stages: upload avg 2.8ms (n=17700), blit+present avg 13.5ms (n=24899)
+[2026-08-12T09:54:38Z INFO  renderer] Render stages: upload avg 2.8ms (n=18000), blit+present avg 13.5ms (n=25313)
+[2026-08-12T09:54:44Z INFO  renderer] Render stages: upload avg 2.8ms (n=18300), blit+present avg 13.5ms (n=25682)
+
+== provenance (sealed 2026-08-12) ==
+The v1-stages run's client log had already rotated off the box /tmp before sealing;
+its counts survive in LATENCY_CODE_AUDIT_review.md §3 (3,000 uploads / 3,519 presents).
+The daily-use lines above are from the LIVE pair (client uptime ~6 min at seal time,
+HEVC 50Mbps, normal desktop use): upload avg 2.8 ms (n=18,300) vs blit+present avg
+13.5 ms (n=25,682) -> 7,382 presents (29%) carried NO new video frame — direct support
+for the review's cursor-only-presentation contention suspect (each such present occupies
+the render thread for the full ~13.5 ms path while a decoded frame may wait in the
+one-slot mailbox).

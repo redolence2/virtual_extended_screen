@@ -1,0 +1,49 @@
+{
+  "file": "/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/zero_copy/b1-noasus-joined.jsonl",
+  "joined": 3265,
+  "presented": 2943,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 3265,
+      "p50": 25.119,
+      "p90": 34.644,
+      "p99": 42.788
+    },
+    "encode_out_to_recv_ms": {
+      "n": 3265,
+      "p50": 6.606,
+      "p90": 12.964,
+      "p99": 28.13
+    },
+    "recv_to_decode_done_ms": {
+      "n": 3265,
+      "p50": 28.17,
+      "p90": 35.538,
+      "p99": 48.594
+    },
+    "decode_done_to_present_ms": {
+      "n": 2943,
+      "p50": 23.297,
+      "p90": 29.279,
+      "p99": 32.792
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 2943,
+      "p50": 85.699,
+      "p90": 100.14,
+      "p99": 110.541
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 3259,
+    "2": 4,
+    "11": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 2940,
+    "2": 3
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}

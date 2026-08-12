@@ -1,0 +1,51 @@
+{
+  "file": "/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/zero_copy/e1b-aud-joined.jsonl",
+  "joined": 3204,
+  "presented": 3015,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 3204,
+      "p50": 25.155,
+      "p90": 34.982,
+      "p99": 43.128
+    },
+    "encode_out_to_recv_ms": {
+      "n": 3204,
+      "p50": 4.458,
+      "p90": 10.619,
+      "p99": 39.471
+    },
+    "recv_to_decode_done_ms": {
+      "n": 3204,
+      "p50": 27.373,
+      "p90": 32.803,
+      "p99": 56.195
+    },
+    "decode_done_to_present_ms": {
+      "n": 3015,
+      "p50": 22.991,
+      "p90": 29.329,
+      "p99": 31.22
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 3015,
+      "p50": 81.464,
+      "p90": 98.326,
+      "p99": 117.461
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 3197,
+    "2": 4,
+    "10": 1,
+    "4": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 3011,
+    "2": 3,
+    "4": 1
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}

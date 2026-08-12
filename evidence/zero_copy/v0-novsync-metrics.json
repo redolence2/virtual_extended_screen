@@ -1,0 +1,47 @@
+{
+  "file": "/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/zero_copy/v0-novsync-joined.jsonl",
+  "joined": 3265,
+  "presented": 2873,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 3265,
+      "p50": 22.433,
+      "p90": 32.139,
+      "p99": 37.486
+    },
+    "encode_out_to_recv_ms": {
+      "n": 3265,
+      "p50": 5.65,
+      "p90": 9.009,
+      "p99": 24.335
+    },
+    "recv_to_decode_done_ms": {
+      "n": 3265,
+      "p50": 25.582,
+      "p90": 39.097,
+      "p99": 62.831
+    },
+    "decode_done_to_present_ms": {
+      "n": 2873,
+      "p50": 20.795,
+      "p90": 29.789,
+      "p99": 32.465
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 2873,
+      "p50": 79.289,
+      "p90": 90.72,
+      "p99": 113.519
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 3263,
+    "5": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 2873
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}

@@ -1,0 +1,49 @@
+{
+  "file": "/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/zero_copy/r2-nv12-joined.jsonl",
+  "joined": 3075,
+  "presented": 2722,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 3075,
+      "p50": 27.481,
+      "p90": 37.682,
+      "p99": 45.725
+    },
+    "encode_out_to_recv_ms": {
+      "n": 3075,
+      "p50": 3.49,
+      "p90": 5.979,
+      "p99": 27.621
+    },
+    "recv_to_decode_done_ms": {
+      "n": 3075,
+      "p50": 27.931,
+      "p90": 43.797,
+      "p99": 62.481
+    },
+    "decode_done_to_present_ms": {
+      "n": 2722,
+      "p50": 22.971,
+      "p90": 30.534,
+      "p99": 32.603
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 2722,
+      "p50": 87.775,
+      "p90": 106.772,
+      "p99": 123.633
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 3069,
+    "2": 4,
+    "11": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 2720,
+    "2": 2
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}
