@@ -1,0 +1,41 @@
+{
+  "file": "evidence/zero_copy/f1-shipped-joined.jsonl",
+  "joined": 0,
+  "presented": 0,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "p99": null
+    },
+    "encode_out_to_recv_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "p99": null
+    },
+    "recv_to_decode_done_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "p99": null
+    },
+    "decode_done_to_present_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "p99": null
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "p99": null
+    }
+  },
+  "ordinal_gap_all": {},
+  "ordinal_gap_presented": {},
+  "ordinal_gap_mode_all": null,
+  "ordinal_gap_mode_presented": null
+}

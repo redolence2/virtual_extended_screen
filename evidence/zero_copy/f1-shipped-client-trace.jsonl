@@ -1,0 +1,8 @@
+{"fields":{"delay_us":5472,"offset_us":1258541435,"seq":1,"uncertainty_us":2736},"kind":"clock","ts_mono_us":23447}
+{"fields":{"delay_us":8922,"offset_us":1258543129,"seq":2,"uncertainty_us":4461},"kind":"clock","ts_mono_us":10026248}
+{"fields":{"delay_us":8820,"offset_us":1258543634,"seq":3,"uncertainty_us":4410},"kind":"clock","ts_mono_us":20026239}
+{"fields":{"delay_us":10309,"offset_us":1258544410,"seq":4,"uncertainty_us":5154},"kind":"clock","ts_mono_us":30027550}
+{"fields":{"delay_us":7460,"offset_us":1258542861,"seq":5,"uncertainty_us":3730},"kind":"clock","ts_mono_us":40025468}
+{"fields":{"delay_us":8455,"offset_us":1258541981,"seq":6,"uncertainty_us":4227},"kind":"clock","ts_mono_us":50026319}
+{"fields":{"delay_us":7958,"offset_us":1258541046,"seq":7,"uncertainty_us":3979},"kind":"clock","ts_mono_us":60025910}
+{"fields":{"decode_emitted":0,"decode_submitted":0,"identity_failures":0,"pending_identities":0,"presents":0,"queue_drops":0,"run_token":"ca1ca614634da207","status":"clean"},"kind":"trace_complete","ts_mono_us":65259312}

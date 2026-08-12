@@ -1,0 +1,16 @@
+{
+  "client_frames": 0,
+  "host_frames": 0,
+  "identity_ambiguities": 0,
+  "identity_failure_records": 0,
+  "joined": 0,
+  "offset_stats": {
+    "median_delay_us": 8455,
+    "min_delay_us": 5472,
+    "sample_count": 7
+  },
+  "pass": false,
+  "presented_joined": 0,
+  "presents": 0,
+  "rejected": {}
+}
