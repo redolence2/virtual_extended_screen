@@ -894,6 +894,15 @@ async fn main() -> Result<()> {
             // Attribution (audit review §8.2): publication→pickup wait.
             let mut mb_wait_us: u64 = 0;
             let mut mb_wait_n: u64 = 0;
+            let coalesce_cursor = std::env::var("RESC_COALESCE_CURSOR")
+                .map(|v| v == "1")
+                .unwrap_or(false);
+            if coalesce_cursor {
+                log::warn!(
+                    "PROBE: cursor-coalescing ON — cursor-only presents suppressed (50ms no-video fallback)"
+                );
+            }
+            let mut last_present_at = std::time::Instant::now();
 
             loop {
                 // Update warm filter from Night Shift control message
@@ -1035,7 +1044,21 @@ async fn main() -> Result<()> {
                     // Also track local mouse movement
                     let mouse = event_pump.mouse_state();
                     let local_moved = mouse.x() != cursor_renderer.x || mouse.y() != cursor_renderer.y;
-                    let need_render = new_video_frame || cursor_moved || local_moved;
+                    // Cursor-coalescing probe (LATENCY_CODE_AUDIT_review.md §3):
+                    // a cursor-only present costs a full present() (~14ms
+                    // measured) and blocks the render thread while a freshly
+                    // decoded frame waits in the mailbox (measured pickup wait
+                    // 7.2ms). With RESC_COALESCE_CURSOR=1 the cursor is drawn
+                    // on the NEXT video present instead — except after a
+                    // no-video gap, so the cursor can never freeze on a
+                    // genuinely static stream.
+                    let need_render = if coalesce_cursor {
+                        new_video_frame
+                            || ((cursor_moved || local_moved)
+                                && last_present_at.elapsed() >= Duration::from_millis(50))
+                    } else {
+                        new_video_frame || cursor_moved || local_moved
+                    };
 
                     if need_render {
                         if let Some(ref mut r) = renderer_opt {
@@ -1049,6 +1072,7 @@ async fn main() -> Result<()> {
                                 cursor_renderer.update(mouse.x(), mouse.y(), 0);
                             }
                             r.present_with_cursor(&cursor_renderer, new_video_frame);
+                            last_present_at = std::time::Instant::now();
 
                             // A00_REMEDIATION_PLAN.md §4 item 8 (schema FROZEN):
                             // stamped immediately adjacent to the successful
