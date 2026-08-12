@@ -1,0 +1,47 @@
+{
+  "file": "/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/zero_copy/ab1-cand1-joined.jsonl",
+  "joined": 1118,
+  "presented": 1073,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 1118,
+      "p50": 95.814,
+      "p90": 111.855,
+      "p99": 124.671
+    },
+    "encode_out_to_recv_ms": {
+      "n": 1118,
+      "p50": 14.218,
+      "p90": 19.056,
+      "p99": 35.215
+    },
+    "recv_to_decode_done_ms": {
+      "n": 1118,
+      "p50": 81.712,
+      "p90": 101.091,
+      "p99": 153.215
+    },
+    "decode_done_to_present_ms": {
+      "n": 1073,
+      "p50": 2.964,
+      "p90": 10.074,
+      "p99": 15.74
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 1073,
+      "p50": 198.901,
+      "p90": 220.708,
+      "p99": 240.541
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 1116,
+    "2": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 1073
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}

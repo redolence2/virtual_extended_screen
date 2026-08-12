@@ -1,0 +1,47 @@
+{
+  "file": "/Users/moyunfei/Downloads/personal/AGI/remote_extended_screen/evidence/zero_copy/ab1-base2-joined.jsonl",
+  "joined": 1134,
+  "presented": 1100,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 1134,
+      "p50": 90.143,
+      "p90": 108.222,
+      "p99": 126.301
+    },
+    "encode_out_to_recv_ms": {
+      "n": 1134,
+      "p50": 13.899,
+      "p90": 19.491,
+      "p99": 35.185
+    },
+    "recv_to_decode_done_ms": {
+      "n": 1134,
+      "p50": 63.582,
+      "p90": 83.506,
+      "p99": 165.526
+    },
+    "decode_done_to_present_ms": {
+      "n": 1100,
+      "p50": 22.56,
+      "p90": 29.929,
+      "p99": 31.132
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 1100,
+      "p50": 195.033,
+      "p90": 216.874,
+      "p99": 251.014
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 1132,
+    "4": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 1100
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}

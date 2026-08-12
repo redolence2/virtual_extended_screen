@@ -91,6 +91,36 @@ Secondary observation worth its own check: sustained 4K60 HEVC encode may degrad
 Mac over tens of minutes in ORDINARY use too — the owner's daily sessions run for hours.
 Not measured; recorded.
 
+## 4b. Interleaved A/B (`ab1-*`, all four PASS) — client win confirmed 4×, E2E still host-bound
+
+| run | joined | cap→enc p50 | **decode→present p50** | E2E p50 |
+|---|---:|---:|---:|---:|
+| ab1-base1 | 1294 | 90.1 | **22.99** | 203.9 |
+| ab1-cand1 | 1118 | 95.8 | **2.96** | 198.9 |
+| ab1-base2 | 1134 | 90.1 | **22.56** | 195.0 |
+| ab1-cand2 | 1090 | 90.6 | **2.91** | 192.1 |
+
+Interleaving was the right design: the client-side effect is identical in both pairs
+(~23 → ~2.9 ms, now **reproduced across 4 paired runs plus p1/p2** = 6 total), while
+E2E moved only −5.0 / −2.9 ms because `capture→encode` sat at ~90 ms — the host was
+saturated, so frames queued upstream and the downstream win could not propagate.
+
+**Environment root cause (found, not guessed).** With the owner away the Mac went idle
+and its own background work took over: `WindowServer` 79.4%, `mediaanalysisd` (photo
+library analysis) 47.6%, `WallpaperAerialsExtension` (animated aerial desktop wallpaper)
+33.8%, `loginwindow` 36.4%; load average peaked ~34. That starves ScreenCaptureKit and
+the encoder — capture→encode 26.6 ms (owner present, morning) → ~90 ms (idle-Mac
+afternoon). `caffeinate -disu` suppresses idle-triggered work but the aerial wallpaper
+animates whenever the desktop is visible; it is an owner setting and was NOT changed.
+
+**Measurement rules this establishes** (for every future run): hold the Mac awake with
+`caffeinate` for the run's duration; record top-CPU processes and load average alongside
+the metrics; treat any run whose `capture→encode` p50 exceeds ~30 ms as host-bound and
+therefore useless for E2E comparison; close scripted-workload windows between runs.
+
+**Product note (unmeasured, recorded):** the same idle-time macOS work will degrade the
+owner's screen if the Mac is left idle while the remote display stays up.
+
 ## 5. State / next
 
 - Committed: attribution build, black-screen fix (+ oversize logging), coalescing probe,
