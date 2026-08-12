@@ -328,12 +328,16 @@ final class HostSession {
         appendProtoUInt32(&mc, field: 13, value: bitrateBps)  // bitrate_bps
         appendProtoUInt32(&mc, field: 14, value: 1400)        // max_datagram_bytes
         appendProtoUInt32(&mc, field: 15, value: UInt32(ProtocolConstants.maxVideoPayloadBytes))
-        // 2048, not 512 (native-4K finding, 2026-08-05): real-detail 4K
-        // keyframes exceed 512 chunks (~716KB) — at 512 every keyframe was
-        // oversize-dropped at the client assembler, reference-starving the
-        // decoder into a black screen. 2048 (~2.8MB budget) comfortably
-        // covers maxFrameBytes' 2MB ceiling.
-        appendProtoUInt32(&mc, field: 16, value: 2048)        // max_total_chunks_per_frame (supports 4K IDR spikes)
+        // 6144 chunks (~8.3MB budget), matched to maxFrameBytes' raised 8MB
+        // ceiling. History: 512 (~716KB) black-screened real-detail 4K
+        // keyframes (2026-08-05); 2048 (~2.8MB) then black-screened
+        // high-entropy 4K content on 2026-08-12 — a scripted dense-text
+        // workload produced a 2,697,156-byte keyframe that exceeded the 2MB
+        // byte cap, and since every subsequent keyframe was also oversize the
+        // gated decoder never recovered (decode_emitted=0 for the whole run).
+        // These two limits are a matched pair: raise them together or the
+        // narrower one silently reintroduces the same permanent black screen.
+        appendProtoUInt32(&mc, field: 16, value: 6144)        // max_total_chunks_per_frame (4K IDR spikes incl. high-entropy content)
         appendProtoUInt32(&mc, field: 17, value: maxFrameBytes) // max_frame_bytes
         appendProtoUInt32(&mc, field: 20, value: videoPort)   // video_port
         appendProtoUInt32(&mc, field: 21, value: videoPort + 1) // input_udp_port

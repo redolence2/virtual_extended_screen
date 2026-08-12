@@ -63,6 +63,14 @@ enum ProtocolConstants {
     // During rapid content changes (drag, video), frames spike well above average.
     static func maxFrameBytes(bitrateBps: UInt32, fps: Double) -> UInt32 {
         let avgFrameBytes = Double(bitrateBps) / 8.0 / fps
-        return UInt32(min(avgFrameBytes * 20.0, 2_000_000)) // 20x avg, cap 2MB
+        // 8MB cap (2026-08-12): VideoToolbox honors the bitrate on AVERAGE,
+        // not per frame — a 4K intra frame of high-entropy content measured
+        // 2,697,156 bytes against the old 2MB cap, and the client's assembler
+        // dropped it (and every later keyframe) as oversize, leaving the
+        // gated decoder permanently black with no recovery path. The cap must
+        // bound worst-case intra size, not average-frame arithmetic. Matched
+        // pair with max_total_chunks_per_frame (HostSession) — raise together.
+        // Client cost: 4 assembler slots x 8MB = 32MB RSS.
+        return UInt32(min(avgFrameBytes * 20.0, 8_000_000)) // 20x avg, cap 8MB
     }
 }
