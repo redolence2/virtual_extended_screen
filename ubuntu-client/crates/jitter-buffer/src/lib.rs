@@ -149,16 +149,28 @@ impl FrameAssembler {
 
         // Frame-metadata validation (only when per_frame is present, i.e. chunk_id==0)
         if let Some(meta) = per_frame {
-            if meta.total_chunks > self.max_chunks_per_frame {
+            // Oversize drops were silent until 2026-08-12, when an oversize
+            // KEYFRAME (2.4-2.7MB vs a 2.08MB limit) black-screened a whole
+            // run: the gated decoder never got an IDR and the only visible
+            // symptom was a "frame_drops" counter ticking by one. Log it —
+            // rate-limited, and never quietly for a keyframe, which is the
+            // unrecoverable case.
+            let oversize = meta.total_chunks > self.max_chunks_per_frame
+                || meta.total_bytes > self.max_frame_bytes;
+            if oversize {
                 slot.active = false;
                 self.frames_dropped += 1;
                 self.oversize_drops += 1;
-                return None;
-            }
-            if meta.total_bytes > self.max_frame_bytes {
-                slot.active = false;
-                self.frames_dropped += 1;
-                self.oversize_drops += 1;
+                if meta.is_keyframe || self.oversize_drops % 60 == 1 {
+                    log::error!(
+                        "OVERSIZE DROP{}: frame {} is {}B/{} chunks, limits {}B/{} chunks — \
+                         raise host max_frame_bytes/max_total_chunks_per_frame{}",
+                        if meta.is_keyframe { " (KEYFRAME — decoder cannot recover)" } else { "" },
+                        per_packet.frame_id, meta.total_bytes, meta.total_chunks,
+                        self.max_frame_bytes, self.max_chunks_per_frame,
+                        if meta.is_keyframe { "; screen stays black until a smaller keyframe arrives" } else { "" },
+                    );
+                }
                 return None;
             }
             slot.metadata = Some(*meta);

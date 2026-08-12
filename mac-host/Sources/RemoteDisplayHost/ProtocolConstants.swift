@@ -63,14 +63,19 @@ enum ProtocolConstants {
     // During rapid content changes (drag, video), frames spike well above average.
     static func maxFrameBytes(bitrateBps: UInt32, fps: Double) -> UInt32 {
         let avgFrameBytes = Double(bitrateBps) / 8.0 / fps
-        // 8MB cap (2026-08-12): VideoToolbox honors the bitrate on AVERAGE,
-        // not per frame — a 4K intra frame of high-entropy content measured
-        // 2,697,156 bytes against the old 2MB cap, and the client's assembler
-        // dropped it (and every later keyframe) as oversize, leaving the
-        // gated decoder permanently black with no recovery path. The cap must
-        // bound worst-case intra size, not average-frame arithmetic. Matched
-        // pair with max_total_chunks_per_frame (HostSession) — raise together.
-        // Client cost: 4 assembler slots x 8MB = 32MB RSS.
-        return UInt32(min(avgFrameBytes * 20.0, 8_000_000)) // 20x avg, cap 8MB
+        // 8MB FLOOR, not just a raised ceiling (2026-08-12, second correction):
+        // VideoToolbox honors bitrate on AVERAGE, not per frame. Measured 4K
+        // HEVC intra frames of dense content: 2,445,414 and 2,697,156 bytes.
+        // The old formula's binding term was 20x avg = 2.08MB at 50Mbps/60fps
+        // (the 2MB ceiling was never even reached), so such keyframes were
+        // dropped as oversize by the client assembler; with every subsequent
+        // keyframe also oversize, the WaitingForIDR-gated decoder stayed black
+        // with no recovery path (observed: 42s black, recovery only by luck
+        // when content briefly compressed smaller). A per-frame limit must
+        // bound WORST-CASE INTRA size — which scales with pixels, not with
+        // average bitrate arithmetic. Matched pair with
+        // max_total_chunks_per_frame (HostSession): 8MB / 1358B ≈ 5,891
+        // chunks, covered by its 6144. Client cost: 4 slots x 8MB = 32MB.
+        return UInt32(min(max(avgFrameBytes * 20.0, 8_000_000), 16_000_000))
     }
 }
