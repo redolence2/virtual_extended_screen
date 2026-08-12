@@ -130,3 +130,27 @@ owner's screen if the Mac is left idle while the remote display stays up.
   (c) cooled interleaved E2E A/B to quantify the end-to-end gain.
 - F1 (AVFrame move) unchanged in status: gate on a measured ≥1.5–2 ms copy cost; the
   upload timer (2.5–3.1 ms, includes the SDL upload itself) has not isolated the copy.
+
+## 6. CLOSURE (2026-08-13): the campaign's final measured number
+
+`closure1` — one 60 s run of the shipped default per the session review §5 sequence:
+single display lifecycle, scripted source-text workload, `caffeinate` held, environment
+recorded (load 2.03→3.61, no saturating processes), host via the roulette-proof sshd
+path (`HOST_VIA_SSHD=1`; the agent identity's Screen Recording grant was re-revoked by
+the beta and survived toggle+app-restart — the sshd manual grant has survived every
+re-roll). Joiner **PASS**, 3,367 joined / 3,255 presented, 0 identity failures, gap 1,
+capture→encode p50 **24.2 ms** (< 30 ms validity threshold).
+
+| application-latency endpoint | p50 | p90 |
+|---|---:|---:|
+| capture → encode out | 24.2 | 32.8 |
+| encode out → receive | 4.0 | 11.8 |
+| receive → decode done | 25.6 | 41.1 |
+| decode done → present-return | **4.2** | 8.6 |
+| **E2E capture → present-return** | **63.3** | **79.0** |
+
+Campaign totals (all application-endpoint, same rig): **162.0 → 63.3 ms p50**
+(**2.56×**), p90 177.9 → 79.0, with cable-level sharpness, working input, and a
+one-click launcher. Optimization branch **CLOSED** per review §5: no further latency
+work without a new concrete owner target (reopen order: E3 anomaly → F1 gate → F4
+throwaway proof).

@@ -1,0 +1,12 @@
+== run start Thu Aug 13 00:56:47 JST 2026 ==
+ 0:56  up  1:36, 1 user, load averages: 2.03 2.54 3.23
+ 27.4%cpu /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+ 21.8%cpu /Applications/Claude.app/Contents/Frameworks/Claude
+ 17.1%cpu /Applications/Claude.app/Contents/Frameworks/Claude
+ %CPU%cpu COMMAND
+== run end Thu Aug 13 00:58:03 JST 2026 ==
+ 0:58  up  1:37, 2 users, load averages: 3.61 2.91 3.31
+ 36.4%cpu /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+ 34.8%cpu /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+ 19.4%cpu /Applications/Claude.app/Contents/Frameworks/Claude
+ 18.5%cpu /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter

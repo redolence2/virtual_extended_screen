@@ -1,0 +1,49 @@
+{
+  "file": "evidence/zero_copy/closure1-joined.jsonl",
+  "joined": 3367,
+  "presented": 3255,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 3367,
+      "p50": 24.169,
+      "p90": 32.842,
+      "p99": 37.785
+    },
+    "encode_out_to_recv_ms": {
+      "n": 3367,
+      "p50": 4.044,
+      "p90": 11.78,
+      "p99": 22.545
+    },
+    "recv_to_decode_done_ms": {
+      "n": 3367,
+      "p50": 25.57,
+      "p90": 41.063,
+      "p99": 52.718
+    },
+    "decode_done_to_present_ms": {
+      "n": 3255,
+      "p50": 4.155,
+      "p90": 8.576,
+      "p99": 20.893
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 3255,
+      "p50": 63.312,
+      "p90": 79.03,
+      "p99": 91.305
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 3360,
+    "2": 5,
+    "9": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 3250,
+    "2": 5
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}

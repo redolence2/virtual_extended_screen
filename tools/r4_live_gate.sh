@@ -84,20 +84,57 @@ echo "== preflight: archive any old host trace =="
 mkdir -p "$HOST_TRACE_DIR"
 [ -f "$HOST_TRACE_DIR/host-trace.jsonl" ] && mv "$HOST_TRACE_DIR/host-trace.jsonl" "$HOST_TRACE_DIR/host-trace.pre-r4.jsonl"
 
+# Measurement protocol (SESSION_2026-08-12 review §5/§6): hold the Mac awake
+# for the run's lifetime and record the host environment beside the metrics —
+# an idle Mac's background work (mediaanalysisd/wallpaper/WindowServer) was
+# measured driving capture->encode 26.6 -> ~90ms, silently invalidating E2E.
+caffeinate -disu -w $$ &
+ENVREC="$EVID/$RUN_TAG-env.txt"
+{
+  echo "== run start $(date) =="
+  uptime
+  ps aux | sort -rk3 | head -4 | awk '{printf "%5s%%cpu %s\n", $3, $11}'
+} > "$ENVREC"
+
 echo "== preflight: fresh client trace dir on box =="
 ssh "$BOX" 'rm -rf /tmp/resc-r4-trace && mkdir -p /tmp/resc-r4-trace'
 
 echo "== start host (Mac, RESC_TRACE=1, args: ${HOST_ARGS:---client 192.168.50.47 --hevc}) =="
 cd "$REPO/mac-host"
-# HOST_ARGS env-overridable (native-4K measurement runs pass
-# "2160 3840 60 --client 192.168.50.47"); default unchanged.
-RESC_TRACE=1 ./.build/debug/remote-display-host ${HOST_ARGS:---client 192.168.50.47 --hevc} \
-  > /tmp/r4-host.log 2>&1 &
-HOST_PID=$!
-echo "host pid: $HOST_PID"
-sleep 8
-if ! kill -0 "$HOST_PID" 2>/dev/null; then
-  echo "HOST DIED EARLY — log tail:"; tail -20 /tmp/r4-host.log; exit 2
+if [ -n "$HOST_VIA_SSHD" ]; then
+  # TCC-roulette-proof path (2026-08-13): the agent shell's Screen Recording
+  # grant has been silently revoked by this beta 4+ times, killing capture
+  # (empty traces, joiner FAIL). The sshd identity's manually-added grant
+  # (sshd-keygen-wrapper, pane "+" button) has survived every re-roll, so
+  # HOST_VIA_SSHD=1 starts the host exactly the way the Dock launcher does.
+  # Termination falls back to pkill-by-name with the same fail-on-timeout
+  # gate semantics (HOST_PID stays empty).
+  ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 localhost \
+    "cd '$REPO/mac-host' && RESC_TRACE=1 nohup ./.build/debug/remote-display-host ${HOST_ARGS:---client 192.168.50.47 --hevc} < /dev/null > /tmp/r4-host.log 2>&1 & echo '  host spawned (sshd identity)'" </dev/null
+  HOST_PID=""
+  sleep 8
+  if ! pgrep remote-display >/dev/null 2>&1; then
+    echo "HOST DIED EARLY — log tail:"; tail -20 /tmp/r4-host.log; exit 2
+  fi
+  if ! grep -q "Capture started" /tmp/r4-host.log; then
+    echo "HOST HAS NO CAPTURE (permission?) — log tail:"; tail -8 /tmp/r4-host.log
+    pkill -TERM remote-display-host; exit 2
+  fi
+else
+  # HOST_ARGS env-overridable (native-4K measurement runs pass
+  # "2160 3840 60 --client 192.168.50.47"); default unchanged.
+  RESC_TRACE=1 ./.build/debug/remote-display-host ${HOST_ARGS:---client 192.168.50.47 --hevc} \
+    > /tmp/r4-host.log 2>&1 &
+  HOST_PID=$!
+  echo "host pid: $HOST_PID"
+  sleep 8
+  if ! kill -0 "$HOST_PID" 2>/dev/null; then
+    echo "HOST DIED EARLY — log tail:"; tail -20 /tmp/r4-host.log; exit 2
+  fi
+  if ! grep -q "Capture started" /tmp/r4-host.log; then
+    echo "HOST HAS NO CAPTURE (permission?) — log tail:"; tail -8 /tmp/r4-host.log
+    kill -TERM "$HOST_PID" 2>/dev/null; exit 2
+  fi
 fi
 
 echo "== start client (box, RESC_TRACE=1, DISPLAY=:0) =="
@@ -182,14 +219,32 @@ fi
 ssh "$BOX" 'echo "client log tail:"; tail -8 /tmp/resc-r4-client.log' </dev/null
 
 # Only now — with the client's footer safely on disk — terminate the host.
-kill -TERM "$HOST_PID" 2>/dev/null
-if wait_for_local_exit "$HOST_PID" "$TERM_TIMEOUT_S"; then
-  echo "host exited cleanly"
+if [ -n "$HOST_PID" ]; then
+  kill -TERM "$HOST_PID" 2>/dev/null
+  if wait_for_local_exit "$HOST_PID" "$TERM_TIMEOUT_S"; then
+    echo "host exited cleanly"
+  else
+    echo "HOST TERMINATION FAILED (forced SIGKILL) — gate FAILS"
+    GATE_FAILED=1
+  fi
+  HOST_PID=""
 else
-  echo "HOST TERMINATION FAILED (forced SIGKILL) — gate FAILS"
-  GATE_FAILED=1
+  # sshd-spawned host: terminate by name, same fail-on-timeout semantics.
+  pkill -TERM remote-display-host 2>/dev/null
+  waited=0
+  while pgrep remote-display >/dev/null 2>&1; do
+    if [ "$waited" -ge "$TERM_TIMEOUT_S" ]; then
+      echo "TIMEOUT: host (by name) did not exit within ${TERM_TIMEOUT_S}s — sending SIGKILL" >&2
+      pkill -9 remote-display-host 2>/dev/null
+      echo "HOST TERMINATION FAILED (forced SIGKILL) — gate FAILS"
+      GATE_FAILED=1
+      break
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  [ "$GATE_FAILED" -eq 0 ] && echo "host exited cleanly"
 fi
-HOST_PID=""
 
 if [ "$GATE_FAILED" -ne 0 ]; then
   echo "== gate FAILED: termination was not clean on both sides; no join attempted =="
@@ -225,4 +280,9 @@ cat "$EVID/$RUN_TAG-join-summary.json"
 echo
 echo "== host log tail =="
 tail -6 /tmp/r4-host.log
+{
+  echo "== run end $(date) =="
+  uptime
+  ps aux | sort -rk3 | head -4 | awk '{printf "%5s%%cpu %s\n", $3, $11}'
+} >> "$ENVREC"
 exit $JOIN_EXIT
