@@ -361,7 +361,15 @@ float RESCGetNightShiftStrength(void) {
     dispatch_source_set_event_handler(timer, ^{
         __typeof__(self) s = weakSelf;
         if (!s) return;
-        if (![s selectRetinaModeOnDisplay:did pixelWidth:width pixelHeight:height]) {
+        // Topology changes RENUMBER the virtual display (observed live
+        // 2026-08-08: unplugging a physical display moved it 14 -> 15,
+        // reverted it to 1x, and the STALE id kept serving a cached
+        // healthy-looking mode — so a captured id makes this check pass
+        // against a ghost while the real display sits blurry). Re-read
+        // the live id from the CGVirtualDisplay object every tick.
+        CGDirectDisplayID liveID = s.displayID;
+        if (liveID == kCGNullDirectDisplay) return;
+        if (![s selectRetinaModeOnDisplay:liveID pixelWidth:width pixelHeight:height]) {
             NSLog(@"[RESC] WARNING: Retina re-assert failed (mode missing?) — will retry");
         }
     });

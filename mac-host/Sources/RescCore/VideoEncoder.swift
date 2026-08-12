@@ -106,20 +106,34 @@ public final class VideoEncoder {
             profileLevel = kVTProfileLevel_HEVC_Main_AutoLevel
         }
 
+        // nil/nil (native-4K experiment, 2026-08-06): the OpenDisplay
+        // session — same silicon, same 2160x3840 — encodes in <=20ms
+        // where ours took ~41ms; its creation passes NO encoder
+        // specification and NO image-buffer attributes, letting VT pick
+        // its preferred encoder instance and buffer path. Hardware use
+        // is verified at runtime via the UsingHardwareAccelerated query
+        // logged below, so the explicit Enable dict adds nothing.
+        //
+        // E3 probe (POST_HEVC_LATENCY_PLAN_review.md §4): RESC_LOWLAT=1
+        // selects Apple's low-latency rate-control encoder instead —
+        // documented for conferencing/cloud-gaming; measured, not assumed.
+        // Forced-keyframe behavior is a hard gate (Apple documents
+        // infinite-GOP tendencies in this mode).
+        var encoderSpec: CFDictionary? = nil
+        if ProcessInfo.processInfo.environment["RESC_LOWLAT"] == "1" {
+            encoderSpec = [
+                kVTVideoEncoderSpecification_EnableLowLatencyRateControl: kCFBooleanTrue as Any
+            ] as CFDictionary
+            print("[RESC] E3 LOW-LATENCY RATE CONTROL requested (RESC_LOWLAT=1)")
+        }
+
         var session: VTCompressionSession?
         let status = VTCompressionSessionCreate(
             allocator: kCFAllocatorDefault,
             width: config.width,
             height: config.height,
             codecType: codecType,
-            // nil/nil (native-4K experiment, 2026-08-06): the OpenDisplay
-            // session — same silicon, same 2160x3840 — encodes in <=20ms
-            // where ours took ~41ms; its creation passes NO encoder
-            // specification and NO image-buffer attributes, letting VT pick
-            // its preferred encoder instance and buffer path. Hardware use
-            // is verified at runtime via the UsingHardwareAccelerated query
-            // logged below, so the explicit Enable dict adds nothing.
-            encoderSpecification: nil,
+            encoderSpecification: encoderSpec,
             imageBufferAttributes: nil,
             compressedDataAllocator: nil,
             outputCallback: nil,
