@@ -1,0 +1,47 @@
+{
+  "file": "evidence/zero_copy/p2-coalesce-joined.jsonl",
+  "joined": 1275,
+  "presented": 1221,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 1275,
+      "p50": 91.408,
+      "p90": 109.428,
+      "p99": 124.155
+    },
+    "encode_out_to_recv_ms": {
+      "n": 1275,
+      "p50": 16.292,
+      "p90": 25.078,
+      "p99": 42.737
+    },
+    "recv_to_decode_done_ms": {
+      "n": 1275,
+      "p50": 56.841,
+      "p90": 86.878,
+      "p99": 110.071
+    },
+    "decode_done_to_present_ms": {
+      "n": 1221,
+      "p50": 2.769,
+      "p90": 5.249,
+      "p99": 14.074
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 1221,
+      "p50": 173.624,
+      "p90": 201.939,
+      "p99": 223.665
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 1273,
+    "3": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 1221
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}

@@ -1,0 +1,47 @@
+{
+  "file": "evidence/zero_copy/c2-traced-joined.jsonl",
+  "joined": 2082,
+  "presented": 1990,
+  "segments": {
+    "capture_to_encode_out_ms": {
+      "n": 2082,
+      "p50": 39.246,
+      "p90": 55.802,
+      "p99": 127.604
+    },
+    "encode_out_to_recv_ms": {
+      "n": 2082,
+      "p50": 5.773,
+      "p90": 10.432,
+      "p99": 32.222
+    },
+    "recv_to_decode_done_ms": {
+      "n": 2082,
+      "p50": 36.504,
+      "p90": 54.428,
+      "p99": 96.166
+    },
+    "decode_done_to_present_ms": {
+      "n": 1990,
+      "p50": 23.818,
+      "p90": 29.356,
+      "p99": 31.11
+    },
+    "e2e_capture_to_present_ms": {
+      "n": 1990,
+      "p50": 108.951,
+      "p90": 143.66,
+      "p99": 223.72
+    }
+  },
+  "ordinal_gap_all": {
+    "1": 2080,
+    "7": 1,
+    "0": 1
+  },
+  "ordinal_gap_presented": {
+    "1": 1990
+  },
+  "ordinal_gap_mode_all": 1,
+  "ordinal_gap_mode_presented": 1
+}
