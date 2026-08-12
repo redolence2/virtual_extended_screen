@@ -23,12 +23,16 @@ pub struct Renderer {
     /// touched when `warm_strength > 0` — the warm==0 path uploads the
     /// decoded planes directly with zero renderer-side copies).
     warm_scratch: Vec<u8>,
-    // Stage timers (vsync-model falsification follow-up): name the owner of
-    // the decode→present segment by measurement. Logged every 300 uploads.
+    // Attribution timers (LATENCY_CODE_AUDIT_review.md §8.2): separate the
+    // decode→present segment into named stages, and split presents into
+    // video-triggered vs cursor-only (the review's contention suspect).
+    // Logged every 300 uploads.
     upload_us_sum: u64,
     upload_n: u64,
-    present_us_sum: u64,
-    present_n: u64,
+    draw_us_sum: u64,
+    present_call_us_sum: u64,
+    video_present_n: u64,
+    cursor_present_n: u64,
     /// Night Shift warm filter strength: 0.0=off, 1.0=max warm.
     pub warm_strength: f32,
 }
@@ -166,6 +170,14 @@ impl Renderer {
 
         let texture_creator = canvas.texture_creator();
         log::info!("Renderer ready on display {} ({}x{})", display_index, width, height);
+        // F2-probe groundwork (audit review §5.1): record what the window
+        // actually is before hypothesizing about the compositor.
+        log::info!(
+            "SDL attribution: video_driver={}, renderer={}, output={:?}",
+            video.current_video_driver(),
+            canvas.info().name,
+            canvas.output_size().unwrap_or((0, 0))
+        );
 
         Ok(Self {
             canvas,
@@ -177,8 +189,10 @@ impl Renderer {
             warm_scratch: Vec::new(),
             upload_us_sum: 0,
             upload_n: 0,
-            present_us_sum: 0,
-            present_n: 0,
+            draw_us_sum: 0,
+            present_call_us_sum: 0,
+            video_present_n: 0,
+            cursor_present_n: 0,
             warm_strength: 0.0,
         })
     }
@@ -272,13 +286,16 @@ impl Renderer {
         }
         self.upload_us_sum += upload_start.elapsed().as_micros() as u64;
         self.upload_n += 1;
-        if self.upload_n % 300 == 0 && self.upload_n > 0 && self.present_n > 0 {
+        let presents = self.video_present_n + self.cursor_present_n;
+        if self.upload_n % 300 == 0 && presents > 0 {
             log::info!(
-                "Render stages: upload avg {:.1}ms (n={}), blit+present avg {:.1}ms (n={})",
+                "Render stages: upload {:.1}ms (n={}), draw {:.1}ms, present() {:.1}ms, presents video/cursor {}/{}",
                 self.upload_us_sum as f64 / self.upload_n as f64 / 1000.0,
                 self.upload_n,
-                self.present_us_sum as f64 / self.present_n as f64 / 1000.0,
-                self.present_n
+                self.draw_us_sum as f64 / presents as f64 / 1000.0,
+                self.present_call_us_sum as f64 / presents as f64 / 1000.0,
+                self.video_present_n,
+                self.cursor_present_n
             );
         }
 
@@ -304,8 +321,11 @@ impl Renderer {
     }
 
     /// Render cached video + cursor overlay via persistent texture.
-    pub fn present_with_cursor(&mut self, cursor: &CursorRenderer) {
-        let present_start = std::time::Instant::now();
+    /// `is_video_frame` distinguishes a present carrying a freshly uploaded
+    /// video frame from a cursor-only redraw of the resident texture — the
+    /// attribution split the audit review requires.
+    pub fn present_with_cursor(&mut self, cursor: &CursorRenderer, is_video_frame: bool) {
+        let draw_start = std::time::Instant::now();
         let rotated = self.is_rotated();
 
         let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
@@ -337,9 +357,15 @@ impl Renderer {
                 }
             }
         }
+        self.draw_us_sum += draw_start.elapsed().as_micros() as u64;
+        let present_start = std::time::Instant::now();
         self.canvas.present();
-        self.present_us_sum += present_start.elapsed().as_micros() as u64;
-        self.present_n += 1;
+        self.present_call_us_sum += present_start.elapsed().as_micros() as u64;
+        if is_video_frame {
+            self.video_present_n += 1;
+        } else {
+            self.cursor_present_n += 1;
+        }
     }
 
     pub fn present(&mut self) {

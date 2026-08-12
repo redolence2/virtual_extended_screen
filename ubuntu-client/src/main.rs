@@ -527,19 +527,29 @@ async fn main() -> Result<()> {
     // trace-footer machinery stays in the decode thread (C3 semantics
     // unchanged); presents cross via an atomic for the footer.
     struct FrameMailbox {
-        inner: std::sync::Mutex<(Option<video_decode::DecodedFrame>, bool)>, // (newest, closed)
+        // (newest + its publication instant, closed)
+        inner: std::sync::Mutex<(Option<(video_decode::DecodedFrame, std::time::Instant)>, bool)>,
         cvar: std::sync::Condvar,
+        /// Attribution (audit review §8.2): frames overwritten before pickup.
+        sheds: std::sync::atomic::AtomicU64,
     }
     impl FrameMailbox {
         fn new() -> Self {
-            Self { inner: std::sync::Mutex::new((None, false)), cvar: std::sync::Condvar::new() }
+            Self {
+                inner: std::sync::Mutex::new((None, false)),
+                cvar: std::sync::Condvar::new(),
+                sheds: std::sync::atomic::AtomicU64::new(0),
+            }
         }
         fn put(&self, f: video_decode::DecodedFrame) {
             let mut g = self.inner.lock().unwrap();
             // Newest-wins: an overwritten frame is a shed — smoothness cost
             // only; its identity was already resolved at emission in the
             // decode thread, so the ledger/trace contract is untouched.
-            g.0 = Some(f);
+            if g.0.is_some() {
+                self.sheds.fetch_add(1, Ordering::Relaxed);
+            }
+            g.0 = Some((f, std::time::Instant::now()));
             self.cvar.notify_one();
         }
         #[allow(dead_code)]
@@ -548,15 +558,19 @@ async fn main() -> Result<()> {
             g.1 = true;
             self.cvar.notify_one();
         }
-        /// Newest frame if one is (or becomes) available within `wait`;
-        /// also reports the closed flag.
-        fn take_timeout(&self, wait: Duration) -> (Option<video_decode::DecodedFrame>, bool) {
+        /// Newest frame (plus how long it sat between publication and this
+        /// pickup — the audit review's mailbox-wait attribution) if one is
+        /// (or becomes) available within `wait`; also reports the closed flag.
+        fn take_timeout(
+            &self,
+            wait: Duration,
+        ) -> (Option<(video_decode::DecodedFrame, Duration)>, bool) {
             let mut g = self.inner.lock().unwrap();
             if g.0.is_none() && !g.1 {
                 let (ng, _timeout) = self.cvar.wait_timeout(g, wait).unwrap();
                 g = ng;
             }
-            (g.0.take(), g.1)
+            (g.0.take().map(|(f, at)| (f, at.elapsed())), g.1)
         }
     }
     let mailbox = std::sync::Arc::new(FrameMailbox::new());
@@ -877,6 +891,9 @@ async fn main() -> Result<()> {
             // cursor-only redraws too, with no frame reference of its own.
             let mut last_uploaded_recovered_id: Option<u64> = None;
             let trace = diagnostics::trace::ClientTrace::global();
+            // Attribution (audit review §8.2): publication→pickup wait.
+            let mut mb_wait_us: u64 = 0;
+            let mut mb_wait_n: u64 = 0;
 
             loop {
                 // Update warm filter from Night Shift control message
@@ -887,11 +904,24 @@ async fn main() -> Result<()> {
 
                 // Newest decoded frame, waiting at most ~2ms so the event
                 // pump and cursor-only redraws stay responsive without video.
-                let (newest, closed) = mailbox.take_timeout(Duration::from_millis(2));
-                if closed && newest.is_none() {
+                let (taken, closed) = mailbox.take_timeout(Duration::from_millis(2));
+                if closed && taken.is_none() {
                     log::info!("Render stopped: decode side closed the mailbox");
                     return;
                 }
+                let newest = taken.map(|(f, waited)| {
+                    mb_wait_us += waited.as_micros() as u64;
+                    mb_wait_n += 1;
+                    if mb_wait_n % 300 == 0 {
+                        log::info!(
+                            "Mailbox: pickup wait avg {:.1}ms (n={}), sheds={}",
+                            mb_wait_us as f64 / mb_wait_n as f64 / 1000.0,
+                            mb_wait_n,
+                            mailbox.sheds.load(Ordering::Relaxed)
+                        );
+                    }
+                    f
+                });
 
                 let mut new_video_frame = false;
                 if let Some(ref decoded) = newest {
@@ -1018,7 +1048,7 @@ async fn main() -> Result<()> {
                                 // Mac cursor not on virtual display — use local mouse as fallback
                                 cursor_renderer.update(mouse.x(), mouse.y(), 0);
                             }
-                            r.present_with_cursor(&cursor_renderer);
+                            r.present_with_cursor(&cursor_renderer, new_video_frame);
 
                             // A00_REMEDIATION_PLAN.md §4 item 8 (schema FROZEN):
                             // stamped immediately adjacent to the successful
