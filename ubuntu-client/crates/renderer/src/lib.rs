@@ -5,61 +5,56 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
-use video_decode::DecodedFrame;
+use video_decode::{DecodedFrame, FrameFormat};
 pub use cursor_renderer::CursorRenderer;
 
-/// SDL2 fullscreen renderer with persistent texture cache.
-/// Texture is only recreated when frame dimensions change.
+/// SDL2 fullscreen renderer with a RESIDENT texture: planes are uploaded
+/// exactly once per new video frame (`update_frame`); cursor-only redraws
+/// re-blit the resident texture (renderer-cleanup review §3 — the old path
+/// re-ran the full 4K SDL_UpdateYUVTexture on every present).
 pub struct Renderer {
     canvas: Canvas<Window>,
     texture_creator: TextureCreator<WindowContext>,
     width: u32,
     height: u32,
     frame_count: u64,
-    cached_yuv: Option<CachedYUV>,
     persistent_tex: Option<PersistentTexture>,
+    /// Reused UV scratch for the warm filter (allocated once per size; only
+    /// touched when `warm_strength > 0` — the warm==0 path uploads the
+    /// decoded planes directly with zero renderer-side copies).
+    warm_scratch: Vec<u8>,
+    // Stage timers (vsync-model falsification follow-up): name the owner of
+    // the decode→present segment by measurement. Logged every 300 uploads.
+    upload_us_sum: u64,
+    upload_n: u64,
+    present_us_sum: u64,
+    present_n: u64,
     /// Night Shift warm filter strength: 0.0=off, 1.0=max warm.
     pub warm_strength: f32,
 }
 
-struct CachedYUV {
-    y: Vec<u8>,
-    u: Vec<u8>,
-    v: Vec<u8>,
-    y_pitch: usize,
-    u_pitch: usize,
-    v_pitch: usize,
-    w: u32,
-    h: u32,
-}
-
-/// Wraps a Texture with its dimensions for cache invalidation.
+/// Wraps a Texture with its dimensions/format for cache invalidation.
 struct PersistentTexture {
     // SAFETY: texture_creator outlives this texture (both in Renderer).
     // We use raw pointer to avoid SDL2 lifetime constraints.
     tex_ptr: *mut sdl2::sys::SDL_Texture,
     w: u32,
     h: u32,
+    fmt: PixelFormatEnum,
 }
 
 impl PersistentTexture {
-    fn new(tc: &TextureCreator<WindowContext>, w: u32, h: u32) -> Option<Self> {
-        let tex = tc.create_texture_streaming(PixelFormatEnum::IYUV, w, h).ok()?;
+    fn new(tc: &TextureCreator<WindowContext>, w: u32, h: u32, fmt: PixelFormatEnum) -> Option<Self> {
+        let tex = tc.create_texture_streaming(fmt, w, h).ok()?;
         let raw = tex.raw();
         std::mem::forget(tex); // prevent Drop; we manage lifetime manually
-        Some(Self { tex_ptr: raw, w, h })
+        Some(Self { tex_ptr: raw, w, h, fmt })
     }
 
-    fn update_and_copy(&mut self, canvas: &mut Canvas<Window>, yuv: &CachedYUV, canvas_w: u32, canvas_h: u32) {
+    /// Blit the resident texture to the canvas (rotation-aware). No upload
+    /// happens here — that is `Renderer::update_frame`'s job, once per frame.
+    fn blit(&self, canvas: &mut Canvas<Window>, canvas_w: u32, canvas_h: u32) {
         unsafe {
-            sdl2::sys::SDL_UpdateYUVTexture(
-                self.tex_ptr,
-                std::ptr::null(),
-                yuv.y.as_ptr(), yuv.y_pitch as i32,
-                yuv.u.as_ptr(), yuv.u_pitch as i32,
-                yuv.v.as_ptr(), yuv.v_pitch as i32,
-            );
-
             let stream_portrait = self.h > self.w;
             let canvas_portrait = canvas_h > canvas_w;
 
@@ -141,9 +136,17 @@ impl Renderer {
             .build()
             .context("Failed to create SDL window")?;
 
-        let mut canvas = window.into_canvas()
-            .accelerated()
-            .present_vsync()
+        let mut builder = window.into_canvas().accelerated();
+        // Diagnostic switch (vsync-model falsification, ladder-day record):
+        // RESC_NO_VSYNC=1 drops present_vsync so presents never wait for
+        // vblank. Tearing expected — measurement-only, never the default.
+        let no_vsync = std::env::var("RESC_NO_VSYNC").map(|v| v == "1").unwrap_or(false);
+        if no_vsync {
+            log::warn!("DIAGNOSTIC: present_vsync DISABLED (RESC_NO_VSYNC=1) — tearing expected");
+        } else {
+            builder = builder.present_vsync();
+        }
+        let mut canvas = builder
             .build()
             .context("Failed to create SDL canvas")?;
 
@@ -170,66 +173,113 @@ impl Renderer {
             width,
             height,
             frame_count: 0,
-            cached_yuv: None,
             persistent_tex: None,
+            warm_scratch: Vec::new(),
+            upload_us_sum: 0,
+            upload_n: 0,
+            present_us_sum: 0,
+            present_n: 0,
             warm_strength: 0.0,
         })
     }
 
-    /// Update cached YUV data from a decoded frame.
+    /// Upload one new decoded frame into the resident texture. This is the
+    /// ONLY place planes are uploaded; cursor-only redraws re-blit without
+    /// touching pixel data. warm==0 uploads the decoder's planes directly
+    /// (zero renderer-side copies); warm>0 shifts chroma through the reused
+    /// scratch buffer (equivalent UV adjustment to the old baked-in filter).
     pub fn update_frame(&mut self, frame: &DecodedFrame) -> Result<()> {
-        let w = frame.width as usize;
-        let h = frame.height as usize;
-
-        let mut y = vec![0u8; w * h];
-        let mut u = vec![0u8; (w / 2) * (h / 2)];
-        let mut v = vec![0u8; (w / 2) * (h / 2)];
-
-        for row in 0..h {
-            let src = row * frame.strides[0];
-            let dst = row * w;
-            y[dst..dst + w].copy_from_slice(&frame.planes[0][src..src + w]);
-        }
-        for row in 0..h / 2 {
-            let src = row * frame.strides[1];
-            let dst = row * (w / 2);
-            u[dst..dst + w / 2].copy_from_slice(&frame.planes[1][src..src + w / 2]);
-        }
-        for row in 0..h / 2 {
-            let src = row * frame.strides[2];
-            let dst = row * (w / 2);
-            v[dst..dst + w / 2].copy_from_slice(&frame.planes[2][src..src + w / 2]);
-        }
-
-        // Apply warm filter (Night Shift) by shifting UV chrominance
-        if self.warm_strength > 0.0 {
-            let s = self.warm_strength;
-            let u_shift = (-20.0 * s) as i16; // less blue
-            let v_shift = (15.0 * s) as i16;  // more red
-            for val in u.iter_mut() {
-                *val = (*val as i16 + u_shift).clamp(0, 255) as u8;
-            }
-            for val in v.iter_mut() {
-                *val = (*val as i16 + v_shift).clamp(0, 255) as u8;
-            }
-        }
-
-        self.cached_yuv = Some(CachedYUV {
-            y, u, v,
-            y_pitch: w, u_pitch: w / 2, v_pitch: w / 2,
-            w: frame.width, h: frame.height,
-        });
-
-        // Recreate persistent texture only if dimensions changed
+        let fmt = match frame.format {
+            FrameFormat::Nv12 => PixelFormatEnum::NV12,
+            FrameFormat::I420 => PixelFormatEnum::IYUV,
+        };
         let need_new_tex = match &self.persistent_tex {
-            Some(t) => t.w != frame.width || t.h != frame.height,
+            Some(t) => t.w != frame.width || t.h != frame.height || t.fmt != fmt,
             None => true,
         };
         if need_new_tex {
             self.persistent_tex = PersistentTexture::new(
-                &self.texture_creator, frame.width, frame.height
+                &self.texture_creator, frame.width, frame.height, fmt
             );
-            log::info!("Texture cache: created {}x{}", frame.width, frame.height);
+            log::info!("Texture cache: created {}x{} {:?}", frame.width, frame.height, fmt);
+        }
+        let tex_ptr = match &self.persistent_tex {
+            Some(t) => t.tex_ptr,
+            None => return Err(anyhow::anyhow!("texture creation failed")),
+        };
+
+        let s = self.warm_strength;
+        let u_shift = (-20.0 * s) as i16; // less blue
+        let v_shift = (15.0 * s) as i16;  // more red
+
+        let upload_start = std::time::Instant::now();
+        let ret = match frame.format {
+            FrameFormat::Nv12 => {
+                let uv_ptr: *const u8 = if s > 0.0 {
+                    let src = &frame.planes[1];
+                    self.warm_scratch.resize(src.len(), 0);
+                    self.warm_scratch.copy_from_slice(src);
+                    for pair in self.warm_scratch.chunks_exact_mut(2) {
+                        pair[0] = (pair[0] as i16 + u_shift).clamp(0, 255) as u8;
+                        pair[1] = (pair[1] as i16 + v_shift).clamp(0, 255) as u8;
+                    }
+                    self.warm_scratch.as_ptr()
+                } else {
+                    frame.planes[1].as_ptr()
+                };
+                unsafe {
+                    sdl2::sys::SDL_UpdateNVTexture(
+                        tex_ptr,
+                        std::ptr::null(),
+                        frame.planes[0].as_ptr(), frame.strides[0] as i32,
+                        uv_ptr, frame.strides[1] as i32,
+                    )
+                }
+            }
+            FrameFormat::I420 => {
+                let (u_ptr, v_ptr): (*const u8, *const u8) = if s > 0.0 {
+                    let ulen = frame.planes[1].len();
+                    let vlen = frame.planes[2].len();
+                    self.warm_scratch.resize(ulen + vlen, 0);
+                    self.warm_scratch[..ulen].copy_from_slice(&frame.planes[1]);
+                    self.warm_scratch[ulen..].copy_from_slice(&frame.planes[2]);
+                    for b in self.warm_scratch[..ulen].iter_mut() {
+                        *b = (*b as i16 + u_shift).clamp(0, 255) as u8;
+                    }
+                    for b in self.warm_scratch[ulen..].iter_mut() {
+                        *b = (*b as i16 + v_shift).clamp(0, 255) as u8;
+                    }
+                    (
+                        self.warm_scratch.as_ptr(),
+                        self.warm_scratch[ulen..].as_ptr(),
+                    )
+                } else {
+                    (frame.planes[1].as_ptr(), frame.planes[2].as_ptr())
+                };
+                unsafe {
+                    sdl2::sys::SDL_UpdateYUVTexture(
+                        tex_ptr,
+                        std::ptr::null(),
+                        frame.planes[0].as_ptr(), frame.strides[0] as i32,
+                        u_ptr, frame.strides[1] as i32,
+                        v_ptr, frame.strides[2] as i32,
+                    )
+                }
+            }
+        };
+        if ret != 0 {
+            return Err(anyhow::anyhow!("SDL texture update failed: {}", sdl2::get_error()));
+        }
+        self.upload_us_sum += upload_start.elapsed().as_micros() as u64;
+        self.upload_n += 1;
+        if self.upload_n % 300 == 0 && self.upload_n > 0 && self.present_n > 0 {
+            log::info!(
+                "Render stages: upload avg {:.1}ms (n={}), blit+present avg {:.1}ms (n={})",
+                self.upload_us_sum as f64 / self.upload_n as f64 / 1000.0,
+                self.upload_n,
+                self.present_us_sum as f64 / self.present_n as f64 / 1000.0,
+                self.present_n
+            );
         }
 
         self.frame_count += 1;
@@ -255,11 +305,12 @@ impl Renderer {
 
     /// Render cached video + cursor overlay via persistent texture.
     pub fn present_with_cursor(&mut self, cursor: &CursorRenderer) {
+        let present_start = std::time::Instant::now();
         let rotated = self.is_rotated();
 
-        if let (Some(ref yuv), Some(ref mut tex)) = (&self.cached_yuv, &mut self.persistent_tex) {
-            let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
-            tex.update_and_copy(&mut self.canvas, yuv, cw, ch);
+        let (cw, ch) = self.canvas.output_size().unwrap_or((self.width, self.height));
+        if let Some(ref tex) = self.persistent_tex {
+            tex.blit(&mut self.canvas, cw, ch);
         }
 
         if cursor.visible && cursor.x >= 0 && cursor.y >= 0 {
@@ -287,6 +338,8 @@ impl Renderer {
             }
         }
         self.canvas.present();
+        self.present_us_sum += present_start.elapsed().as_micros() as u64;
+        self.present_n += 1;
     }
 
     pub fn present(&mut self) {

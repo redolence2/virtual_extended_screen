@@ -1,7 +1,18 @@
 use anyhow::{Context, Result};
 use std::time::Instant;
 
-/// A decoded video frame with YUV420P pixel data.
+/// Pixel layout of a [`DecodedFrame`]'s planes.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FrameFormat {
+    /// planes = [Y, U, V] (software decode).
+    I420,
+    /// planes = [Y, interleaved UV, (empty)] — the hw-transfer-native layout,
+    /// uploaded directly via SDL_UpdateNVTexture (renderer-cleanup review §3;
+    /// replaces the old scalar NV12→I420 deinterleave).
+    Nv12,
+}
+
+/// A decoded video frame with YUV pixel data (layout per `format`).
 pub struct DecodedFrame {
     pub width: u32,
     pub height: u32,
@@ -13,14 +24,48 @@ pub struct DecodedFrame {
     /// `pts()`, falling back to `best_effort_timestamp()` (`timestamp()`)
     /// when `pts` is unset; `None` when neither is available.
     pub recovered_frame_id: Option<u64>,
-    pub planes: [Vec<u8>; 3],  // Y, U, V
+    pub planes: [Vec<u8>; 3],  // per `format`
     pub strides: [usize; 3],
+    pub format: FrameFormat,
 }
 
 // The W0a no-download probe (RESC_W0A_NO_DOWNLOAD) lived here for the
 // zero-copy causal gate and was removed after its evidence sealed
 // (W0 review §1: env-presence activation was a footgun). Recoverable
 // from git history at f32ba62 if a decode-stage measurement is needed.
+
+/// E1 diagnostic switch (exact value parse, one loud startup warn).
+fn append_aud_enabled() -> bool {
+    use std::sync::OnceLock;
+    static ON: OnceLock<bool> = OnceLock::new();
+    *ON.get_or_init(|| {
+        let on = std::env::var("RESC_APPEND_AUD").map(|v| v == "1").unwrap_or(false);
+        if on {
+            log::warn!(
+                "E1 AUD-APPEND ACTIVE: trailing AUD (00 00 00 01 46 01 50) appended to every fed HEVC AU"
+            );
+        }
+        on
+    })
+}
+
+/// Review requirement: record the exact post-append bytes actually fed
+/// (the pre-decode --dump-h264 tap captures pre-append bytes only).
+fn log_first_aud_append(buf: &[u8]) {
+    use std::sync::Once;
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| {
+        let tail = &buf[buf.len().saturating_sub(16)..];
+        log::info!(
+            "E1 first fed packet: len={} tail16={}",
+            buf.len(),
+            tail.iter()
+                .map(|b| format!("{:02x}", b))
+                .collect::<Vec<_>>()
+                .join(" ")
+        );
+    });
+}
 
 /// Decoder recovery state machine.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -256,7 +301,22 @@ impl VideoDecoder {
             self.frames_since_recovery = 0;
         }
 
-        let mut packet = ffmpeg_next::Packet::copy(data);
+        // E1 (POST_HEVC_LATENCY_PLAN_review.md §2): same-buffer trailing AUD.
+        // An access-unit delimiter is the NEXT AU's opener; appending one
+        // after this complete AU lets the cuvid parser close and emit THIS
+        // picture without waiting ~one frame period for the next frame's
+        // first NAL. HEVC-only; bytes assume the verified stream shape
+        // (layer 0, temporal_id_plus1 1, no native AUDs — see
+        // evidence/zero_copy/bitstream/). Diagnostic, value-parsed switch.
+        let mut packet = if append_aud_enabled() && self.codec_name.to_lowercase().contains("hevc") {
+            let mut buf = Vec::with_capacity(data.len() + 7);
+            buf.extend_from_slice(data);
+            buf.extend_from_slice(&[0x00, 0x00, 0x00, 0x01, 0x46, 0x01, 0x50]);
+            log_first_aud_append(&buf);
+            ffmpeg_next::Packet::copy(&buf)
+        } else {
+            ffmpeg_next::Packet::copy(data)
+        };
         packet.set_pts(Some(frame_id as i64));
         // EAGAIN is backpressure from the bounded surface pool, NOT an
         // error: drain the ready emissions (pool-full implies some exist)
@@ -467,43 +527,40 @@ impl VideoDecoder {
         let h = frame.height() as usize;
         let pix_fmt = frame.format();
 
-        let is_nv12 = pix_fmt == ffmpeg_next::format::Pixel::NV12;
-
         let y_stride = frame.stride(0);
         let y_data: Vec<u8> = frame.data(0)[..y_stride * h].to_vec();
 
-        let (u_data, v_data, u_stride, v_stride) = if is_nv12 {
-            // NV12: plane 1 has interleaved UV (UVUVUV...)
+        if pix_fmt == ffmpeg_next::format::Pixel::NV12 {
+            // NV12 pass-through (renderer-cleanup review §3): keep the
+            // hw-transferred interleaved-UV layout — one tight copy per
+            // plane, no scalar deinterleave, no third plane. The renderer
+            // uploads this directly via SDL_UpdateNVTexture.
             let uv_stride = frame.stride(1);
-            let uv_data = frame.data(1);
-            let half_w = w / 2;
-            let half_h = h / 2;
-            let mut u = vec![0u8; half_w * half_h];
-            let mut v = vec![0u8; half_w * half_h];
-            for row in 0..half_h {
-                let src = &uv_data[row * uv_stride..row * uv_stride + w];
-                for col in 0..half_w {
-                    u[row * half_w + col] = src[col * 2];
-                    v[row * half_w + col] = src[col * 2 + 1];
-                }
-            }
-            (u, v, half_w, half_w)
-        } else {
-            // I420: separate U and V planes
-            let u_stride = frame.stride(1);
-            let v_stride = frame.stride(2);
-            let u = frame.data(1)[..u_stride * (h / 2)].to_vec();
-            let v = frame.data(2)[..v_stride * (h / 2)].to_vec();
-            (u, v, u_stride, v_stride)
-        };
+            let uv = frame.data(1)[..uv_stride * (h / 2)].to_vec();
+            return DecodedFrame {
+                width: w as u32,
+                height: h as u32,
+                timestamp_us,
+                recovered_frame_id,
+                planes: [y_data, uv, Vec::new()],
+                strides: [y_stride, uv_stride, 0],
+                format: FrameFormat::Nv12,
+            };
+        }
 
+        // I420: separate U and V planes
+        let u_stride = frame.stride(1);
+        let v_stride = frame.stride(2);
+        let u = frame.data(1)[..u_stride * (h / 2)].to_vec();
+        let v = frame.data(2)[..v_stride * (h / 2)].to_vec();
         DecodedFrame {
             width: w as u32,
             height: h as u32,
             timestamp_us,
             recovered_frame_id,
-            planes: [y_data, u_data, v_data],
+            planes: [y_data, u, v],
             strides: [y_stride, u_stride, v_stride],
+            format: FrameFormat::I420,
         }
     }
 
